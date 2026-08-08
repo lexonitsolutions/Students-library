@@ -1,0 +1,96 @@
+import { motion } from 'framer-motion';
+import { Edit, Eye, FileUp, Plus, Trash2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Card } from '../components/ui/Card';
+import { Chip } from '../components/ui/Chip';
+import { EmptyState } from '../components/ui/EmptyState';
+import { IconButton } from '../components/ui/IconButton';
+import { myUploads } from '../data/mockData';
+import { materialTypeIcon } from '../lib/materialIcons';
+
+const statusStyles: Record<string, string> = {
+  approved: 'bg-emerald-100 text-emerald-700',
+  pending: 'bg-tertiary-container/20 text-tertiary',
+  rejected: 'bg-error-container text-error',
+};
+
+const statusLabel: Record<string, string> = {
+  approved: 'Approved',
+  pending: 'Pending Review',
+  rejected: 'Rejected',
+};
+
+export function ProfileUploadsPage() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg">My Uploads</h1>
+          <p className="mt-1 text-body-sm text-on-surface-variant">Manage your contributed study materials.</p>
+        </div>
+        <Link
+          to="/upload"
+          aria-label="Upload new material"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary shadow-card-hover transition-transform duration-150 hover:scale-105"
+        >
+          <Plus size={20} />
+        </Link>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {myUploads.map((upload, index) => {
+          const TypeIcon = materialTypeIcon[upload.type];
+          return (
+            <motion.div
+              key={upload.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
+            >
+              <Card hoverable={false} className="flex items-start gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-container/10 text-primary-container">
+                  <TypeIcon size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-body-md font-semibold text-on-surface">{upload.title}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Chip>{upload.subject}</Chip>
+                    <span className={`rounded-full px-2.5 py-0.5 text-label-sm font-medium ${statusStyles[upload.status]}`}>
+                      {statusLabel[upload.status]}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-4 text-label-sm text-on-surface-variant">
+                    <span className="flex items-center gap-1">
+                      <Eye size={14} /> {upload.views.toLocaleString()} views
+                    </span>
+                    <span>{upload.downloads.toLocaleString()} downloads</span>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col gap-1">
+                  <IconButton label="Edit upload">
+                    <Edit size={16} />
+                  </IconButton>
+                  <IconButton label="Delete upload">
+                    <Trash2 size={16} />
+                  </IconButton>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+
+        <EmptyState
+          icon={<FileUp size={22} />}
+          title="You haven't uploaded any more materials"
+          description="Share your knowledge with the community!"
+          actionLabel="Upload Material"
+          onAction={() => navigate('/upload')}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default ProfileUploadsPage;

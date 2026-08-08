@@ -1,0 +1,59 @@
+export type MaterialType = 'pdf' | 'doc' | 'notes' | 'slides' | 'past-paper' | 'lab-manual';
+
+export type MaterialStatus = 'approved' | 'pending' | 'rejected';
+
+export interface Material {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly subject: string;
+  readonly semester: string;
+  readonly type: MaterialType;
+  readonly uploaderId: string;
+  readonly uploaderName: string;
+  readonly uploaderAvatar: string;
+  readonly uploadedAt: string;
+  readonly views: number;
+  readonly downloads: number;
+  readonly saves: number;
+  readonly status: MaterialStatus;
+  readonly accentColor: 'indigo' | 'blue' | 'amber' | 'rose' | 'emerald';
+  readonly pages?: number;
+  readonly fileSizeMb?: number;
+  readonly isSaved?: boolean;
+}
+
+export interface User {
+  readonly id: string;
+  readonly name: string;
+  readonly email: string;
+  readonly avatar: string;
+  readonly university: string;
+  readonly major: string;
+  readonly role: 'student' | 'admin';
+  readonly stats: {
+    readonly uploads: number;
+    readonly downloads: number;
+    readonly saved: number;
+  };
+}
+
+export type NotificationType = 'download' | 'approval' | 'comment' | 'system' | 'save';
+
+export interface AppNotification {
+  readonly id: string;
+  readonly type: NotificationType;
+  readonly title: string;
+  readonly description: string;
+  readonly timestamp: string;
+  readonly read: boolean;
+}
+
+export interface AdminModerationItem {
+  readonly id: string;
+  readonly title: string;
+  readonly uploader: string;
+  readonly date: string;
+  readonly subject: string;
+  readonly status: MaterialStatus;
+}
