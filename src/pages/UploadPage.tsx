@@ -7,17 +7,31 @@ import { Input } from '../components/ui/Input';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Select } from '../components/ui/Select';
 import { subjects, universities, years } from '../data/mockData';
+import { useAuth } from '../hooks/useAuth';
+import { uploadMaterial } from '../services/materialsService';
+import type { MaterialType } from '../types/database.types';
 
 const colleges = ['College of Engineering', 'College of Science', 'School of Engineering'];
 const branches = ['Computer Science', 'Mathematics', 'Electronics'];
 const semesters = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'];
 
+function inferMaterialType(fileName: string): MaterialType {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  if (extension === 'pdf') return 'pdf';
+  if (extension === 'doc' || extension === 'docx') return 'doc';
+  if (extension === 'ppt' || extension === 'pptx') return 'slides';
+  return 'notes';
+}
+
 export function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const simulateUpload = (selected: File) => {
     setFile(selected);
@@ -40,9 +54,40 @@ export function UploadPage() {
     if (dropped) simulateUpload(dropped);
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    navigate('/profile/uploads');
+    if (!file || !user) return;
+
+    const formData = new FormData(event.currentTarget);
+    const title = String(formData.get('title') ?? '').trim();
+    const subject = String(formData.get('subject') ?? '').trim();
+    if (!title || !subject) {
+      setError('Title and subject are required.');
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await uploadMaterial({
+        file,
+        uploaderId: user.id,
+        title,
+        description: String(formData.get('description') ?? '') || undefined,
+        subject,
+        semester: String(formData.get('semester') ?? '') || undefined,
+        university: String(formData.get('university') ?? '') || undefined,
+        college: String(formData.get('college') ?? '') || undefined,
+        branch: String(formData.get('branch') ?? '') || undefined,
+        year: String(formData.get('year') ?? '') || undefined,
+        type: inferMaterialType(file.name),
+      });
+      navigate('/profile/uploads');
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -135,12 +180,19 @@ export function UploadPage() {
           <Select label="Semester" placeholder="Select Semester" options={semesters} name="semester" />
         </div>
 
+        {error && <p className="text-body-sm font-medium text-error">{error}</p>}
+
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" icon={<UploadCloud size={18} />} disabled={!file || progress < 100}>
-            Upload Material
+          <Button
+            type="submit"
+            variant="primary"
+            icon={<UploadCloud size={18} />}
+            disabled={!file || progress < 100 || isSubmitting}
+          >
+            {isSubmitting ? 'Uploading...' : 'Upload Material'}
           </Button>
         </div>
       </form>

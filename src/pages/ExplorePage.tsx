@@ -1,19 +1,47 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { Chip } from '../components/ui/Chip';
 import { MaterialCard } from '../components/ui/MaterialCard';
 import { Select } from '../components/ui/Select';
-import { materials, subjects, universities } from '../data/mockData';
+import { subjects, universities } from '../data/mockData';
+import type { Material } from '../data/types';
+import { useAuth } from '../hooks/useAuth';
+import * as bookmarksService from '../services/bookmarksService';
+import { listApprovedMaterialsForUI } from '../services/materialsService';
 
 const sortOptions = ['Most Popular', 'Recently Added', 'Most Downloaded'] as const;
 
 export function ExplorePage() {
-  const [activeSubjects, setActiveSubjects] = useState<Set<string>>(new Set(['Mathematics']));
+  const { user } = useAuth();
+  const [activeSubjects, setActiveSubjects] = useState<Set<string>>(new Set());
   const [activeUniversities, setActiveUniversities] = useState<Set<string>>(new Set());
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<(typeof sortOptions)[number]>('Most Popular');
   const [visibleCount, setVisibleCount] = useState(6);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    (async () => {
+      const savedIds = user ? await bookmarksService.listBookmarkedMaterialIds(user.id) : undefined;
+      const data = await listApprovedMaterialsForUI(
+        {
+          subjects: activeSubjects.size ? [...activeSubjects] : undefined,
+          universities: activeUniversities.size ? [...activeUniversities] : undefined,
+        },
+        savedIds,
+      );
+      if (active) {
+        setMaterials(data);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [activeSubjects, activeUniversities, user]);
 
   const toggleSubject = (subject: string) =>
     setActiveSubjects((prev) => {
@@ -29,20 +57,29 @@ export function ExplorePage() {
       return next;
     });
 
-  const toggleSave = (id: string) =>
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const toggleSave = async (id: string) => {
+    if (!user) return;
+    const material = materials.find((item) => item.id === id);
+    if (!material) return;
+    setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: !item.isSaved } : item)));
+    try {
+      if (material.isSaved) {
+        await bookmarksService.removeBookmark(id, user.id);
+      } else {
+        await bookmarksService.addBookmark(id);
+      }
+    } catch {
+      setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: material.isSaved } : item)));
+    }
+  };
 
-  const filtered = materials.filter((material) => {
-    const subjectMatch = activeSubjects.size === 0 || activeSubjects.has(material.subject);
-    const universityMatch = activeUniversities.size === 0; // mock materials have no university field
-    return subjectMatch || universityMatch;
+  const sorted = [...materials].sort((a, b) => {
+    if (sort === 'Most Downloaded') return b.downloads - a.downloads;
+    if (sort === 'Recently Added') return a.uploadedAt < b.uploadedAt ? 1 : -1;
+    return b.views - a.views;
   });
 
-  const visible = filtered.slice(0, visibleCount);
+  const visible = sorted.slice(0, visibleCount);
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
@@ -83,7 +120,7 @@ export function ExplorePage() {
           <div>
             <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg">Explore Materials</h1>
             <p className="mt-1 text-body-sm text-on-surface-variant">
-              Showing {visible.length} of {filtered.length} results
+              {loading ? 'Loading...' : `Showing ${visible.length} of ${sorted.length} results`}
             </p>
           </div>
           <Select
@@ -98,16 +135,12 @@ export function ExplorePage() {
         <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <AnimatePresence>
             {visible.map((material) => (
-              <MaterialCard
-                key={material.id}
-                material={{ ...material, isSaved: savedIds.has(material.id) }}
-                onToggleSave={toggleSave}
-              />
+              <MaterialCard key={material.id} material={material} onToggleSave={toggleSave} />
             ))}
           </AnimatePresence>
         </motion.div>
 
-        {visibleCount < filtered.length && (
+        {visibleCount < sorted.length && (
           <div className="mt-8 flex justify-center">
             <Button variant="secondary" onClick={() => setVisibleCount((count) => count + 6)}>
               Load More Materials

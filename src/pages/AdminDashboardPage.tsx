@@ -1,19 +1,35 @@
 import { motion } from 'framer-motion';
 import { AlertTriangle, Check, Database, Download, Library, Server, TrendingUp, Users, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { StatTile } from '../components/ui/StatTile';
 import { Tabs } from '../components/ui/Tabs';
-import { adminModerationQueue, adminStats, growthAnalytics } from '../data/mockData';
+import { growthAnalytics } from '../data/mockData';
+import * as adminService from '../services/adminService';
+import { updateMaterialStatus } from '../services/materialsService';
 
 const periods = ['Last 30 Days', 'This Quarter', 'This Year'] as const;
 
 export function AdminDashboardPage() {
   const [period, setPeriod] = useState<(typeof periods)[number]>('Last 30 Days');
-  const [queue, setQueue] = useState(adminModerationQueue);
+  const [stats, setStats] = useState<adminService.AdminStats | null>(null);
+  const [queue, setQueue] = useState<adminService.ModerationItem[]>([]);
   const maxValue = Math.max(...growthAnalytics);
 
-  const resolve = (id: string) => setQueue((prev) => prev.filter((item) => item.id !== id));
+  useEffect(() => {
+    adminService.getAdminStats().then(setStats);
+    adminService.listModerationQueue().then(setQueue);
+  }, []);
+
+  const resolve = async (id: string, status: 'approved' | 'rejected') => {
+    setQueue((prev) => prev.filter((item) => item.id !== id));
+    try {
+      await updateMaterialStatus(id, status);
+      adminService.getAdminStats().then(setStats);
+    } catch {
+      adminService.listModerationQueue().then(setQueue);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,27 +42,23 @@ export function AdminDashboardPage() {
         <StatTile
           icon={<Users size={18} />}
           label="Total Students"
-          value={adminStats.totalStudents.toLocaleString()}
-          trend="+5% this week"
-          trendTone="positive"
+          value={(stats?.totalStudents ?? 0).toLocaleString()}
         />
         <StatTile
           icon={<Library size={18} />}
           label="Total Materials"
-          value={adminStats.totalMaterials.toLocaleString()}
-          trend="+2% this week"
-          trendTone="positive"
+          value={(stats?.totalMaterials ?? 0).toLocaleString()}
         />
         <StatTile
           icon={<Download size={18} />}
           label="Active Downloads"
-          value={adminStats.activeDownloads.toLocaleString()}
+          value={(stats?.activeDownloads ?? 0).toLocaleString()}
           trend="In the last 24h"
         />
         <StatTile
           icon={<AlertTriangle size={18} />}
           label="Pending Approvals"
-          value={adminStats.pendingApprovals}
+          value={stats?.pendingApprovals ?? 0}
           trend="High priority"
           trendTone="warning"
           highlight
@@ -97,18 +109,11 @@ export function AdminDashboardPage() {
           <ul className="flex flex-col gap-3 text-body-sm text-on-surface-variant">
             <li className="flex items-center gap-2">
               <TrendingUp size={14} className="shrink-0 text-emerald-600" />
-              <span className="flex-1">Moderator A approved Document X</span>
-              <span className="shrink-0 text-label-sm text-outline">10 mins ago</span>
+              <span className="flex-1">{stats?.pendingApprovals ?? 0} materials awaiting moderation</span>
             </li>
             <li className="flex items-center gap-2">
               <Server size={14} className="shrink-0 text-outline" />
-              <span className="flex-1">System backup completed</span>
-              <span className="shrink-0 text-label-sm text-outline">1 hr ago</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <AlertTriangle size={14} className="shrink-0 text-error" />
-              <span className="flex-1">Failed login attempt (Admin)</span>
-              <span className="shrink-0 text-label-sm text-outline">3 hrs ago</span>
+              <span className="flex-1">{stats?.totalMaterials ?? 0} approved materials live</span>
             </li>
           </ul>
         </Card>
@@ -152,7 +157,7 @@ export function AdminDashboardPage() {
                       <button
                         type="button"
                         aria-label={`Approve ${item.title}`}
-                        onClick={() => resolve(item.id)}
+                        onClick={() => resolve(item.id, 'approved')}
                         className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-pointer"
                       >
                         <Check size={16} />
@@ -160,7 +165,7 @@ export function AdminDashboardPage() {
                       <button
                         type="button"
                         aria-label={`Reject ${item.title}`}
-                        onClick={() => resolve(item.id)}
+                        onClick={() => resolve(item.id, 'rejected')}
                         className="flex h-8 w-8 items-center justify-center rounded-full bg-error-container text-error hover:bg-error-container/80 cursor-pointer"
                       >
                         <X size={16} />

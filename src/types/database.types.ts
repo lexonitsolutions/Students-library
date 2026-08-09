@@ -1,0 +1,103 @@
+export type MaterialType = 'pdf' | 'doc' | 'notes' | 'slides' | 'past-paper' | 'lab-manual';
+export type MaterialStatus = 'approved' | 'pending' | 'rejected';
+export type UserRole = 'student' | 'admin';
+export type NotificationDbType = 'download' | 'approval' | 'rejection' | 'comment' | 'system' | 'save';
+export type ReportStatus = 'open' | 'reviewed' | 'dismissed';
+
+export interface ProfileRow {
+  id: string;
+  name: string;
+  username: string | null;
+  email: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  university: string | null;
+  college: string | null;
+  branch: string | null;
+  major: string | null;
+  year: string | null;
+  semester: string | null;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ProfileUpdate = Partial<
+  Omit<ProfileRow, 'id' | 'role' | 'created_at' | 'updated_at'>
+>;
+
+export interface PublicProfileRow {
+  id: string;
+  name: string;
+  username: string | null;
+  avatar_url: string | null;
+  university: string | null;
+  college: string | null;
+  branch: string | null;
+  major: string | null;
+}
+
+export interface ProfileStatsRow {
+  user_id: string;
+  uploads_count: number;
+  downloads_count: number;
+  saved_count: number;
+}
+
+export interface MaterialRow {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  semester: string | null;
+  university: string | null;
+  college: string | null;
+  branch: string | null;
+  year: string | null;
+  type: MaterialType;
+  file_path: string;
+  file_url: string;
+  file_size_mb: number | null;
+  pages: number | null;
+  uploader_id: string;
+  status: MaterialStatus;
+  rejection_reason: string | null;
+  views_count: number;
+  downloads_count: number;
+  saves_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BookmarkRow {
+  id: string;
+  user_id: string;
+  material_id: string;
+  created_at: string;
+}
+
+export interface DownloadRow {
+  id: string;
+  user_id: string;
+  material_id: string;
+  downloaded_at: string;
+}
+
+export interface ReportRow {
+  id: string;
+  material_id: string;
+  reporter_id: string;
+  reason: string;
+  status: ReportStatus;
+  created_at: string;
+}
+
+export interface NotificationRow {
+  id: string;
+  user_id: string;
+  type: NotificationDbType;
+  title: string;
+  description: string | null;
+  read: boolean;
+  created_at: string;
+}

@@ -1,17 +1,21 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Camera, ChevronRight, Download, Edit, Lock, School, Trash2, Upload, User } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { BookOpen, Camera, ChevronRight, Download, Edit, Lock, School, Upload, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { IconButton } from '../components/ui/IconButton';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
-import { myUploads, recentActivity, universities } from '../data/mockData';
+import { universities } from '../data/mockData';
+import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import { materialTypeIcon } from '../lib/materialIcons';
+import { timeAgo } from '../lib/timeAgo';
+import { listRecentActivity, type ActivityItem } from '../services/activityService';
+import { listMyUploadsForUI } from '../services/materialsService';
+import { uploadAvatar } from '../services/profileService';
 
 const AVATAR_PRESETS = [
   'https://i.pravatar.cc/160?img=12',
@@ -43,6 +47,15 @@ export function ProfilePage() {
   const [editYear, setEditYear] = useState(user?.year || yearsList[1]);
   const [editSemester, setEditSemester] = useState(user?.semester || semestersList[3]);
 
+  const [uploads, setUploads] = useState<Material[]>([]);
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    listMyUploadsForUI(user.id).then(setUploads);
+    listRecentActivity(user.id).then(setActivityItems);
+  }, [user]);
+
   if (!user) return null;
 
   const handleOpenEditModal = () => {
@@ -61,17 +74,11 @@ export function ProfilePage() {
     setIsAcademicModalOpen(true);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setEditAvatar(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const publicUrl = await uploadAvatar(user.id, file);
+    setEditAvatar(publicUrl);
   };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,9 +94,9 @@ export function ProfilePage() {
     }
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateUser({
+    await updateUser({
       name: editName,
       username: editUsername,
       avatar: editAvatar,
@@ -174,7 +181,7 @@ export function ProfilePage() {
             </Link>
           </div>
           <div className="flex flex-col gap-3">
-            {myUploads.slice(0, 2).map((upload, index) => {
+            {uploads.slice(0, 2).map((upload, index) => {
               const TypeIcon = materialTypeIcon[upload.type];
               return (
                 <motion.div
@@ -192,21 +199,16 @@ export function ProfilePage() {
                       <p className="mt-0.5 line-clamp-2 text-label-sm text-on-surface-variant">{upload.description}</p>
                       <div className="mt-2 flex items-center gap-2 text-label-sm text-outline">
                         <span className="rounded-full bg-surface-container-low px-2 py-0.5">{upload.subject}</span>
-                        <span>Uploaded {upload.uploadedAt}</span>
+                        <span>Uploaded {timeAgo(upload.uploadedAt)}</span>
                       </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <IconButton label="Edit upload">
-                        <Edit size={16} />
-                      </IconButton>
-                      <IconButton label="Delete upload">
-                        <Trash2 size={16} />
-                      </IconButton>
                     </div>
                   </Card>
                 </motion.div>
               );
             })}
+            {uploads.length === 0 && (
+              <p className="text-body-sm text-on-surface-variant">No uploads yet.</p>
+            )}
           </div>
         </section>
 
@@ -246,7 +248,7 @@ export function ProfilePage() {
           <section>
             <h2 className="mb-3 text-headline-md text-on-surface">Recent Activity</h2>
             <Card hoverable={false} padded={false}>
-              {recentActivity.map((activity) => (
+              {activityItems.map((activity) => (
                 <div key={activity.id} className="flex items-start gap-3 border-b border-card-border px-4 py-3.5 last:border-b-0">
                   <Download size={16} className="mt-0.5 shrink-0 text-outline" />
                   <p className="text-body-sm text-on-surface-variant">

@@ -48,7 +48,7 @@ const settingsSections = [
 ];
 
 export function SettingsPage() {
-  const { user, logout, deleteAccount } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
   const { isDark, toggle: toggleDark } = useDarkMode();
   const navigate = useNavigate();
 
@@ -60,20 +60,18 @@ export function SettingsPage() {
 
   if (!user) return null;
 
-  const handleConfirmLogout = () => {
-    logout();
+  const handleConfirmLogout = async () => {
+    await signOut();
     navigate('/signin', { replace: true });
   };
 
-  const handleConfirmDeleteAccount = (e: React.FormEvent) => {
+  const handleConfirmDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    const savedPassword = localStorage.getItem('lexon.userPassword') || '123456';
-    if (deletePassword !== savedPassword) {
-      setPasswordError('Incorrect password. Please enter the password used during sign up.');
+    const { error } = await deleteAccount(deletePassword);
+    if (error) {
+      setPasswordError(error);
       return;
     }
-
-    deleteAccount();
     navigate('/signup', { replace: true });
   };
 

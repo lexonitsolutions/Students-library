@@ -18,6 +18,8 @@ export interface Material {
   readonly saves: number;
   readonly status: MaterialStatus;
   readonly accentColor: 'indigo' | 'blue' | 'amber' | 'rose' | 'emerald';
+  readonly fileUrl: string;
+  readonly filePath: string;
   readonly pages?: number;
   readonly fileSizeMb?: number;
   readonly isSaved?: boolean;
@@ -44,7 +46,7 @@ export interface User {
   };
 }
 
-export type NotificationType = 'download' | 'approval' | 'comment' | 'system' | 'save';
+export type NotificationType = 'download' | 'approval' | 'rejection' | 'comment' | 'system' | 'save';
 
 export interface AppNotification {
   readonly id: string;
@@ -53,13 +55,4 @@ export interface AppNotification {
   readonly description: string;
   readonly timestamp: string;
   readonly read: boolean;
-}
-
-export interface AdminModerationItem {
-  readonly id: string;
-  readonly title: string;
-  readonly uploader: string;
-  readonly date: string;
-  readonly subject: string;
-  readonly status: MaterialStatus;
 }

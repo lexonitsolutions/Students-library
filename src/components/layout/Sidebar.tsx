@@ -8,13 +8,13 @@ import { Modal } from '../ui/Modal';
 import { navItems } from './navConfig';
 
 export function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const isAdmin = user?.role === 'admin';
 
-  const handleConfirmLogout = () => {
-    logout();
+  const handleConfirmLogout = async () => {
+    await signOut();
     navigate('/signin', { replace: true });
   };
 
