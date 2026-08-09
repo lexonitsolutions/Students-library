@@ -149,6 +149,13 @@
     overflow-x: hidden;
   }
 
+  @media (min-width: 1024px) {
+    body {
+      height: 100vh;
+      overflow: hidden;
+    }
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-primary-container);
     outline-offset: 2px;
@@ -156,121 +163,310 @@
 }
 
 /* ============================
-   DARK THEME OVERRIDES
+   DARK THEME — Comfortable Study Edition
+   Soft dark grays for long reading and studying
    ============================ */
 html.dark {
-  /* Surfaces — deep navy-slate hierarchy */
-  --color-surface: #0f1117;
-  --color-surface-dim: #090b0f;
-  --color-surface-bright: #1a1e2a;
-  --color-surface-container-lowest: #090b0f;
-  --color-surface-container-low: #141720;
-  --color-surface-container: #181c27;
-  --color-surface-container-high: #1e2230;
-  --color-surface-container-highest: #242839;
-  --color-surface-variant: #2a2e3f;
-  --color-surface-soft: #141720;
+  /* Surface hierarchy — soft dark gray */
+  --color-surface: #171717;
+  --color-surface-dim: #171717;
+  --color-surface-bright: #202124;
+  --color-surface-container-lowest: #171717;
+  --color-surface-container-low: #202124;
+  --color-surface-container: #262626;
+  --color-surface-container-high: #262626;
+  --color-surface-container-highest: #262626;
+  --color-surface-variant: #3F3F46;
+  --color-surface-soft: #202124;
 
-  /* Text */
-  --color-on-surface: #e8eaf6;
-  --color-on-surface-variant: #9da3bb;
-  --color-inverse-surface: #e8eaf6;
-  --color-inverse-on-surface: #1a1e2a;
+  /* Text — readable but not harsh */
+  --color-on-surface: #FAFAFA;
+  --color-on-surface-variant: #D4D4D8;
+  --color-inverse-surface: #FAFAFA;
+  --color-inverse-on-surface: #171717;
 
-  /* Borders & outlines */
-  --color-outline: #5a5f7a;
-  --color-outline-variant: #2e3347;
-  --color-card-border: #252a3d;
+  /* Borders — subtle */
+  --color-outline: #A1A1AA;
+  --color-outline-variant: #3F3F46;
+  --color-card-border: #3F3F46;
 
-  /* Primary — vibrant indigo */
-  --color-primary: #818cf8;
+  /* Primary — soft blue accent */
+  --color-primary: #4F83FF;
   --color-on-primary: #ffffff;
-  --color-primary-container: #3730a3;
-  --color-on-primary-container: #c7d2fe;
-  --color-inverse-primary: #4059aa;
+  --color-primary-container: #263B73;
+  --color-on-primary-container: #4F83FF;
+  --color-inverse-primary: #4F83FF;
+  --color-primary-fixed: #263B73;
+  --color-primary-fixed-dim: #4F83FF;
+  --color-on-primary-fixed: #FAFAFA;
+  --color-on-primary-fixed-variant: #4F83FF;
 
   /* Secondary */
-  --color-secondary: #94a3b8;
-  --color-on-secondary: #0f1117;
-  --color-secondary-container: #1e3a5f;
-  --color-on-secondary-container: #bfdbfe;
+  --color-secondary: #D4D4D8;
+  --color-on-secondary: #171717;
+  --color-secondary-container: #3F3F46;
+  --color-on-secondary-container: #FAFAFA;
+  --color-secondary-fixed: #D4D4D8;
+  --color-secondary-fixed-dim: #A1A1AA;
+  --color-on-secondary-fixed: #171717;
+  --color-on-secondary-fixed-variant: #262626;
 
-  /* Tertiary — warm amber */
-  --color-tertiary: #fb923c;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #7c2d12;
-  --color-on-tertiary-container: #fed7aa;
+  /* Tertiary */
+  --color-tertiary: #f59e0b;
+  --color-on-tertiary: #451a03;
+  --color-tertiary-container: #78350f;
+  --color-on-tertiary-container: #fde68a;
+  --color-tertiary-fixed: #fef3c7;
+  --color-tertiary-fixed-dim: #fcd34d;
+  --color-on-tertiary-fixed: #451a03;
+  --color-on-tertiary-fixed-variant: #92400e;
 
   /* Error */
   --color-error: #f87171;
-  --color-on-error: #ffffff;
+  --color-on-error: #450a0a;
   --color-error-container: #7f1d1d;
-  --color-on-error-container: #fca5a5;
+  --color-on-error-container: #fecaca;
 
   /* Background */
-  --color-background: #0f1117;
-  --color-on-background: #e8eaf6;
+  --color-background: #171717;
+  --color-on-background: #FAFAFA;
 
-  /* Shadows — stronger glow-style for dark */
-  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 8px 28px -4px rgba(0, 0, 0, 0.6);
+  /* Brand accent tokens */
+  --color-slate: #A1A1AA;
+  --color-soft-grey: #202124;
+  --color-surface-tint: #4F83FF;
+
+  /* Shadows — soft shadows */
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
 }
 
-/* Dark mode specific overrides for hardcoded bg-white / text colors */
+/* ============================
+   Dark mode — Component overrides
+   ============================ */
+
+/* Card and container backgrounds */
 html.dark .bg-white {
-  background-color: #181c27 !important;
+  background-color: #262626 !important;
 }
+
+html.dark .bg-white.shadow-card,
+html.dark [class*="rounded-xl"].bg-white {
+  background: #262626 !important;
+  border-color: #3F3F46 !important;
+}
+
 html.dark .bg-gray-50\/50,
 html.dark .bg-gray-50 {
-  background-color: #141720 !important;
+  background-color: #202124 !important;
 }
+
+/* Borders */
 html.dark .border-gray-100,
 html.dark .border-gray-200 {
-  border-color: #252a3d !important;
+  border-color: #3F3F46 !important;
 }
+
+/* Text colors */
 html.dark .text-slate-900,
 html.dark .text-slate-800,
 html.dark .text-gray-900,
 html.dark .text-gray-800 {
-  color: #e8eaf6 !important;
+  color: #FAFAFA !important;
 }
 html.dark .text-slate-700,
 html.dark .text-slate-600,
 html.dark .text-gray-700,
 html.dark .text-gray-600 {
-  color: #9da3bb !important;
+  color: #D4D4D8 !important;
 }
 html.dark .text-slate-500,
 html.dark .text-slate-400,
 html.dark .text-gray-500,
 html.dark .text-gray-400 {
-  color: #94a3b8 !important;
+  color: #A1A1AA !important;
 }
+
+/* Form inputs */
 html.dark .bg-gray-50\/50 input,
 html.dark input.bg-gray-50\/50 {
-  background-color: #1e2230 !important;
-  color: #e8eaf6 !important;
+  background-color: #262626 !important;
+  color: #FAFAFA !important;
 }
 html.dark input,
 html.dark textarea,
 html.dark select {
-  background-color: #1e2230;
-  color: #e8eaf6;
-  border-color: #252a3d;
+  background-color: #262626;
+  color: #FAFAFA;
+  border-color: #3F3F46;
 }
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #5a5f7a;
+  color: #A1A1AA;
 }
-html.dark .shadow-\[0_8px_30px_rgb\(0\,0\,0\,0\.04\)\] {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+html.dark input:focus,
+html.dark textarea:focus,
+html.dark select:focus {
+  border-color: #4F83FF !important;
+  box-shadow: 0 0 0 3px rgba(79, 131, 255, 0.2) !important;
 }
-html.dark .bg-indigo-50 { background-color: #1e2440 !important; }
-html.dark .text-indigo-600, html.dark .text-indigo-700 { color: #818cf8 !important; }
-html.dark .bg-emerald-50 { background-color: #052e1c !important; }
-html.dark .text-emerald-700 { color: #34d399 !important; }
-html.dark .bg-indigo-100 { background-color: #2e3560 !important; }
-html.dark .bg-blue-100 { background-color: #1e3050 !important; }
-html.dark .bg-emerald-100 { background-color: #0a3a22 !important; }
-html.dark .text-indigo-500, html.dark .text-indigo-400 { color: #a5b4fc !important; }
 
+/* Shadow overrides */
+html.dark .shadow-\[0_8px_30px_rgb\(0\,0\,0\,0\.04\)\] {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px #3F3F46 !important;
+}
+
+/* Accent color patches */
+html.dark .bg-indigo-50 { background-color: rgba(79, 131, 255, 0.12) !important; }
+html.dark .bg-indigo-100 { background-color: rgba(79, 131, 255, 0.18) !important; }
+html.dark .bg-blue-100 { background-color: rgba(79, 131, 255, 0.15) !important; }
+html.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.10) !important; }
+html.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.16) !important; }
+html.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.10) !important; }
+html.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.15) !important; }
+html.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.10) !important; }
+html.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.15) !important; }
+html.dark .bg-purple-50 { background-color: rgba(168, 85, 247, 0.10) !important; }
+html.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.15) !important; }
+
+html.dark .text-indigo-600,
+html.dark .text-indigo-700 { color: #4F83FF !important; }
+html.dark .text-indigo-500,
+html.dark .text-indigo-400 { color: #4F83FF !important; }
+html.dark .text-emerald-700,
+html.dark .text-emerald-600 { color: #6ee7b7 !important; }
+html.dark .text-amber-600,
+html.dark .text-amber-700 { color: #fcd34d !important; }
+html.dark .text-red-600,
+html.dark .text-red-700 { color: #fca5a5 !important; }
+
+/* Bottom navigation */
+html.dark .bg-white\/95 {
+  background-color: rgba(32, 33, 36, 0.95) !important;
+}
+
+/* Reader page */
+html.dark .bg-white.shadow-card {
+  background: #262626 !important;
+}
+
+/* Scrollbar styling for dark mode */
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html.dark ::-webkit-scrollbar-track {
+  background: #171717;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #3F3F46;
+  border-radius: 4px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #A1A1AA;
+}
+
+/* Additional accent hover states */
+html.dark .hover\:bg-emerald-200:hover { background-color: rgba(16, 185, 129, 0.22) !important; }
+html.dark .hover\:bg-indigo-100:hover { background-color: rgba(79, 131, 255, 0.22) !important; }
+
+/* Decorative blur backgrounds */
+html.dark .bg-blue-50\/50 { background-color: rgba(79, 131, 255, 0.08) !important; }
+
+/* Decorative borders */
+html.dark .border-indigo-200\/50 { border-color: rgba(79, 131, 255, 0.15) !important; }
+html.dark .border-blue-200\/50 { border-color: rgba(79, 131, 255, 0.15) !important; }
+html.dark .border-emerald-200\/50 { border-color: rgba(16, 185, 129, 0.15) !important; }
+
+/* Additional shadow patterns */
+html.dark .shadow-\[0_8px_30px_rgb\(0\,0\,0\,0\.12\)\] {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px #3F3F46 !important;
+}
+
+/* Smooth focus ring glow for dark mode */
+html.dark :focus-visible {
+  outline-color: rgba(79, 131, 255, 0.5);
+}
+
+/* ============================
+   APP BACKGROUND GRADIENT
+   Subtle radial gradients to make the glass effect visible
+   ============================ */
+body {
+  background-color: var(--color-background);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(79, 131, 255, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(79, 131, 255, 0.05), transparent 25%);
+  background-attachment: fixed;
+}
+html.dark body {
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(79, 131, 255, 0.05), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(79, 131, 255, 0.03), transparent 25%);
+}
+
+/* ============================
+   MEDIUM LIQUID GLASS
+   Medium blur and translucency for global app use
+   ============================ */
+.medium-liquid-glass {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.05),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+html.dark .medium-liquid-glass {
+  background: rgba(38, 38, 38, 0.45) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.02) !important;
+}
+
+/* ============================
+   APPLE LIQUID GLASS STYLING
+   ============================ */
+.apple-liquid-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(245, 247, 250, 0.52) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 
+    0 16px 36px -8px rgba(0, 0, 0, 0.12),
+    0 4px 16px 0 rgba(0, 0, 0, 0.04),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+}
+
+html.dark .apple-liquid-glass {
+  background: rgba(32, 33, 36, 0.85) !important;
+  border: 1px solid #3F3F46 !important;
+  box-shadow: 
+    0 16px 40px -8px rgba(0, 0, 0, 0.5),
+    0 4px 16px 0 rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(24px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
+}
+
+.apple-liquid-pill-active {
+  background: linear-gradient(135deg, rgba(0, 35, 111, 0.12) 0%, rgba(30, 58, 138, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 4px 14px -2px rgba(0, 35, 111, 0.12),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.9);
+}
+
+html.dark .apple-liquid-pill-active {
+  background: #263B73 !important;
+  border: 1px solid #4F83FF !important;
+  box-shadow: 
+    0 4px 18px -2px rgba(79, 131, 255, 0.2),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.1) !important;
+}

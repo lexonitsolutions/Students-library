@@ -1,11 +1,42 @@
+import { motion } from 'framer-motion';
 import { NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { cn } from '../../lib/cn';
 import { navItems } from './navConfig';
 
 export function BottomNav() {
+  const [isScrolling, setIsScrolling] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const handleScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(timeoutId);
+      
+      timeoutId = setTimeout(() => {
+        setIsScrolling(false);
+      }, 600);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-card-border bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] lg:hidden"
+    <motion.nav
+      initial={{ opacity: 1, y: 0 }}
+      animate={{ 
+        opacity: isScrolling ? 0 : 1, 
+        y: isScrolling ? 20 : 0,
+      }}
+      transition={{ duration: 0.4, ease: 'easeInOut' }}
+      style={{ pointerEvents: isScrolling ? 'none' : 'auto' }}
+      className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 flex-row items-center gap-1.5 rounded-full p-2 lg:hidden apple-liquid-glass"
       aria-label="Primary"
     >
       {navItems.map((item) => (
@@ -15,16 +46,37 @@ export function BottomNav() {
           end={item.to === '/'}
           className={({ isActive }) =>
             cn(
-              'flex min-w-[56px] flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-label-sm transition-colors duration-150',
-              isActive ? 'text-primary' : 'text-outline',
+              'group relative flex h-14 w-14 flex-col items-center justify-center rounded-full transition-all duration-200 cursor-pointer select-none',
+              isActive
+                ? 'text-primary dark:text-primary font-semibold'
+                : 'text-outline hover:text-on-surface hover:bg-white/30 dark:hover:bg-white/10',
             )
           }
         >
-          <item.icon size={22} />
-          {item.label}
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.div
+                  layoutId="apple-liquid-active-pill"
+                  className="absolute inset-0 rounded-full apple-liquid-pill-active"
+                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                />
+              )}
+              <item.icon
+                size={20}
+                className={cn(
+                  'relative z-10 transition-transform duration-200 group-hover:scale-110',
+                  isActive && 'scale-105',
+                )}
+              />
+              <span className="relative z-10 mt-0.5 text-[10px] font-medium leading-tight">
+                {item.label}
+              </span>
+            </>
+          )}
         </NavLink>
       ))}
-    </nav>
+    </motion.nav>
   );
 }
 

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Filter } from 'lucide-react';
+import { Filter, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
@@ -32,6 +32,17 @@ export function DashboardPage() {
         <p className="mt-1 text-body-sm text-on-surface-variant sm:text-body-md">
           Let&apos;s continue your studies where you left off.
         </p>
+
+        {/* Mobile Search Bar below header text */}
+        <div className="relative mt-4 lg:hidden">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-outline" size={18} />
+          <input
+            type="search"
+            placeholder="Search materials, subjects, authors..."
+            aria-label="Search materials"
+            className="h-11 w-full rounded-xl border border-card-border bg-white pl-10 pr-4 text-body-sm text-on-surface shadow-xs placeholder:text-outline focus:border-primary-container focus:bg-white focus:outline-none"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -45,7 +56,7 @@ export function DashboardPage() {
               transition={{ duration: 0.2, delay: index * 0.04 }}
             >
               <Card hoverable={false} className="flex flex-col gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-container/10 text-primary-container">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Icon size={20} />
                 </span>
                 <div>

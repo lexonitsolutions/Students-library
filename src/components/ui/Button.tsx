@@ -40,11 +40,10 @@ export function Button({
 }: Readonly<ButtonProps>) {
   return (
     <motion.button
-      whileTap={{ scale: 0.97 }}
-      whileHover={{ scale: 1.01 }}
-      transition={{ duration: 0.15 }}
+      transition={{ duration: 0.2 }}
       className={cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-lg font-semibold transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center whitespace-nowrap rounded-lg font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed',
+        'hover:-translate-y-[1px] hover:shadow-md active:translate-y-0 active:shadow-sm',
         sizeClasses[size],
         variantClasses[variant],
         fullWidth && 'w-full',
