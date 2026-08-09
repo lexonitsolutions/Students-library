@@ -5,7 +5,7 @@ export function ProtectedRoute() {
   const { isAuthenticated, hasOnboarded } = useAuth();
 
   if (!isAuthenticated) {
-    return <Navigate to={hasOnboarded ? '/login' : '/onboarding'} replace />;
+    return <Navigate to={hasOnboarded ? '/signin' : '/onboarding'} replace />;
   }
 
   return <Outlet />;

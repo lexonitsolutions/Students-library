@@ -27,7 +27,7 @@ export function DashboardPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg">
-          Good morning, {user?.name}
+          Good morning, {user?.username || user?.name}
         </h1>
         <p className="mt-1 text-body-sm text-on-surface-variant sm:text-body-md">
           Let&apos;s continue your studies where you left off.

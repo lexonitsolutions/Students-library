@@ -25,7 +25,7 @@ export function OnboardingPage() {
 
   const handleSkip = () => setShowGetStarted(true);
 
-  const finishOnboarding = (destination: '/login') => {
+  const finishOnboarding = (destination: '/signin') => {
     completeOnboarding();
     navigate(destination);
   };
@@ -133,10 +133,10 @@ export function OnboardingPage() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <Button variant="primary" size="lg" fullWidth onClick={() => finishOnboarding('/login')}>
+                <Button variant="primary" size="lg" fullWidth onClick={() => finishOnboarding('/signin')}>
                   Get Started
                 </Button>
-                <Button variant="ghost" size="lg" fullWidth onClick={() => finishOnboarding('/login')}>
+                <Button variant="ghost" size="lg" fullWidth onClick={() => finishOnboarding('/signin')}>
                   I already have an account
                 </Button>
               </div>

@@ -137,6 +137,11 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Smooth transition for dark/light mode switching */
+  *, *::before, *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease;
+  }
+
   body {
     margin: 0;
     background-color: var(--color-surface);
@@ -149,3 +154,123 @@
     outline-offset: 2px;
   }
 }
+
+/* ============================
+   DARK THEME OVERRIDES
+   ============================ */
+html.dark {
+  /* Surfaces — deep navy-slate hierarchy */
+  --color-surface: #0f1117;
+  --color-surface-dim: #090b0f;
+  --color-surface-bright: #1a1e2a;
+  --color-surface-container-lowest: #090b0f;
+  --color-surface-container-low: #141720;
+  --color-surface-container: #181c27;
+  --color-surface-container-high: #1e2230;
+  --color-surface-container-highest: #242839;
+  --color-surface-variant: #2a2e3f;
+  --color-surface-soft: #141720;
+
+  /* Text */
+  --color-on-surface: #e8eaf6;
+  --color-on-surface-variant: #9da3bb;
+  --color-inverse-surface: #e8eaf6;
+  --color-inverse-on-surface: #1a1e2a;
+
+  /* Borders & outlines */
+  --color-outline: #5a5f7a;
+  --color-outline-variant: #2e3347;
+  --color-card-border: #252a3d;
+
+  /* Primary — vibrant indigo */
+  --color-primary: #818cf8;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #3730a3;
+  --color-on-primary-container: #c7d2fe;
+  --color-inverse-primary: #4059aa;
+
+  /* Secondary */
+  --color-secondary: #94a3b8;
+  --color-on-secondary: #0f1117;
+  --color-secondary-container: #1e3a5f;
+  --color-on-secondary-container: #bfdbfe;
+
+  /* Tertiary — warm amber */
+  --color-tertiary: #fb923c;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #7c2d12;
+  --color-on-tertiary-container: #fed7aa;
+
+  /* Error */
+  --color-error: #f87171;
+  --color-on-error: #ffffff;
+  --color-error-container: #7f1d1d;
+  --color-on-error-container: #fca5a5;
+
+  /* Background */
+  --color-background: #0f1117;
+  --color-on-background: #e8eaf6;
+
+  /* Shadows — stronger glow-style for dark */
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 8px 28px -4px rgba(0, 0, 0, 0.6);
+}
+
+/* Dark mode specific overrides for hardcoded bg-white / text colors */
+html.dark .bg-white {
+  background-color: #181c27 !important;
+}
+html.dark .bg-gray-50\/50,
+html.dark .bg-gray-50 {
+  background-color: #141720 !important;
+}
+html.dark .border-gray-100,
+html.dark .border-gray-200 {
+  border-color: #252a3d !important;
+}
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
+  color: #e8eaf6 !important;
+}
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
+  color: #9da3bb !important;
+}
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-gray-500,
+html.dark .text-gray-400 {
+  color: #94a3b8 !important;
+}
+html.dark .bg-gray-50\/50 input,
+html.dark input.bg-gray-50\/50 {
+  background-color: #1e2230 !important;
+  color: #e8eaf6 !important;
+}
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #1e2230;
+  color: #e8eaf6;
+  border-color: #252a3d;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #5a5f7a;
+}
+html.dark .shadow-\[0_8px_30px_rgb\(0\,0\,0\,0\.04\)\] {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+}
+html.dark .bg-indigo-50 { background-color: #1e2440 !important; }
+html.dark .text-indigo-600, html.dark .text-indigo-700 { color: #818cf8 !important; }
+html.dark .bg-emerald-50 { background-color: #052e1c !important; }
+html.dark .text-emerald-700 { color: #34d399 !important; }
+html.dark .bg-indigo-100 { background-color: #2e3560 !important; }
+html.dark .bg-blue-100 { background-color: #1e3050 !important; }
+html.dark .bg-emerald-100 { background-color: #0a3a22 !important; }
+html.dark .text-indigo-500, html.dark .text-indigo-400 { color: #a5b4fc !important; }
+
