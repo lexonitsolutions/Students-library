@@ -1,24 +1,49 @@
 import { motion } from 'framer-motion';
 import { Filter } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { MaterialCard } from '../components/ui/MaterialCard';
 import { MaterialRow } from '../components/ui/MaterialRow';
-import { categories, materials } from '../data/mockData';
+import { categories } from '../data/mockData';
+import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
+import * as bookmarksService from '../services/bookmarksService';
+import { listApprovedMaterialsForUI } from '../services/materialsService';
 import { categoryIcon } from '../lib/materialIcons';
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [materials, setMaterials] = useState<Material[]>([]);
 
-  const toggleSave = (id: string) =>
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    (async () => {
+      const savedIds = await bookmarksService.listBookmarkedMaterialIds(user.id);
+      const data = await listApprovedMaterialsForUI({ limit: 20 }, savedIds);
+      if (active) setMaterials(data);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const toggleSave = async (id: string) => {
+    if (!user) return;
+    const material = materials.find((item) => item.id === id);
+    if (!material) return;
+    setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: !item.isSaved } : item)));
+    try {
+      if (material.isSaved) {
+        await bookmarksService.removeBookmark(id, user.id);
+      } else {
+        await bookmarksService.addBookmark(id);
+      }
+    } catch {
+      setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: material.isSaved } : item)));
+    }
+  };
 
   const featured = materials.slice(0, 3);
   const recent = [...materials].sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1)).slice(0, 5);
@@ -86,11 +111,7 @@ export function DashboardPage() {
         <Card padded={false} hoverable={false} className="overflow-hidden">
           <div className="flex flex-col">
             {recent.map((material) => (
-              <MaterialRow
-                key={material.id}
-                material={{ ...material, isSaved: savedIds.has(material.id) }}
-                onToggleSave={toggleSave}
-              />
+              <MaterialRow key={material.id} material={material} onToggleSave={toggleSave} />
             ))}
           </div>
           <Link

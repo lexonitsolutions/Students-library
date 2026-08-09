@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useIsDesktop } from '../../hooks/useMediaQuery';
-import { notifications as allNotifications } from '../../data/mockData';
+import type { AppNotification } from '../../data/types';
+import * as notificationsService from '../../services/notificationsService';
 import { Avatar } from '../ui/Avatar';
 import { IconButton } from '../ui/IconButton';
 import { NotificationList } from './NotificationList';
@@ -16,8 +17,13 @@ export function TopBar() {
   const isDesktop = useIsDesktop();
   const { isDark, toggle: toggleDark } = useDarkMode();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notificationsList, setNotificationsList] = useState(allNotifications);
+  const [notificationsList, setNotificationsList] = useState<AppNotification[]>([]);
   const unreadCount = notificationsList.filter((notification) => !notification.read).length;
+
+  useEffect(() => {
+    if (!user) return;
+    notificationsService.listNotifications(user.id).then(setNotificationsList);
+  }, [user]);
 
   useEffect(() => {
     if (!notificationsOpen) return;
@@ -38,10 +44,12 @@ export function TopBar() {
 
   const handleDeleteNotification = (id: string) => {
     setNotificationsList((prev) => prev.filter((n) => n.id !== id));
+    notificationsService.deleteNotification(id).catch(() => {});
   };
 
   const handleMarkAllRead = () => {
     setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
+    if (user) notificationsService.markAllRead(user.id).catch(() => {});
   };
 
   return (

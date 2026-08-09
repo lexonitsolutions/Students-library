@@ -2,14 +2,21 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Mail, Smartphone } from 'lucide-react';
 import { type FormEvent, useState, useRef, type KeyboardEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+
+const OTP_LENGTH = 6;
 
 export function OtpVerificationPage() {
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
-  const target = location.state?.target || 'your email address';
-  const type = location.state?.type || 'email';
+  const { verifySignupOtp, verifyMobileOtp, resendSignupOtp, sendMobileOtp } = useAuth();
+  const target: string = location.state?.target || 'your email address';
+  const type: 'email' | 'mobile' = location.state?.type || 'email';
+  const otpKind: 'signup' | 'sms' = location.state?.otpKind || (type === 'mobile' ? 'sms' : 'signup');
 
   const handleChange = (element: HTMLInputElement, index: number) => {
     if (isNaN(Number(element.value))) return false;
@@ -18,7 +25,7 @@ export function OtpVerificationPage() {
 
     // Focus next input
     if (element.value !== '') {
-      if (index < 3) {
+      if (index < OTP_LENGTH - 1) {
         inputs.current[index + 1]?.focus();
       }
     }
@@ -30,13 +37,28 @@ export function OtpVerificationPage() {
     }
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const code = otp.join('');
-    if (code.length === 4) {
-      // Simulate successful verification
-      navigate('/', { replace: true });
+    if (code.length !== OTP_LENGTH) return;
+
+    setError(null);
+    setIsSubmitting(true);
+    const { error: verifyError } =
+      otpKind === 'sms' ? await verifyMobileOtp(target, code) : await verifySignupOtp(target, code);
+    setIsSubmitting(false);
+
+    if (verifyError) {
+      setError(verifyError);
+      return;
     }
+    navigate('/', { replace: true });
+  };
+
+  const handleResend = async () => {
+    setError(null);
+    const { error: resendError } = otpKind === 'sms' ? await sendMobileOtp(target) : await resendSignupOtp(target);
+    if (resendError) setError(resendError);
   };
 
   return (
@@ -102,12 +124,16 @@ export function OtpVerificationPage() {
             </p>
           </div>
 
+          {error && (
+            <p className="mb-4 rounded-lg bg-error-container/20 px-3 py-2 text-sm font-medium text-error">{error}</p>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="flex justify-center gap-3 sm:gap-4">
+            <div className="flex justify-center gap-2 sm:gap-3">
               {otp.map((data, index) => {
                 return (
                   <input
-                    className="w-14 h-14 sm:w-16 sm:h-16 text-center text-2xl font-bold rounded-xl border border-gray-200 bg-gray-50/50 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
+                    className="h-14 w-11 sm:h-16 sm:w-12 text-center text-2xl font-bold rounded-xl border border-gray-200 bg-gray-50/50 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
                     type="text"
                     name="otp"
                     maxLength={1}
@@ -125,15 +151,15 @@ export function OtpVerificationPage() {
             <button
               type="submit"
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e1b4b] px-4 py-3.5 text-sm font-medium text-white transition-all hover:bg-[#312e81] focus:outline-none focus:ring-2 focus:ring-[#312e81] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={otp.join('').length !== 4}
+              disabled={otp.join('').length !== OTP_LENGTH || isSubmitting}
             >
-              Verify Code <ArrowRight className="h-4 w-4" />
+              {isSubmitting ? 'Verifying...' : 'Verify Code'} <ArrowRight className="h-4 w-4" />
             </button>
           </form>
 
           <p className="mt-8 text-center text-sm text-slate-600">
             Didn't receive the code?{' '}
-            <button type="button" className="font-semibold text-indigo-600 hover:text-indigo-500">
+            <button type="button" onClick={handleResend} className="font-semibold text-indigo-600 hover:text-indigo-500">
               Resend it
             </button>
           </p>

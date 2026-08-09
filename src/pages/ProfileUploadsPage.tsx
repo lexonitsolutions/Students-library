@@ -1,12 +1,15 @@
 import { motion } from 'framer-motion';
-import { Edit, Eye, FileUp, Plus, Trash2 } from 'lucide-react';
+import { Eye, FileUp, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Chip } from '../components/ui/Chip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { IconButton } from '../components/ui/IconButton';
-import { myUploads } from '../data/mockData';
+import type { Material } from '../data/types';
+import { useAuth } from '../hooks/useAuth';
 import { materialTypeIcon } from '../lib/materialIcons';
+import { deleteMaterial, listMyUploadsForUI } from '../services/materialsService';
 
 const statusStyles: Record<string, string> = {
   approved: 'bg-emerald-100 text-emerald-700',
@@ -22,6 +25,23 @@ const statusLabel: Record<string, string> = {
 
 export function ProfileUploadsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [uploads, setUploads] = useState<Material[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    listMyUploadsForUI(user.id).then(setUploads);
+  }, [user]);
+
+  const handleDelete = async (material: Material) => {
+    if (!window.confirm(`Delete "${material.title}"? This can't be undone.`)) return;
+    setUploads((prev) => prev.filter((item) => item.id !== material.id));
+    try {
+      await deleteMaterial(material.id, material.filePath);
+    } catch {
+      if (user) listMyUploadsForUI(user.id).then(setUploads);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -40,7 +60,7 @@ export function ProfileUploadsPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {myUploads.map((upload, index) => {
+        {uploads.map((upload, index) => {
           const TypeIcon = materialTypeIcon[upload.type];
           return (
             <motion.div
@@ -69,10 +89,7 @@ export function ProfileUploadsPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
-                  <IconButton label="Edit upload">
-                    <Edit size={16} />
-                  </IconButton>
-                  <IconButton label="Delete upload">
+                  <IconButton label="Delete upload" onClick={() => handleDelete(upload)}>
                     <Trash2 size={16} />
                   </IconButton>
                 </div>

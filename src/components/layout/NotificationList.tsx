@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BellOff, CheckCheck, CloudCheck, Megaphone, Trash2, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, CloudCheck, Megaphone, Trash2, TrendingUp } from 'lucide-react';
 import type { AppNotification, NotificationType } from '../../data/types';
 import { cn } from '../../lib/cn';
 
@@ -13,6 +13,7 @@ export interface NotificationListProps {
 const iconByType: Record<NotificationType, typeof CloudCheck> = {
   download: CloudCheck,
   approval: CloudCheck,
+  rejection: AlertTriangle,
   comment: Megaphone,
   system: Megaphone,
   save: TrendingUp,

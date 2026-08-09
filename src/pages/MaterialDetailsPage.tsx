@@ -1,19 +1,73 @@
 import { motion } from 'framer-motion';
-import { Bookmark, ChevronRight, Download, FileText, ZoomIn, ZoomOut } from 'lucide-react';
-import { useState } from 'react';
+import { Bookmark, ChevronRight, Download, FileText, Flag, ZoomIn, ZoomOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { materials, myUploads } from '../data/mockData';
-
-const allMaterials = [...materials, ...myUploads];
+import type { Material } from '../data/types';
+import { useAuth } from '../hooks/useAuth';
+import * as bookmarksService from '../services/bookmarksService';
+import { getMaterialForUI, incrementViews, recordDownload } from '../services/materialsService';
+import { reportMaterial } from '../services/reportsService';
 
 export function MaterialDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [material, setMaterial] = useState<Material | null>(null);
   const [isSaved, setIsSaved] = useState(false);
-  const material = allMaterials.find((item) => item.id === id) ?? allMaterials[0];
+
+  useEffect(() => {
+    if (!id) return;
+    let active = true;
+    (async () => {
+      const savedIds = user ? await bookmarksService.listBookmarkedMaterialIds(user.id) : undefined;
+      const data = await getMaterialForUI(id, savedIds);
+      if (!active) return;
+      setMaterial(data);
+      setIsSaved(data.isSaved ?? false);
+      incrementViews(id).catch(() => {});
+    })();
+    return () => {
+      active = false;
+    };
+  }, [id, user]);
+
+  const toggleSave = async () => {
+    if (!user || !material) return;
+    const next = !isSaved;
+    setIsSaved(next);
+    try {
+      if (next) {
+        await bookmarksService.addBookmark(material.id);
+      } else {
+        await bookmarksService.removeBookmark(material.id, user.id);
+      }
+    } catch {
+      setIsSaved(!next);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!material) return;
+    window.open(material.fileUrl, '_blank');
+    try {
+      await recordDownload(material.id);
+    } catch {
+      // non-critical: download history/count just won't reflect this attempt
+    }
+  };
+
+  const handleReport = async () => {
+    if (!material) return;
+    const reason = window.prompt('What is wrong with this material?');
+    if (!reason) return;
+    await reportMaterial(material.id, reason);
+    window.alert('Thanks, our team will review this material.');
+  };
+
+  if (!material) return null;
 
   return (
     <div>
@@ -60,20 +114,13 @@ export function MaterialDetailsPage() {
             <h1 className="mt-1.5 text-headline-lg-mobile text-on-surface">{material.title}</h1>
             <p className="mt-3 text-body-sm text-on-surface-variant">{material.description}</p>
 
-            <dl className="mt-5 grid grid-cols-2 gap-y-3 text-body-sm">
-              <dt className="text-on-surface-variant">University</dt>
-              <dd className="text-right font-medium text-on-surface">Stanford University</dd>
-              <dt className="text-on-surface-variant">Branch</dt>
-              <dd className="text-right font-medium text-on-surface">Software Engineering</dd>
-              <dt className="text-on-surface-variant">Course Code</dt>
-              <dd className="text-right font-medium text-on-surface">{material.subject.slice(0, 2).toUpperCase()}101</dd>
-            </dl>
-
             <div className="mt-5 flex items-center gap-3 border-t border-card-border pt-5">
               <Avatar name={material.uploaderName} src={material.uploaderAvatar} size={36} />
               <div>
                 <p className="text-body-sm font-semibold text-on-surface">{material.uploaderName}</p>
-                <p className="text-label-sm text-on-surface-variant">Uploaded {material.uploadedAt}</p>
+                <p className="text-label-sm text-on-surface-variant">
+                  Uploaded {new Date(material.uploadedAt).toLocaleDateString()}
+                </p>
               </div>
             </div>
 
@@ -86,17 +133,26 @@ export function MaterialDetailsPage() {
               <Button variant="primary" className="flex-1" icon={<FileText size={18} />} onClick={() => navigate(`/reader/${material.id}`)}>
                 Read PDF
               </Button>
-              <Button variant="secondary" className="flex-1" icon={<Download size={18} />}>
+              <Button variant="secondary" className="flex-1" icon={<Download size={18} />} onClick={handleDownload}>
                 Download
               </Button>
               <Button
                 variant="secondary"
                 size="md"
                 aria-label={isSaved ? 'Remove from saved' : 'Save material'}
-                onClick={() => setIsSaved((value) => !value)}
+                onClick={toggleSave}
                 className="px-3"
               >
                 <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                aria-label="Report material"
+                onClick={handleReport}
+                className="px-3"
+              >
+                <Flag size={18} />
               </Button>
             </div>
           </Card>

@@ -1,12 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NotificationList } from '../components/layout/NotificationList';
-import { notifications as seedNotifications } from '../data/mockData';
+import type { AppNotification } from '../data/types';
+import { useAuth } from '../hooks/useAuth';
+import * as notificationsService from '../services/notificationsService';
 
 export function NotificationsPage() {
-  const [items, setItems] = useState(seedNotifications);
+  const { user } = useAuth();
+  const [items, setItems] = useState<AppNotification[]>([]);
 
-  const markAllRead = () => setItems((prev) => prev.map((item) => ({ ...item, read: true })));
-  const deleteNotification = (id: string) => setItems((prev) => prev.filter((item) => item.id !== id));
+  useEffect(() => {
+    if (!user) return;
+    notificationsService.listNotifications(user.id).then(setItems);
+  }, [user]);
+
+  const markAllRead = () => {
+    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+    if (user) notificationsService.markAllRead(user.id).catch(() => {});
+  };
+
+  const deleteNotification = (id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+    notificationsService.deleteNotification(id).catch(() => {});
+  };
 
   return (
     <div className="mx-auto max-w-2xl">

@@ -11,54 +11,32 @@ export function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showMobileInput, setShowMobileInput] = useState(false);
   const [mobileNumber, setMobileNumber] = useState('');
-  const [showDevMenu, setShowDevMenu] = useState(false);
-  const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn, signInWithGoogle, sendMobileOtp } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (password) {
-      localStorage.setItem('lexon.userPassword', password);
+    setError(null);
+    setIsSubmitting(true);
+    const { error: signInError } = await signIn({ email, password });
+    setIsSubmitting(false);
+    if (signInError) {
+      setError(signInError);
+      return;
     }
-    const asAdmin = email.toLowerCase().includes('admin');
-    login(asAdmin);
-    navigate(asAdmin ? '/admin' : '/', { replace: true });
+    navigate('/', { replace: true });
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    const { error: googleError } = await signInWithGoogle();
+    if (googleError) setError(googleError);
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50/50 relative">
-      {/* Developer Skip Menu */}
-      <div className="absolute top-6 right-6 z-50 flex flex-col items-end">
-        <button
-          onClick={() => setShowDevMenu(!showDevMenu)}
-          className="rounded-lg bg-red-500 border border-red-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-600 animate-pulse"
-        >
-          Developer Skip {showDevMenu ? '▲' : '▼'}
-        </button>
-        {showDevMenu && (
-          <div className="mt-2 flex flex-col gap-2 rounded-lg bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100">
-            <button
-              onClick={() => {
-                login(true);
-                navigate('/admin', { replace: true });
-              }}
-              className="rounded bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
-            >
-              Login as Admin
-            </button>
-            <button
-              onClick={() => {
-                login(false);
-                navigate('/', { replace: true });
-              }}
-              className="rounded bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
-            >
-              Login as User
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Left Branding Panel */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-white dark:bg-[#141720] border-r border-gray-100 dark:border-[#252a3d] relative overflow-hidden">
         <div className="flex items-center gap-2 z-10">
@@ -107,9 +85,14 @@ export function SignInPage() {
             <p className="mt-2 text-slate-500">Sign in to continue your learning journey.</p>
           </div>
 
+          {error && (
+            <p className="mb-3 rounded-lg bg-error-container/20 px-3 py-2 text-sm font-medium text-error">{error}</p>
+          )}
+
           <div className="space-y-3">
             <button
               type="button"
+              onClick={handleGoogleSignIn}
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-gray-50"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -133,8 +116,18 @@ export function SignInPage() {
               Continue with Google
             </button>
             {showMobileInput ? (
-                <form 
-                  onSubmit={(e) => { e.preventDefault(); navigate('/verify-otp', { state: { target: `+91 ${mobileNumber}`, type: 'mobile' } }); }}
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setError(null);
+                    const phone = `+91${mobileNumber}`;
+                    const { error: otpError } = await sendMobileOtp(phone);
+                    if (otpError) {
+                      setError(otpError);
+                      return;
+                    }
+                    navigate('/verify-otp', { state: { target: phone, type: 'mobile' } });
+                  }}
                   className="flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-white p-1.5 transition-colors focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500"
                 >
                 <div className="flex items-center pl-2.5">
@@ -241,9 +234,10 @@ export function SignInPage() {
 
             <button
               type="submit"
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e1b4b] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#312e81] focus:outline-none focus:ring-2 focus:ring-[#312e81] focus:ring-offset-2"
+              disabled={isSubmitting}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e1b4b] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#312e81] focus:outline-none focus:ring-2 focus:ring-[#312e81] focus:ring-offset-2 disabled:opacity-50"
             >
-              Sign In <ArrowRight className="h-4 w-4" />
+              {isSubmitting ? 'Signing in...' : 'Sign In'} <ArrowRight className="h-4 w-4" />
             </button>
           </form>
 
