@@ -83,7 +83,7 @@ export function ExplorePage() {
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-      <aside className="w-full shrink-0 lg:sticky lg:top-20 lg:w-64">
+      <aside className="w-full shrink-0 lg:sticky lg:top-0 lg:w-64">
         <h2 className="mb-4 text-headline-md text-on-surface">Filters</h2>
 
         <div className="mb-6">

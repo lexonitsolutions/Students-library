@@ -35,10 +35,12 @@ export function ProfilePage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAcademicModalOpen, setIsAcademicModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [editName, setEditName] = useState(user?.name ?? '');
   const [editUsername, setEditUsername] = useState(user?.username ?? '');
   const [editAvatar, setEditAvatar] = useState(user?.avatar ?? '');
+  const [editCover, setEditCover] = useState(user?.coverImage ?? '');
 
   const [editCollege, setEditCollege] = useState(user?.college || user?.university || collegesList[0]);
   const [editBranch, setEditBranch] = useState(user?.branch || user?.major || branchesList[0]);
@@ -60,6 +62,7 @@ export function ProfilePage() {
     setEditName(user.name);
     setEditUsername(user.username ?? user.name.toLowerCase().replace(/\s+/g, ''));
     setEditAvatar(user.avatar);
+    setEditCover(user.coverImage ?? '');
     setIsEditModalOpen(true);
   };
 
@@ -78,12 +81,26 @@ export function ProfilePage() {
     setEditAvatar(publicUrl);
   };
 
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setEditCover(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateUser({
       name: editName,
       username: editUsername,
       avatar: editAvatar,
+      coverImage: editCover,
     });
     setIsEditModalOpen(false);
   };
@@ -103,46 +120,54 @@ export function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card hoverable={false} className="relative flex flex-col items-center bg-inverse-surface py-10 text-center text-inverse-on-surface">
-        <button
-          type="button"
-          aria-label="Edit profile"
-          onClick={handleOpenEditModal}
-          className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-inverse-on-surface hover:bg-white/20 cursor-pointer transition-colors"
-        >
-          <Edit size={16} />
-        </button>
-        <Avatar name={user.name} src={user.avatar} size={96} className="ring-4 ring-white/10" />
-        <h1 className="mt-4 text-headline-lg text-inverse-on-surface">{user.name}</h1>
-        {user.username && (
-          <p className="mt-0.5 text-body-sm text-inverse-on-surface/70">@{user.username}</p>
-        )}
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-label-sm">
-            <School size={14} /> {user.college || user.university}
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-label-sm">
-            {user.branch || user.major}
-          </span>
-          {(user.year || user.semester) && (
-            <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-label-sm">
-              <BookOpen size={14} /> {[user.year, user.semester].filter(Boolean).join(' • ')}
-            </span>
+      <Card hoverable={false} className="relative flex flex-col items-center pt-0 text-center overflow-hidden px-0">
+        <div className="relative w-full h-40 md:h-48 bg-surface-container-high shrink-0">
+          {user.coverImage && (
+            <img src={user.coverImage} alt="Cover" className="w-full h-full object-cover object-center" />
           )}
+          <button
+            type="button"
+            aria-label="Edit profile"
+            onClick={handleOpenEditModal}
+            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 cursor-pointer transition-colors backdrop-blur-md"
+          >
+            <Edit size={14} />
+          </button>
         </div>
+        
+        <div className="relative z-10 flex flex-col items-center w-full px-4 pb-6 -mt-10">
+          <Avatar name={user.name} src={user.avatar} size={88} className="ring-4 ring-surface shadow-sm" />
+          <h1 className="mt-2 text-headline-md text-on-surface">{user.name}</h1>
+          {user.username && (
+            <p className="mt-0.5 text-body-sm text-on-surface-variant">@{user.username}</p>
+          )}
+          <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+            <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
+              <School size={14} /> {user.college || user.university}
+            </span>
+            <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
+              {user.branch || user.major}
+            </span>
+            {(user.year || user.semester) && (
+              <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
+                <BookOpen size={14} /> {[user.year, user.semester].filter(Boolean).join(' • ')}
+              </span>
+            )}
+          </div>
 
-        <div className="mt-8 grid w-full max-w-sm grid-cols-3 gap-4 rounded-xl bg-white px-4 py-4 text-on-surface">
-          <div>
-            <p className="text-headline-lg text-on-surface">{user.stats.uploads}</p>
-            <p className="text-label-sm text-on-surface-variant">Uploads</p>
-          </div>
-          <div>
-            <p className="text-headline-lg text-on-surface">{user.stats.downloads}</p>
-            <p className="text-label-sm text-on-surface-variant">Downloads</p>
-          </div>
-          <div>
-            <p className="text-headline-lg text-on-surface">{user.stats.saved}</p>
-            <p className="text-label-sm text-on-surface-variant">Saved</p>
+          <div className="mt-5 grid w-full max-w-sm grid-cols-3 gap-4 rounded-xl bg-surface-container-low px-4 py-4 text-on-surface shadow-sm">
+            <div>
+              <p className="text-headline-md font-bold text-on-surface">{user.stats.uploads}</p>
+              <p className="text-label-sm text-on-surface-variant">Uploads</p>
+            </div>
+            <div>
+              <p className="text-headline-md font-bold text-on-surface">{user.stats.downloads}</p>
+              <p className="text-label-sm text-on-surface-variant">Downloads</p>
+            </div>
+            <div>
+              <p className="text-headline-md font-bold text-on-surface">{user.stats.saved}</p>
+              <p className="text-label-sm text-on-surface-variant">Saved</p>
+            </div>
           </div>
         </div>
       </Card>
@@ -248,9 +273,27 @@ export function ProfilePage() {
               className="hidden"
               onChange={handleFileChange}
             />
+            <input
+              type="file"
+              ref={coverInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleCoverChange}
+            />
 
-            <div className="relative cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
-              <Avatar name={editName || 'User'} src={editAvatar} size={88} className="transition-opacity group-hover:opacity-80" />
+            <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container-high mb-4 group flex items-center justify-center cursor-pointer" onClick={() => coverInputRef.current?.click()}>
+              {editCover ? (
+                <img src={editCover} alt="Cover" className="w-full h-full object-cover transition-opacity group-hover:opacity-80" />
+              ) : (
+                <span className="text-on-surface-variant flex flex-col items-center gap-2"><Upload size={20}/> Upload Cover Image</span>
+              )}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                <Camera size={24} />
+              </div>
+            </div>
+
+            <div className="relative cursor-pointer group -mt-16" onClick={() => fileInputRef.current?.click()}>
+              <Avatar name={editName || 'User'} src={editAvatar} size={88} className="transition-opacity group-hover:opacity-80 ring-4 ring-surface" />
               <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-md group-hover:scale-110 transition-transform">
                 <Camera size={16} />
               </div>

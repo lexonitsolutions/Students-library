@@ -21,11 +21,10 @@ export function IconButton({
     <motion.button
       type="button"
       aria-label={label}
-      whileTap={{ scale: 0.92 }}
-      whileHover={{ scale: 1.05 }}
-      transition={{ duration: 0.15 }}
+      transition={{ duration: 0.2 }}
       className={cn(
-        'inline-flex items-center justify-center rounded-full transition-colors duration-150 cursor-pointer',
+        'inline-flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer',
+        'hover:scale-105 active:scale-95',
         variant === 'default'
           ? 'text-on-surface-variant hover:bg-surface-container-high'
           : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high',

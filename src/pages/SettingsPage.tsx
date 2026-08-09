@@ -6,7 +6,10 @@ import {
   Download,
   Info,
   LogOut,
+  Moon,
+  Palette,
   Shield,
+  Sun,
   Trash2,
   UserCog,
 } from 'lucide-react';
@@ -18,6 +21,7 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../hooks/useAuth';
+import { useDarkMode } from '../hooks/useDarkMode';
 
 const settingsSections = [
   {
@@ -45,6 +49,7 @@ const settingsSections = [
 
 export function SettingsPage() {
   const { user, signOut, deleteAccount } = useAuth();
+  const { isDark, toggle: toggleDark } = useDarkMode();
   const navigate = useNavigate();
 
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
@@ -88,17 +93,52 @@ export function SettingsPage() {
             {section.heading}
           </p>
           <Card hoverable={false} padded={false}>
-            {section.items.map((item) => (
+            {section.items.map((item, index) => (
               <button
                 key={item.label}
                 type="button"
-                className="flex w-full items-center gap-3 border-b border-card-border px-4 py-3.5 text-left text-body-sm text-on-surface first:rounded-t-xl last:rounded-b-xl last:border-b-0 hover:bg-surface-soft cursor-pointer transition-colors"
+                className={`flex w-full items-center gap-3 border-b border-card-border px-4 py-3.5 text-left text-body-sm text-on-surface first:rounded-t-xl hover:bg-surface-soft cursor-pointer transition-colors ${
+                  section.heading === 'Preferences' && index === section.items.length - 1 ? '' : 'last:rounded-b-xl last:border-b-0'
+                }`}
               >
                 <item.icon size={18} className="text-on-surface-variant" />
                 <span className="flex-1">{item.label}</span>
                 <ChevronRight size={16} className="text-outline" />
               </button>
             ))}
+            {section.heading === 'Preferences' && (
+              <div className="flex w-full items-center justify-between px-4 py-3.5 text-left text-body-sm text-on-surface rounded-b-xl hover:bg-surface-soft transition-colors">
+                <div className="flex items-center gap-3">
+                  <Palette size={18} className="text-on-surface-variant" />
+                  <div>
+                    <p className="font-medium text-on-surface">Appearance</p>
+                    <p className="text-label-sm text-on-surface-variant">
+                      {isDark ? 'Dark theme enabled' : 'Light theme enabled'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleDark}
+                  aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                  className="flex h-8 w-14 items-center rounded-full border border-card-border bg-surface-container-low p-1 transition-all duration-300 hover:border-primary/50 cursor-pointer"
+                >
+                  <span
+                    className="flex h-6 w-6 items-center justify-center rounded-full shadow-sm transition-all duration-300"
+                    style={{
+                      transform: isDark ? 'translateX(22px)' : 'translateX(0)',
+                      backgroundColor: isDark ? '#818cf8' : '#1e3a8a',
+                    }}
+                  >
+                    {isDark ? (
+                      <Moon size={12} className="text-white" />
+                    ) : (
+                      <Sun size={12} className="text-white" />
+                    )}
+                  </span>
+                </button>
+              </div>
+            )}
           </Card>
         </div>
       ))}
