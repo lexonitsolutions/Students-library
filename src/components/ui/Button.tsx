@@ -15,11 +15,11 @@ export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-on-primary hover:bg-primary-container/90 disabled:opacity-50',
+  primary: 'bg-primary !text-white hover:bg-primary-container/90 disabled:opacity-50 disabled:!text-white/60',
   secondary:
     'bg-white text-on-surface border border-card-border hover:border-primary/40 hover:bg-surface-soft disabled:opacity-50',
   ghost: 'bg-transparent text-on-surface-variant hover:bg-surface-container disabled:opacity-50',
-  danger: 'bg-error text-on-error hover:bg-error/90 disabled:opacity-50',
+  danger: 'bg-error !text-white hover:bg-error/90 disabled:opacity-50 disabled:!text-white/60',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -45,8 +45,8 @@ export function Button({
       transition={{ duration: 0.15 }}
       className={cn(
         'inline-flex items-center justify-center whitespace-nowrap rounded-lg font-semibold transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed',
-        variantClasses[variant],
         sizeClasses[size],
+        variantClasses[variant],
         fullWidth && 'w-full',
         className,
       )}

@@ -1,13 +1,22 @@
 import { BookMarked, LogOut, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/cn';
+import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 import { navItems } from './navConfig';
 
 export function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const isAdmin = user?.role === 'admin';
+
+  const handleConfirmLogout = () => {
+    logout();
+    navigate('/signin', { replace: true });
+  };
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-card-border bg-white px-4 py-6 lg:flex">
@@ -56,12 +65,35 @@ export function Sidebar() {
 
       <button
         type="button"
-        onClick={logout}
+        onClick={() => setShowLogoutAlert(true)}
         className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md text-on-surface-variant transition-colors duration-150 hover:bg-surface-container-low hover:text-on-surface cursor-pointer"
       >
         <LogOut size={20} />
         Log out
       </button>
+
+      {/* Logout Confirmation Alert Modal */}
+      <Modal open={showLogoutAlert} onClose={() => setShowLogoutAlert(false)} title="Confirm Logout">
+        <div className="flex flex-col items-center text-center gap-3 py-2">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+            <LogOut size={28} />
+          </div>
+          <div>
+            <h3 className="text-headline-md text-on-surface font-semibold">Are you sure you want to log out?</h3>
+            <p className="mt-2 text-body-sm text-on-surface-variant max-w-xs mx-auto">
+              You will need to enter your credentials again to access your saved study materials and notes.
+            </p>
+          </div>
+          <div className="mt-5 flex w-full justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowLogoutAlert(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleConfirmLogout} className="bg-error hover:bg-error/90 text-white">
+              Yes, Log Out
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </aside>
   );
 }

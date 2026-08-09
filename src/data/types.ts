@@ -26,10 +26,15 @@ export interface Material {
 export interface User {
   readonly id: string;
   readonly name: string;
+  readonly username?: string;
   readonly email: string;
   readonly avatar: string;
   readonly university: string;
   readonly major: string;
+  readonly college?: string;
+  readonly branch?: string;
+  readonly year?: string;
+  readonly semester?: string;
   readonly role: 'student' | 'admin';
   readonly stats: {
     readonly uploads: number;

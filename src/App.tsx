@@ -4,7 +4,9 @@ import { AuthProvider } from './hooks/useAuth';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ExplorePage } from './pages/ExplorePage';
 import { LibraryPage } from './pages/LibraryPage';
-import { LoginPage } from './pages/LoginPage';
+import { OtpVerificationPage } from './pages/OtpVerificationPage';
+import { SignInPage } from './pages/SignInPage';
+import { SignUpPage } from './pages/SignUpPage';
 import { MaterialDetailsPage } from './pages/MaterialDetailsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -26,7 +28,9 @@ function App() {
         <Routes>
           <Route element={<PublicOnlyRoute />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signin" element={<SignInPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/verify-otp" element={<OtpVerificationPage />} />
           </Route>
 
           <Route element={<ProtectedRoute />}>

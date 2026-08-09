@@ -1,19 +1,22 @@
-import { motion } from 'framer-motion';
 import {
+  AlertTriangle,
   Bell,
   ChevronRight,
   CircleHelp,
   Download,
   Info,
   LogOut,
-  Palette,
   Shield,
+  Trash2,
   UserCog,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
+import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
+import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../hooks/useAuth';
 
 const settingsSections = [
@@ -41,15 +44,32 @@ const settingsSections = [
 ];
 
 export function SettingsPage() {
-  const { user, logout } = useAuth();
-  const [lightTheme, setLightTheme] = useState(true);
+  const { user, logout, deleteAccount } = useAuth();
   const navigate = useNavigate();
+
+  const [showLogoutAlert, setShowLogoutAlert] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [deletePassword, setDeletePassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   if (!user) return null;
 
-  const handleLogout = () => {
+  const handleConfirmLogout = () => {
     logout();
-    navigate('/login', { replace: true });
+    navigate('/signin', { replace: true });
+  };
+
+  const handleConfirmDeleteAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    const savedPassword = localStorage.getItem('lexon.userPassword') || '123456';
+    if (deletePassword !== savedPassword) {
+      setPasswordError('Incorrect password. Please enter the password used during sign up.');
+      return;
+    }
+
+    deleteAccount();
+    navigate('/signup', { replace: true });
   };
 
   return (
@@ -64,33 +84,6 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      <Card hoverable={false} className="mt-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Palette size={18} className="text-on-surface-variant" />
-          <div>
-            <p className="text-body-sm font-medium text-on-surface">Appearance</p>
-            <p className="text-label-sm text-on-surface-variant">{lightTheme ? 'Light theme' : 'Dark theme'}</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={lightTheme}
-          aria-label="Toggle light theme"
-          onClick={() => setLightTheme((value) => !value)}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 cursor-pointer ${
-            lightTheme ? 'bg-primary' : 'bg-outline-variant'
-          }`}
-        >
-          <motion.span
-            layout
-            transition={{ duration: 0.18 }}
-            className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow"
-            style={{ left: lightTheme ? '22px' : '2px' }}
-          />
-        </button>
-      </Card>
-
       {settingsSections.map((section) => (
         <div key={section.heading} className="mt-5">
           <p className="mb-2 px-1 text-label-sm font-semibold uppercase tracking-wide text-outline">
@@ -101,7 +94,7 @@ export function SettingsPage() {
               <button
                 key={item.label}
                 type="button"
-                className="flex w-full items-center gap-3 border-b border-card-border px-4 py-3.5 text-left text-body-sm text-on-surface last:border-b-0 hover:bg-surface-soft cursor-pointer"
+                className="flex w-full items-center gap-3 border-b border-card-border px-4 py-3.5 text-left text-body-sm text-on-surface first:rounded-t-xl last:rounded-b-xl last:border-b-0 hover:bg-surface-soft cursor-pointer transition-colors"
               >
                 <item.icon size={18} className="text-on-surface-variant" />
                 <span className="flex-1">{item.label}</span>
@@ -112,14 +105,118 @@ export function SettingsPage() {
         </div>
       ))}
 
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-error/30 py-3 text-label-md font-semibold text-error transition-colors duration-150 hover:bg-error-container/40 cursor-pointer"
+      {/* Account Actions Section */}
+      <div className="mt-8 flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={() => setShowLogoutAlert(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-card-border bg-white py-3 text-label-md font-semibold text-on-surface transition-colors hover:bg-surface-soft cursor-pointer"
+        >
+          <LogOut size={18} className="text-on-surface-variant" />
+          Log Out
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setDeletePassword('');
+            setPasswordError('');
+            setShowDeleteModal(true);
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-error/30 bg-error/5 py-3 text-label-md font-semibold text-error transition-colors hover:bg-error-container/40 cursor-pointer"
+        >
+          <Trash2 size={18} />
+          Delete Account
+        </button>
+      </div>
+
+      {/* Designed Logout Alert Modal */}
+      <Modal open={showLogoutAlert} onClose={() => setShowLogoutAlert(false)} title="Confirm Logout">
+        <div className="flex flex-col items-center text-center gap-3 py-2">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+            <LogOut size={28} />
+          </div>
+          <div>
+            <h3 className="text-headline-md text-on-surface font-semibold">Are you sure you want to log out?</h3>
+            <p className="mt-2 text-body-sm text-on-surface-variant max-w-xs mx-auto">
+              You will need to enter your credentials again to access your saved study materials and notes.
+            </p>
+          </div>
+          <div className="mt-5 flex w-full justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowLogoutAlert(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleConfirmLogout} className="bg-error hover:bg-error/90 text-white">
+              Yes, Log Out
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Account Modal with Password Validation */}
+      <Modal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Account"
       >
-        <LogOut size={18} />
-        Logout
-      </button>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3 rounded-xl bg-error-container/20 p-3.5 border border-error/30 text-error">
+            <AlertTriangle size={24} className="shrink-0" />
+            <p className="text-body-sm">
+              This action is permanent and cannot be undone. All your saved documents, uploads, and data will be erased.
+            </p>
+          </div>
+
+          <p className="text-body-sm text-on-surface-variant font-medium">
+            Please enter your password below to confirm account deletion:
+          </p>
+
+          <Input
+            type="text"
+            style={{ WebkitTextSecurity: 'disc', textSecurity: 'disc' } as React.CSSProperties}
+            name="verification_code_field"
+            id="verification_code_field"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-bwignore="true"
+            data-form-type="other"
+            label="Your Password"
+            placeholder="••••••••"
+            value={deletePassword}
+            onChange={(e) => {
+              setDeletePassword(e.target.value);
+              setPasswordError('');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleConfirmDeleteAccount(e);
+              }
+            }}
+          />
+
+          {passwordError && (
+            <p className="text-label-sm font-semibold text-error">{passwordError}</p>
+          )}
+
+          <div className="mt-4 flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setShowDeleteModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleConfirmDeleteAccount}
+              className="bg-error hover:bg-error/90 text-white"
+            >
+              Confirm Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
