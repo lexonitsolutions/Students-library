@@ -29,6 +29,7 @@ export interface User {
   readonly username?: string;
   readonly email: string;
   readonly avatar: string;
+  readonly coverImage?: string;
   readonly university: string;
   readonly major: string;
   readonly college?: string;

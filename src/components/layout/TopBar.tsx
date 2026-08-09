@@ -45,12 +45,12 @@ export function TopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-card-border bg-surface/90 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 shrink-0 flex items-center gap-3 border-b border-card-border medium-liquid-glass px-4 py-3 sm:px-6 lg:px-8">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary lg:hidden">
         <BookMarked size={18} />
       </div>
 
-      <div className="relative flex-1 max-w-xl">
+      <div className="relative hidden flex-1 max-w-3xl lg:flex">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-outline" size={18} />
         <input
           type="search"
@@ -61,11 +61,11 @@ export function TopBar() {
       </div>
 
       <div className="relative ml-auto flex items-center gap-1.5 sm:gap-2">
-        {/* Dark mode toggle */}
+        {/* Dark mode toggle (desktop only) */}
         <button
           onClick={toggleDark}
           aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          className="flex h-9 w-16 items-center rounded-full border border-card-border bg-surface-container-low p-1 transition-all duration-300 hover:border-primary/50"
+          className="hidden h-9 w-16 items-center rounded-full border border-card-border bg-surface-container-low p-1 transition-all duration-300 hover:border-primary/50 lg:flex"
         >
           <span
             className="flex h-7 w-7 items-center justify-center rounded-full shadow-sm transition-all duration-300"

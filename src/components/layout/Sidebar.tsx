@@ -19,7 +19,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-card-border bg-white px-4 py-6 lg:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-card-border medium-liquid-glass px-4 py-6 lg:flex lg:h-full lg:overflow-y-auto">
       <div className="flex items-center gap-2 px-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-on-primary">
           <BookMarked size={20} />
@@ -49,10 +49,10 @@ export function Sidebar() {
               end={item.to === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md transition-colors duration-150',
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md transition-all duration-200',
                   isActive
                     ? 'bg-primary-container/10 text-primary font-semibold'
-                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
+                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface hover:translate-x-1',
                 )
               }
             >
