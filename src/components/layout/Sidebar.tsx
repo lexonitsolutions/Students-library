@@ -1,17 +1,35 @@
-import { BookMarked, LogOut, Plus } from 'lucide-react';
+import { ArrowLeftRight, BookMarked, LayoutDashboard, LogOut, Plus, ShieldCheck, Users } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useWorkspace } from '../../hooks/useWorkspace';
 import { cn } from '../../lib/cn';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { navItems } from './navConfig';
 
+const adminNavItems = [
+  { label: 'Dashboard', to: '/admin', icon: LayoutDashboard },
+  { label: 'Manage Admins', to: '/admin/admins', icon: Users },
+];
+
 export function Sidebar() {
   const { user, signOut } = useAuth();
+  const { workspace, chooseWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const isAdmin = user?.role === 'admin';
+  const inAdminWorkspace = isAdmin && workspace !== 'student';
+
+  const handleSwitchWorkspace = () => {
+    if (inAdminWorkspace) {
+      chooseWorkspace('student');
+      navigate('/');
+    } else {
+      chooseWorkspace('admin');
+      navigate('/admin');
+    }
+  };
 
   const handleConfirmLogout = async () => {
     await signOut();
@@ -39,28 +57,65 @@ export function Sidebar() {
         Upload Material
       </button>
 
-      <nav className="mt-6 flex flex-1 flex-col gap-1">
-        {navItems.map((item) => {
-          const to = item.label === 'Home' && isAdmin ? '/admin' : item.to;
-          return (
-            <NavLink
-              key={item.label}
-              to={to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md transition-all duration-200',
-                  isActive
-                    ? 'bg-primary-container/10 text-primary font-semibold'
-                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface hover:translate-x-1',
-                )
-              }
-            >
-              <item.icon size={20} />
-              {item.label}
-            </NavLink>
-          );
-        })}
+      {isAdmin && (
+        <div className="mt-5">
+          <p className="px-3 text-label-sm font-semibold uppercase tracking-wider text-on-surface-variant/70">
+            Admin
+          </p>
+          <nav className="mt-1 flex flex-col gap-1">
+            {adminNavItems.map((item) => (
+              <NavLink
+                key={item.label}
+                to={item.to}
+                onClick={() => chooseWorkspace('admin')}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md transition-all duration-200',
+                    isActive
+                      ? 'bg-primary-container/10 text-primary font-semibold'
+                      : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface hover:translate-x-1',
+                  )
+                }
+              >
+                <item.icon size={20} />
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <button
+            type="button"
+            onClick={handleSwitchWorkspace}
+            className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-body-sm text-on-surface-variant transition-colors duration-150 hover:bg-surface-container-low hover:text-on-surface cursor-pointer"
+          >
+            <ArrowLeftRight size={18} />
+            {inAdminWorkspace ? 'Switch to Student view' : 'Switch to Admin Workspace'}
+          </button>
+          <p className="mt-3 flex items-center gap-1.5 px-3 text-label-sm font-semibold uppercase tracking-wider text-on-surface-variant/70">
+            <ShieldCheck size={14} /> Student
+          </p>
+        </div>
+      )}
+
+      <nav className="mt-1 flex flex-1 flex-col gap-1">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.label}
+            to={item.to}
+            end={item.to === '/'}
+            onClick={() => isAdmin && chooseWorkspace('student')}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md transition-all duration-200',
+                isActive
+                  ? 'bg-primary-container/10 text-primary font-semibold'
+                  : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface hover:translate-x-1',
+              )
+            }
+          >
+            <item.icon size={20} />
+            {item.label}
+          </NavLink>
+        ))}
       </nav>
 
       <button
