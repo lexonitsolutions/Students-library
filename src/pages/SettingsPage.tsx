@@ -42,7 +42,7 @@ const settingsSections = [
     heading: 'Support',
     items: [
       { label: 'Help & Support', icon: CircleHelp },
-      { label: 'About Lexon', icon: Info },
+      { label: 'About QuickLearnit', icon: Info },
     ],
   },
 ];

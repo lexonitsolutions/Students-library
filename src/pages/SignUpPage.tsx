@@ -45,8 +45,8 @@ export function SignUpPage() {
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-white dark:bg-[#141720] border-r border-gray-100 dark:border-[#252a3d] relative overflow-hidden">
         <div className="flex items-center gap-2 z-10">
           <div className="font-bold text-xl tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded bg-primary text-white font-bold">L</span>
-            <span className="dark:text-white text-gray-900">Lexon</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded bg-primary text-white font-bold">Q</span>
+            <span className="dark:text-white text-gray-900">QuickLearnit</span>
           </div>
         </div>
         
