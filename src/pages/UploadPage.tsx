@@ -1,30 +1,71 @@
 import { motion } from 'framer-motion';
-import { FileText, UploadCloud, X } from 'lucide-react';
+import { ArrowLeft, ClipboardList, FileQuestion, FileText, Image as ImageIcon, UploadCloud, X } from 'lucide-react';
 import { type DragEvent, type FormEvent, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
 import { Input } from '../components/ui/Input';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Select } from '../components/ui/Select';
-import { subjects, years } from '../data/mockData';
+import { courses, engineeringBranches, degreeBranches, subjects } from '../data/mockData';
 import { useAuth } from '../hooks/useAuth';
 import { uploadMaterial } from '../services/materialsService';
 import type { MaterialType } from '../types/database.types';
+import { cn } from '../lib/cn';
 
-const branches = ['Computer Science', 'Mathematics', 'Electronics'];
-const semesters = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'];
+const uploadCategories = [
+  {
+    id: 'materials',
+    type: 'pdf' as MaterialType,
+    title: 'Study Material & Notes',
+    description: 'Share lecture notes, study guides, formulas, or textbook summaries.',
+    icon: FileText,
+    accent: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
+    badge: 'Study Material',
+  },
+  {
+    id: 'past-paper',
+    type: 'past-paper' as MaterialType,
+    title: 'Past Exam Paper',
+    description: 'Share mid-term, end-term, or quiz question papers as PDF or Gallery Images.',
+    icon: FileQuestion,
+    accent: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
+    badge: 'Past Paper',
+  },
+  {
+    id: 'doc',
+    type: 'doc' as MaterialType,
+    title: 'Assignment & Solution',
+    description: 'Share homework assignments, lab reports, or project problem sets.',
+    icon: ClipboardList,
+    accent: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+    badge: 'Assignment',
+  },
+];
 
-function inferMaterialType(fileName: string): MaterialType {
+function inferMaterialType(fileName: string, selectedType: MaterialType): MaterialType {
+  if (selectedType === 'past-paper') return 'past-paper';
+  if (selectedType === 'doc') return 'doc';
   const extension = fileName.split('.').pop()?.toLowerCase();
-  if (extension === 'pdf') return 'pdf';
   if (extension === 'doc' || extension === 'docx') return 'doc';
   if (extension === 'ppt' || extension === 'pptx') return 'slides';
-  return 'notes';
+  return 'pdf';
 }
 
 export function UploadPage() {
-  const [file, setFile] = useState<File | null>(null);
+  const [searchParams] = useSearchParams();
+  const initialType = searchParams.get('type');
+
+  const [selectedCategory, setSelectedCategory] = useState<typeof uploadCategories[0] | null>(() => {
+    if (!initialType) return null;
+    return uploadCategories.find((c) => c.id === initialType || c.type === initialType) ?? null;
+  });
+
+  const [selectedCourse, setSelectedCourse] = useState<string>('Engineering');
+  const activeBranches = selectedCourse === 'Degree' ? degreeBranches : engineeringBranches;
+
+  const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,8 +74,9 @@ export function UploadPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const simulateUpload = (selected: File) => {
-    setFile(selected);
+  const simulateUpload = (selectedList: FileList | File[]) => {
+    const newFiles = Array.from(selectedList);
+    setFiles((prev) => [...prev, ...newFiles]);
     setProgress(0);
     const interval = setInterval(() => {
       setProgress((value) => {
@@ -42,46 +84,70 @@ export function UploadPage() {
           clearInterval(interval);
           return 100;
         }
-        return value + 15;
+        return value + 25;
       });
-    }, 150);
+    }, 100);
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    const dropped = event.dataTransfer.files?.[0];
-    if (dropped) simulateUpload(dropped);
+    if (event.dataTransfer.files?.length) {
+      simulateUpload(event.dataTransfer.files);
+    }
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    setFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!file || !user) return;
+    if (files.length === 0 || !user || !selectedCategory) {
+      setError('Please select at least one file or image to upload.');
+      return;
+    }
 
     const formData = new FormData(event.currentTarget);
     const title = String(formData.get('title') ?? '').trim();
-    const subject = String(formData.get('subject') ?? '').trim();
-    if (!title || !subject) {
-      setError('Title and subject are required.');
+    const course = String(formData.get('course') ?? selectedCourse).trim();
+    const branch = String(formData.get('branch') ?? '').trim();
+    const year = String(formData.get('year') ?? '').trim();
+    const description = String(formData.get('description') ?? '').trim();
+
+    if (!title) {
+      setError('Title is required.');
       return;
+    }
+
+    if (selectedCategory.id !== 'doc' && selectedCategory.id !== 'past-paper') {
+      const subject = String(formData.get('subject') ?? '').trim();
+      if (!subject) {
+        setError('Subject is required.');
+        return;
+      }
     }
 
     setError(null);
     setIsSubmitting(true);
     try {
+      const primaryFile = files[0];
       await uploadMaterial({
-        file,
+        file: primaryFile,
         uploaderId: user.id,
         title,
-        description: String(formData.get('description') ?? '') || undefined,
-        subject,
+        description: description || (files.length > 1 ? `Contains ${files.length} exam paper image pages.` : undefined),
+        subject: selectedCategory.id === 'past-paper' ? title : String(formData.get('subject') ?? '') || branch || title,
         semester: String(formData.get('semester') ?? '') || undefined,
         college: String(formData.get('college') ?? '') || undefined,
-        branch: String(formData.get('branch') ?? '') || undefined,
-        year: String(formData.get('year') ?? '') || undefined,
-        type: inferMaterialType(file.name),
+        branch: branch ? `${course ? `${course} - ` : ''}${branch}` : undefined,
+        year: year || undefined,
+        type: inferMaterialType(primaryFile.name, selectedCategory.type),
       });
-      navigate('/profile/uploads');
+
+      // Redirect directly to Manage Uploads in Library page
+      sessionStorage.setItem('dashboard_category', selectedCategory.id);
+      navigate('/library?tab=uploads', { replace: true });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : 'Upload failed. Please try again.');
     } finally {
@@ -89,14 +155,98 @@ export function UploadPage() {
     }
   };
 
-  return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg">Upload Material</h1>
-      <p className="mt-1 text-body-sm text-on-surface-variant sm:text-body-md">
-        Share academic resources with your peers securely.
-      </p>
+  // Step 1: Selection Screen (Select what to upload)
+  if (!selectedCategory) {
+    return (
+      <div className="mx-auto max-w-3xl flex flex-col gap-6">
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-label-sm font-semibold text-primary hover:underline cursor-pointer mb-2"
+          >
+            <ArrowLeft size={16} />
+            <span>Back to Dashboard</span>
+          </button>
+          <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg font-bold">
+            What would you like to upload?
+          </h1>
+          <p className="mt-1 text-body-sm text-on-surface-variant sm:text-body-md">
+            First select the type of academic resource you are sharing with fellow students.
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {uploadCategories.map((cat, index) => {
+            const Icon = cat.icon;
+            return (
+              <motion.div
+                key={cat.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
+              >
+                <Card
+                  hoverable={true}
+                  onClick={() => setSelectedCategory(cat)}
+                  className="flex flex-col gap-4 p-6 cursor-pointer text-left border-2 hover:border-primary transition-all h-full"
+                >
+                  <span className={cn('flex h-12 w-12 items-center justify-center rounded-xl border', cat.accent)}>
+                    <Icon size={24} />
+                  </span>
+                  <div>
+                    <h3 className="text-headline-md font-bold text-on-surface">{cat.title}</h3>
+                    <p className="mt-1.5 text-body-sm text-on-surface-variant leading-relaxed">
+                      {cat.description}
+                    </p>
+                  </div>
+                  <div className="mt-auto pt-2 flex items-center gap-1 text-label-md font-semibold text-primary">
+                    <span>Select {cat.badge}</span>
+                    <ArrowLeft size={16} className="rotate-180" />
+                  </div>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Upload File & Metadata Form
+  const CategoryIcon = selectedCategory.icon;
+  const isAssignment = selectedCategory.id === 'doc';
+  const isPastPaper = selectedCategory.id === 'past-paper';
+
+  return (
+    <div className="mx-auto max-w-3xl flex flex-col gap-6">
+      {/* Category Selection Header Badge */}
+      <div className="flex items-center justify-between gap-4 border-b border-card-border pb-4">
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCategory(null);
+              setFiles([]);
+            }}
+            className="flex items-center gap-1.5 text-label-sm font-semibold text-primary hover:underline cursor-pointer mb-1"
+          >
+            <ArrowLeft size={16} />
+            <span>Return to &quot;What would you like to upload?&quot;</span>
+          </button>
+          <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg font-bold">
+            Upload {selectedCategory.title}
+          </h1>
+        </div>
+
+        <span className={cn('flex items-center gap-2 rounded-xl border px-3 py-2 text-label-md font-semibold', selectedCategory.accent)}>
+          <CategoryIcon size={18} />
+          <span>{selectedCategory.badge}</span>
+        </span>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* File Dropzone */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -111,92 +261,197 @@ export function UploadPage() {
             isDragging ? 'border-primary bg-primary-container/5' : 'border-card-border bg-surface-soft'
           }`}
         >
-          <UploadCloud className="text-outline" size={32} />
-          <p className="text-body-md font-semibold text-on-surface">Select or Drag PDF</p>
-          <p className="text-label-sm text-on-surface-variant">PDF, DOCX, or PPTX up to 50MB</p>
+          <div className="flex items-center gap-2 text-outline">
+            <UploadCloud size={36} />
+            {isPastPaper && <ImageIcon size={30} className="text-amber-500" />}
+          </div>
+          <p className="text-body-md font-semibold text-on-surface">
+            Select or Drag {selectedCategory.badge} {isPastPaper ? 'PDFs or Gallery Images' : 'File(s)'}
+          </p>
+          <p className="text-label-sm text-on-surface-variant">
+            {isPastPaper
+              ? 'PDF, Word, or Multiple Gallery Images (JPG, PNG, WebP) up to 50MB each'
+              : 'PDF, DOCX, or PPTX up to 50MB'}
+          </p>
           <input
             ref={inputRef}
             type="file"
-            accept=".pdf,.doc,.docx,.ppt,.pptx"
+            multiple
+            accept={
+              isPastPaper
+                ? '.pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.heic,image/*'
+                : '.pdf,.doc,.docx,.ppt,.pptx'
+            }
             className="sr-only"
             onChange={(event) => {
-              const selected = event.target.files?.[0];
-              if (selected) simulateUpload(selected);
+              if (event.target.files?.length) simulateUpload(event.target.files);
             }}
           />
-          <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={() => inputRef.current?.click()}>
-            Browse Files
+          <Button type="button" variant="secondary" size="sm" className="mt-2 cursor-pointer" onClick={() => inputRef.current?.click()}>
+            {isPastPaper ? 'Select Files / Multiple Gallery Images' : 'Browse Files'}
           </Button>
         </motion.div>
 
-        {file && (
+        {/* Selected Files / Images Gallery Preview */}
+        {files.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             transition={{ duration: 0.2 }}
-            className="flex items-center gap-3 rounded-lg border border-card-border bg-white p-3"
+            className="flex flex-col gap-3 rounded-xl border border-card-border bg-white p-4 shadow-xs"
           >
-            <FileText className="shrink-0 text-error" size={22} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-body-sm font-medium text-on-surface">{file.name}</p>
-              <div className="mt-1.5 flex items-center gap-2">
+            <div className="flex items-center justify-between border-b border-card-border pb-2">
+              <span className="text-label-md font-bold text-on-surface">
+                {files.length} {files.length === 1 ? 'File / Image' : 'Files / Images'} Selected
+              </span>
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="text-label-sm font-semibold text-primary hover:underline cursor-pointer flex items-center gap-1"
+              >
+                + Add More
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {files.map((fileItem, idx) => (
+                <div
+                  key={`${fileItem.name}-${idx}`}
+                  className="flex items-center gap-3 rounded-lg border border-card-border bg-surface-soft p-2.5"
+                >
+                  {fileItem.type.startsWith('image/') ? (
+                    <img
+                      src={URL.createObjectURL(fileItem)}
+                      alt={`Page ${idx + 1}`}
+                      className="h-12 w-12 shrink-0 rounded-md object-cover border border-card-border"
+                    />
+                  ) : (
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white text-primary border border-card-border">
+                      <FileText size={22} />
+                    </span>
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-label-xs font-bold text-primary">
+                        Page {idx + 1}
+                      </span>
+                      <p className="truncate text-body-sm font-semibold text-on-surface">{fileItem.name}</p>
+                    </div>
+                    <p className="mt-0.5 text-label-xs text-on-surface-variant">
+                      {Math.round((fileItem.size / 1024) * 10) / 10} KB
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label={`Remove page ${idx + 1}`}
+                    onClick={() => removeFile(idx)}
+                    className="shrink-0 text-outline hover:text-error cursor-pointer p-1"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {progress > 0 && progress < 100 && (
+              <div className="mt-2 flex items-center gap-2 pt-2 border-t border-card-border">
                 <ProgressBar value={progress} />
                 <span className="w-10 shrink-0 text-label-sm text-on-surface-variant">{progress}%</span>
               </div>
-            </div>
-            <button
-              type="button"
-              aria-label="Remove file"
-              onClick={() => setFile(null)}
-              className="shrink-0 text-outline hover:text-on-surface cursor-pointer"
-            >
-              <X size={18} />
-            </button>
+            )}
           </motion.div>
         )}
 
-        <Input label="Material Title" name="title" placeholder="e.g. Advanced Calculus Chapter 4" required />
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="description" className="text-label-md text-on-surface-variant">
-            Description
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            rows={4}
-            placeholder="What does this material cover?"
-            className="w-full resize-none rounded-lg border border-transparent bg-surface-soft px-4 py-3 text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:bg-white focus:outline-none"
-          />
-        </div>
-
-        {/* College autocomplete — replaces the old University + College dropdowns */}
-        <CollegeAutocomplete
-          label="College"
-          name="college"
-          placeholder="Enter your college name"
+        <Input
+          label={`${selectedCategory.badge} Title`}
+          name="title"
+          placeholder={
+            isAssignment
+              ? 'e.g. DBMS Lab Assignment 2 Solution'
+              : selectedCategory.id === 'past-paper'
+                ? 'e.g. Calculus & Linear Algebra Mid-Term Past Paper 2024'
+                : 'e.g. Advanced Data Structures Complete Notes'
+          }
+          required
         />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Select label="Branch" placeholder="Select Branch" options={branches} name="branch" />
-          <Select label="Subject" placeholder="Select Subject" options={subjects} name="subject" />
-          <Select label="Year" placeholder="Select Year" options={years} name="year" />
-          <Select label="Semester" placeholder="Select Semester" options={semesters} name="semester" />
-        </div>
+        {/* Description - Hide for Past Papers */}
+        {!isPastPaper && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="description" className="text-label-md text-on-surface-variant">
+              Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              rows={3}
+              placeholder="What does this resource cover? Add any helpful details for students."
+              className="w-full resize-none rounded-lg border border-transparent bg-surface-soft px-4 py-3 text-body-md text-on-surface placeholder:text-outline focus:border-primary-container focus:bg-white focus:outline-none"
+            />
+          </div>
+        )}
+
+        {/* Dynamic Metadata Form Fields */}
+        {isAssignment ? (
+          /* For Assignments, collect Course, Branch, and Year */
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Select
+              label="Course"
+              placeholder="Select Course"
+              options={courses}
+              name="course"
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+            />
+            <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
+            <Input label="Student Year" placeholder="1st year, 2nd year ..." name="year" />
+          </div>
+        ) : isPastPaper ? (
+          /* For Past Exam Papers, collect ONLY College / University (No Course, Subject, Description, Branch, Semester, or Student Year) */
+          <CollegeAutocomplete
+            label="College / University"
+            name="college"
+            placeholder="Enter your college or university name"
+          />
+        ) : (
+          /* For Study Materials, collect Course, Branch, Subject, and Year (No College or Semester) */
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Select
+              label="Course"
+              placeholder="Select Course"
+              options={courses}
+              name="course"
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+            />
+            <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
+            <Select label="Subject" placeholder="Select Subject" options={subjects} name="subject" />
+            <Input label="Student Year" placeholder="1st year, 2nd year ..." name="year" />
+          </div>
+        )}
 
         {error && <p className="text-body-sm font-medium text-error">{error}</p>}
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
-            Cancel
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setSelectedCategory(null);
+              setFiles([]);
+            }}
+          >
+            Cancel & Return to Selection
           </Button>
           <Button
             type="submit"
             variant="primary"
             icon={<UploadCloud size={18} />}
-            disabled={!file || progress < 100 || isSubmitting}
+            disabled={files.length === 0 || progress < 100 || isSubmitting}
           >
-            {isSubmitting ? 'Uploading...' : 'Upload Material'}
+            {isSubmitting ? 'Uploading...' : `Upload ${selectedCategory.badge}`}
           </Button>
         </div>
       </form>

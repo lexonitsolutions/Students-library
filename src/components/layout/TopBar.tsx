@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, BookMarked, Moon, Search, Settings, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useIsDesktop } from '../../hooks/useMediaQuery';
@@ -14,11 +14,13 @@ import { NotificationList } from './NotificationList';
 export function TopBar() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isDesktop = useIsDesktop();
   const { isDark, toggle: toggleDark } = useDarkMode();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsList, setNotificationsList] = useState<AppNotification[]>([]);
   const unreadCount = notificationsList.filter((notification) => !notification.read).length;
+  const isSearchHidden = location.pathname === '/leaderboard' || location.pathname.startsWith('/profile');
 
   useEffect(() => {
     if (!user) return;
@@ -58,15 +60,17 @@ export function TopBar() {
         <BookMarked size={18} />
       </div>
 
-      <div className="relative hidden flex-1 max-w-3xl lg:flex">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-outline" size={18} />
-        <input
-          type="search"
-          placeholder="Search materials, subjects, authors..."
-          aria-label="Search materials"
-          className="h-11 w-full rounded-lg border border-transparent bg-surface-container-low pl-10 pr-4 text-body-sm text-on-surface placeholder:text-outline focus:border-primary-container focus:bg-white focus:outline-none"
-        />
-      </div>
+      {!isSearchHidden && (
+        <div className="relative hidden flex-1 max-w-3xl lg:flex">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-outline" size={18} />
+          <input
+            type="search"
+            placeholder="Search materials, subjects, authors..."
+            aria-label="Search materials"
+            className="h-11 w-full rounded-lg border border-transparent bg-surface-container-low pl-10 pr-4 text-body-sm text-on-surface placeholder:text-outline focus:border-primary-container focus:bg-white focus:outline-none"
+          />
+        </div>
+      )}
 
       <div className="relative ml-auto flex items-center gap-1.5 sm:gap-2">
         {/* Dark mode toggle (desktop only) */}

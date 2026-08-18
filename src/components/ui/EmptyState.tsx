@@ -5,7 +5,7 @@ import { Button } from './Button';
 export interface EmptyStateProps {
   readonly icon: ReactNode;
   readonly title: string;
-  readonly description: string;
+  readonly description?: string;
   readonly actionLabel?: string;
   readonly onAction?: () => void;
 }
@@ -22,7 +22,7 @@ export function EmptyState({ icon, title, description, actionLabel, onAction }: 
         {icon}
       </div>
       <h3 className="text-headline-md text-on-surface">{title}</h3>
-      <p className="max-w-sm text-body-sm text-on-surface-variant">{description}</p>
+      {description && <p className="max-w-sm text-body-sm text-on-surface-variant">{description}</p>}
       {actionLabel && onAction && (
         <Button variant="primary" size="sm" onClick={onAction} className="mt-2">
           {actionLabel}

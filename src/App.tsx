@@ -2,7 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { AuthProvider } from './hooks/useAuth';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { ExplorePage } from './pages/ExplorePage';
+import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { OtpVerificationPage } from './pages/OtpVerificationPage';
 import { SignInPage } from './pages/SignInPage';
@@ -36,7 +36,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               <Route index element={<HomeGate />} />
-              <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/upload" element={<UploadPage />} />
               <Route path="/materials/:id" element={<MaterialDetailsPage />} />
               <Route path="/library" element={<LibraryPage />} />

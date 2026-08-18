@@ -24,6 +24,7 @@ export const categoryIcon: Record<string, typeof FileText> = {
   FileQuestion,
   ClipboardList,
   FlaskConical,
+  FileText,
   Image: ImageIcon,
   Video,
 };

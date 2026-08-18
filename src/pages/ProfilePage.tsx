@@ -373,9 +373,9 @@ export function ProfilePage() {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Year"
-              options={yearsList}
+            <Input
+              label="Student Year"
+              placeholder="1st year, 2nd year ..."
               value={editYear}
               onChange={(e) => setEditYear(e.target.value)}
             />

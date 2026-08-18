@@ -12,6 +12,10 @@ export interface Material {
   readonly uploaderId: string;
   readonly uploaderName: string;
   readonly uploaderAvatar: string;
+  readonly uploaderUniversity?: string;
+  readonly uploaderCollege?: string;
+  readonly uploaderLocation?: string;
+  readonly uploaderUploadsCount?: number;
   readonly uploadedAt: string;
   readonly views: number;
   readonly downloads: number;

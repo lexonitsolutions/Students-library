@@ -33,10 +33,10 @@ export function Sidebar() {
       <button
         type="button"
         onClick={() => navigate('/upload')}
-        className="mt-6 flex h-11 items-center justify-center gap-2 rounded-lg bg-primary text-label-md text-on-primary transition-colors duration-150 hover:bg-primary-container cursor-pointer"
+        className="mt-6 flex h-11 items-center justify-center gap-2 rounded-lg bg-primary text-label-md font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-container cursor-pointer"
       >
         <Plus size={18} />
-        Upload Material
+        Upload
       </button>
 
       <nav className="mt-6 flex flex-1 flex-col gap-1">
