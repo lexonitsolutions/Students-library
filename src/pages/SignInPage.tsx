@@ -1,31 +1,56 @@
 import { motion } from 'framer-motion';
-import { Smartphone, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ShieldCheck, Smartphone } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
+import { useWorkspace } from '../hooks/useWorkspace';
 
 export function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loginAsAdmin, setLoginAsAdmin] = useState(false);
   const [showMobileInput, setShowMobileInput] = useState(false);
   const [mobileNumber, setMobileNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, signInWithGoogle, sendMobileOtp } = useAuth();
+  const { signIn, signInWithGoogle, sendMobileOtp, checkAccountStatus } = useAuth();
+  const { chooseWorkspace } = useWorkspace();
   const navigate = useNavigate();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
-    const { error: signInError } = await signIn({ email, password });
+
+    // Check admin eligibility by email *before* authenticating, so a denied
+    // admin attempt never establishes a session in the first place — that
+    // previously caused a visible flash into the app and back out again,
+    // since route guards react to the session the instant it appears.
+    if (loginAsAdmin) {
+      try {
+        const status = await checkAccountStatus(email.trim());
+        if (!status.isAdmin) {
+          setIsSubmitting(false);
+          setError('This email does not have admin access.');
+          return;
+        }
+      } catch {
+        setIsSubmitting(false);
+        setError('Could not verify admin access. Please try again.');
+        return;
+      }
+    }
+
+    const { error: signInError } = await signIn({ email: email.trim(), password });
     setIsSubmitting(false);
     if (signInError) {
       setError(signInError);
       return;
     }
+
+    chooseWorkspace(loginAsAdmin ? 'admin' : 'student');
     navigate('/', { replace: true });
   };
 
@@ -45,7 +70,7 @@ export function SignInPage() {
             <span className="dark:text-white text-gray-900">QuickLearnit</span>
           </div>
         </div>
-        
+
         <div className="flex-1 flex flex-col items-center justify-center relative z-10">
            {/* Abstract illustration placeholder based on design */}
            <div className="w-full max-w-md aspect-video bg-gray-50 dark:bg-[#1e2230] rounded-xl border border-gray-100 dark:border-[#2a2e3f] shadow-sm mb-12 flex items-center justify-center overflow-hidden">
@@ -232,10 +257,23 @@ export function SignInPage() {
               </div>
             </div>
 
+            <label className="flex cursor-pointer items-center gap-2.5 select-none">
+              <input
+                type="checkbox"
+                checked={loginAsAdmin}
+                onChange={(e) => setLoginAsAdmin(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                <ShieldCheck className="h-4 w-4 text-slate-400" />
+                Login as Admin
+              </span>
+            </label>
+
             <button
               type="submit"
               disabled={isSubmitting}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e1b4b] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#312e81] focus:outline-none focus:ring-2 focus:ring-[#312e81] focus:ring-offset-2 disabled:opacity-50"
+              className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e1b4b] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#312e81] focus:outline-none focus:ring-2 focus:ring-[#312e81] focus:ring-offset-2 disabled:opacity-50"
             >
               {isSubmitting ? 'Signing in...' : 'Sign In'} <ArrowRight className="h-4 w-4" />
             </button>

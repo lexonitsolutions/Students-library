@@ -54,6 +54,38 @@ This pushes every file in `supabase/migrations/` in order.
 | `..._notifications.sql` | `notifications` table + trigger that notifies an uploader when their material is approved/rejected |
 | `..._rpc_and_stats.sql` | `increment_material_views()` RPC, `profile_stats` view (uploads/downloads/saved counts per user) |
 | `..._storage.sql` | `materials` and `avatars` storage buckets + per-user folder policies |
+| `..._admin_workspace.sql` | `admin_allowlist` table, `check_account_status()` RPC, role-sync triggers, seeds the root admin email |
+| `..._fix_admin_role_guard.sql` | Fixes `protect_profile_role` so it only blocks role changes from an authenticated non-admin user (not migrations/SQL Editor), and re-promotes `hr@lexonit.com` if it got silently reverted by the bug |
+
+## Admin workspace
+
+There is no separate login system for admins — an admin is just a normal
+Supabase Auth account (same `profiles` table, same `role` column) whose email
+is listed in `public.admin_allowlist`. This keeps one email tied to exactly
+one account, which is a hard constraint of Supabase Auth (it won't let the
+same email register twice), while still letting that single account use
+either the admin workspace or the regular student experience — the frontend
+just asks which one to land in after sign-in (see `WorkspaceChoicePage` and
+`useWorkspace`).
+
+- `..._admin_workspace.sql` seeds `hr@lexonit.com` into `admin_allowlist` as
+  the root admin (protected from removal by a trigger). **This only
+  authorizes the email — it does not create the Supabase Auth user**, since
+  auth users can't be created directly via SQL migration. To activate it,
+  open the app's sign-in page, enter `hr@lexonit.com`, and follow the "Set
+  your admin password" flow using `SandyMahi@2026`. Once that's done it's a
+  real account and signs in normally from then on.
+- Any existing admin can authorize more emails from **Admin Workspace →
+  Manage Admins** (`/admin/admins`), which just inserts into
+  `admin_allowlist`. A `sync_profile_role_from_allowlist()` trigger promotes
+  the matching profile to `admin` immediately if the account already exists,
+  or the new admin gets promoted automatically by `handle_new_user()` the
+  moment they sign up.
+- `check_account_status(email)` is a `SECURITY DEFINER` RPC (granted to
+  `anon`) the sign-in page calls before authenticating, so it can decide
+  whether to show a normal password field or the "set your admin password"
+  form — without ever exposing `auth.users` or password hashes to the
+  client.
 
 ## Environment variables
 

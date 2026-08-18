@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import type { UserRole } from '../types/database.types';
 
 export interface AdminStats {
   readonly totalStudents: number;
@@ -61,4 +62,53 @@ export async function listModerationQueue(): Promise<ModerationItem[]> {
     uploader: nameById.get(item.uploader_id) ?? 'Unknown',
     date: new Date(item.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
   }));
+}
+
+const ROOT_ADMIN_EMAIL = 'hr@lexonit.com';
+
+export interface AdminAllowlistEntry {
+  readonly email: string;
+  readonly createdAt: string;
+  readonly hasAccount: boolean;
+  readonly role: UserRole | null;
+  readonly isRoot: boolean;
+}
+
+export async function listAdminEmails(): Promise<AdminAllowlistEntry[]> {
+  const { data: allowlist, error } = await supabase
+    .from('admin_allowlist')
+    .select('email, created_at')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  if (allowlist.length === 0) return [];
+
+  const emails = allowlist.map((entry) => entry.email);
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('email, role')
+    .in('email', emails);
+  if (profilesError) throw profilesError;
+
+  const profileByEmail = new Map(profiles.map((p) => [p.email, p]));
+
+  return allowlist.map((entry) => {
+    const profile = profileByEmail.get(entry.email);
+    return {
+      email: entry.email,
+      createdAt: entry.created_at,
+      hasAccount: Boolean(profile),
+      role: profile?.role ?? null,
+      isRoot: entry.email === ROOT_ADMIN_EMAIL,
+    };
+  });
+}
+
+export async function addAdminEmail(email: string): Promise<void> {
+  const { error } = await supabase.from('admin_allowlist').insert({ email: email.trim().toLowerCase() });
+  if (error) throw error;
+}
+
+export async function removeAdminEmail(email: string): Promise<void> {
+  const { error } = await supabase.from('admin_allowlist').delete().eq('email', email.trim().toLowerCase());
+  if (error) throw error;
 }

@@ -50,6 +50,18 @@ export async function signOut() {
   return supabase.auth.signOut();
 }
 
+export interface AccountStatus {
+  readonly hasAccount: boolean;
+  readonly isAdmin: boolean;
+}
+
+export async function checkAccountStatus(email: string): Promise<AccountStatus> {
+  const { data, error } = await supabase.rpc('check_account_status', { p_email: email });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return { hasAccount: Boolean(row?.has_account), isAdmin: Boolean(row?.is_admin) };
+}
+
 export async function getSession() {
   const { data } = await supabase.auth.getSession();
   return data.session;

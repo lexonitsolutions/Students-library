@@ -92,6 +92,12 @@ export interface ReportRow {
   created_at: string;
 }
 
+export interface AdminAllowlistRow {
+  email: string;
+  added_by: string | null;
+  created_at: string;
+}
+
 export interface NotificationRow {
   id: string;
   user_id: string;

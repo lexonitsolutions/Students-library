@@ -44,6 +44,7 @@ interface AuthContextValue {
   readonly sendMobileOtp: (phone: string) => Promise<{ error: string | null }>;
   readonly verifyMobileOtp: (phone: string, token: string) => Promise<{ error: string | null }>;
   readonly signOut: () => Promise<void>;
+  readonly checkAccountStatus: (email: string) => Promise<authService.AccountStatus>;
   readonly completeOnboarding: () => void;
   readonly updateUser: (fields: Partial<User>) => Promise<void>;
   readonly refreshUser: () => Promise<void>;
@@ -53,6 +54,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const ONBOARDED_KEY = 'quicklearnit.hasOnboarded';
+export const WORKSPACE_KEY = 'lexon.workspace';
 
 function toUserUpdate(fields: Partial<User>) {
   return {
@@ -135,10 +137,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       if (nextSession) {
-        loadProfile(nextSession.user.id);
+        // A fresh sign-in re-enters the "loading" state until the profile
+        // (and its role) resolves, so route guards don't have to make a
+        // routing decision based on a still-null user and flash the wrong
+        // screen before correcting themselves.
+        setLoading(true);
+        loadProfile(nextSession.user.id).finally(() => setLoading(false));
       } else {
         setProfile(null);
         setStats(null);
+        setLoading(false);
       }
     });
 
@@ -197,8 +205,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const signOut = useCallback(async () => {
     localStorage.removeItem(DEMO_USER_KEY);
     setDemoUser(null);
+    sessionStorage.removeItem(WORKSPACE_KEY);
     await authService.signOut().catch(() => {});
   }, []);
+
+  const checkAccountStatus = useCallback((email: string) => authService.checkAccountStatus(email), []);
 
   const completeOnboarding = useCallback(() => {
     localStorage.setItem(ONBOARDED_KEY, 'true');
@@ -270,6 +281,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       sendMobileOtp,
       verifyMobileOtp,
       signOut,
+      checkAccountStatus,
       completeOnboarding,
       updateUser,
       refreshUser,
@@ -289,6 +301,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       sendMobileOtp,
       verifyMobileOtp,
       signOut,
+      checkAccountStatus,
       completeOnboarding,
       updateUser,
       refreshUser,
