@@ -67,8 +67,8 @@ export function OtpVerificationPage() {
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-white border-r border-gray-100 relative overflow-hidden">
         <div className="flex items-center gap-2 z-10">
           <div className="font-bold text-xl tracking-tight text-gray-900 flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded bg-primary text-white">L</span>
-            Lexon
+            <span className="flex h-8 w-8 items-center justify-center rounded bg-primary text-white">Q</span>
+            QuickLearnit
           </div>
         </div>
         

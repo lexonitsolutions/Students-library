@@ -1,6 +1,6 @@
-# Lexon Backend (Supabase)
+# QuickLearnit Backend (Supabase)
 
-Lexon's frontend is a Vite + React SPA with no server of its own. Supabase is
+QuickLearnit's frontend is a Vite + React SPA with no server of its own. Supabase is
 the entire backend: Postgres database, Auth, and file Storage, accessed
 directly from the browser via `src/lib/supabaseClient.ts` and the service
 layer in `src/services/`. This folder holds the SQL that defines that backend.
@@ -8,7 +8,7 @@ layer in `src/services/`. This folder holds the SQL that defines that backend.
 ## Architecture
 
 ```
-Lexon Web (Vite SPA)
+QuickLearnit Web (Vite SPA)
    |
    v
 Supabase

@@ -3,15 +3,15 @@ import { FileText, UploadCloud, X } from 'lucide-react';
 import { type DragEvent, type FormEvent, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
+import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
 import { Input } from '../components/ui/Input';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Select } from '../components/ui/Select';
-import { subjects, universities, years } from '../data/mockData';
+import { subjects, years } from '../data/mockData';
 import { useAuth } from '../hooks/useAuth';
 import { uploadMaterial } from '../services/materialsService';
 import type { MaterialType } from '../types/database.types';
 
-const colleges = ['College of Engineering', 'College of Science', 'School of Engineering'];
 const branches = ['Computer Science', 'Mathematics', 'Electronics'];
 const semesters = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'];
 
@@ -76,7 +76,6 @@ export function UploadPage() {
         description: String(formData.get('description') ?? '') || undefined,
         subject,
         semester: String(formData.get('semester') ?? '') || undefined,
-        university: String(formData.get('university') ?? '') || undefined,
         college: String(formData.get('college') ?? '') || undefined,
         branch: String(formData.get('branch') ?? '') || undefined,
         year: String(formData.get('year') ?? '') || undefined,
@@ -171,9 +170,14 @@ export function UploadPage() {
           />
         </div>
 
+        {/* College autocomplete — replaces the old University + College dropdowns */}
+        <CollegeAutocomplete
+          label="College"
+          name="college"
+          placeholder="Enter your college name"
+        />
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Select label="University" placeholder="Select University" options={universities} name="university" />
-          <Select label="College" placeholder="Select College" options={colleges} name="college" />
           <Select label="Branch" placeholder="Select Branch" options={branches} name="branch" />
           <Select label="Subject" placeholder="Select Subject" options={subjects} name="subject" />
           <Select label="Year" placeholder="Select Year" options={years} name="year" />

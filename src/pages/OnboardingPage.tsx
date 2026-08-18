@@ -117,7 +117,7 @@ export function OnboardingPage() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-on-primary">
                   <BookOpen size={18} />
                 </div>
-                <span className="text-headline-md text-on-surface">Lexon</span>
+                <span className="text-headline-md text-on-surface">QuickLearnit</span>
               </div>
 
               <div className="flex flex-1 flex-col items-center justify-center text-center">

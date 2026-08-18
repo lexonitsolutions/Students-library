@@ -25,7 +25,7 @@ export function Sidebar() {
           <BookMarked size={20} />
         </div>
         <div>
-          <p className="text-headline-md leading-tight text-on-surface">Lexon</p>
+          <p className="text-headline-md leading-tight text-on-surface">QuickLearnit</p>
           <p className="text-label-sm text-on-surface-variant">Study Smart</p>
         </div>
       </div>

@@ -52,7 +52,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const ONBOARDED_KEY = 'lexon.hasOnboarded';
+const ONBOARDED_KEY = 'quicklearnit.hasOnboarded';
 
 function toUserUpdate(fields: Partial<User>) {
   return {
@@ -68,12 +68,47 @@ function toUserUpdate(fields: Partial<User>) {
   };
 }
 
+const DEMO_USER_KEY = 'quicklearnit.demo_user';
+
+const MOCK_CREDENTIAL_USERS: Record<string, { password: string; user: User }> = {
+  'sadhik@gmail.com': {
+    password: 'sadhik',
+    user: {
+      id: 'user-sadhik-01',
+      name: 'Sadhik',
+      username: 'sadhik',
+      email: 'sadhik@gmail.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80',
+      university: 'Stanford University',
+      major: 'Computer Science',
+      college: 'School of Engineering',
+      branch: 'Artificial Intelligence',
+      year: '3rd Year',
+      semester: 'Semester 5',
+      role: 'student',
+      stats: {
+        uploads: 15,
+        downloads: 42,
+        saved: 18,
+      },
+    },
+  },
+};
+
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [stats, setStats] = useState<ProfileStatsRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasOnboarded, setHasOnboarded] = useState(() => localStorage.getItem(ONBOARDED_KEY) === 'true');
+  const [demoUser, setDemoUser] = useState<User | null>(() => {
+    try {
+      const raw = localStorage.getItem(DEMO_USER_KEY);
+      return raw ? (JSON.parse(raw) as User) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const loadProfile = useCallback(async (userId: string) => {
     const [profileRow, statsRow] = await Promise.all([
@@ -119,6 +154,17 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const signIn = useCallback(async (params: authService.SignInParams) => {
+    const normalizedEmail = params.email.trim().toLowerCase();
+    const matchedCredential = MOCK_CREDENTIAL_USERS[normalizedEmail];
+
+    if (matchedCredential && matchedCredential.password === params.password) {
+      localStorage.setItem(DEMO_USER_KEY, JSON.stringify(matchedCredential.user));
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+      setDemoUser(matchedCredential.user);
+      return { error: null };
+    }
+
     const { error } = await authService.signInWithPassword(params);
     return { error: error?.message ?? null };
   }, []);
@@ -149,7 +195,9 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await authService.signOut();
+    localStorage.removeItem(DEMO_USER_KEY);
+    setDemoUser(null);
+    await authService.signOut().catch(() => {});
   }, []);
 
   const completeOnboarding = useCallback(() => {
@@ -159,11 +207,17 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const updateUser = useCallback(
     async (fields: Partial<User>) => {
+      if (demoUser) {
+        const updated = { ...demoUser, ...fields };
+        setDemoUser(updated);
+        localStorage.setItem(DEMO_USER_KEY, JSON.stringify(updated));
+        return;
+      }
       if (!session) return;
       const updated = await profileService.updateProfile(session.user.id, toUserUpdate(fields));
       setProfile(updated);
     },
-    [session],
+    [demoUser, session],
   );
 
   const refreshUser = useCallback(async () => {
@@ -173,6 +227,12 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const deleteAccount = useCallback(
     async (password: string) => {
+      if (demoUser) {
+        localStorage.removeItem(DEMO_USER_KEY);
+        setDemoUser(null);
+        return { error: null };
+      }
+
       if (!session?.user.email) return { error: 'Not signed in.' };
 
       const { error: verifyError } = await authService.signInWithPassword({
@@ -187,16 +247,19 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       await authService.signOut();
       return { error: null };
     },
-    [session],
+    [demoUser, session],
   );
 
-  const user = useMemo<User | null>(() => (profile ? toUser(profile, stats) : null), [profile, stats]);
+  const user = useMemo<User | null>(
+    () => demoUser ?? (profile ? toUser(profile, stats) : null),
+    [demoUser, profile, stats],
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       session,
-      isAuthenticated: session !== null,
+      isAuthenticated: session !== null || demoUser !== null,
       hasOnboarded,
       loading,
       signUp,
@@ -215,6 +278,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     [
       user,
       session,
+      demoUser,
       hasOnboarded,
       loading,
       signUp,
