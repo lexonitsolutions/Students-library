@@ -26,6 +26,7 @@ export interface Material {
   readonly filePath: string;
   readonly pages?: number;
   readonly fileSizeMb?: number;
+  readonly previewUrl?: string;
   readonly isSaved?: boolean;
 }
 

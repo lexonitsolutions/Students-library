@@ -40,26 +40,38 @@ export function MaterialDetailsPage() {
     if (!id) return;
     let active = true;
 
+    // Instant synchronous render from mock database
     const mock = mockMaterials.find((m) => m.id === id);
-    if (mock) {
+    if (mock && active) {
       setMaterial(mock);
     }
 
-    getMaterialForUI(id)
-      .then((data) => {
+    (async () => {
+      try {
+        const savedSet = user ? await bookmarksService.listBookmarkedMaterialIds(user.id) : undefined;
+        const itemIsSaved = savedSet ? savedSet.has(id) : false;
+
+        if (active) {
+          setIsSaved(itemIsSaved);
+          if (mock) {
+            setMaterial({ ...mock, isSaved: itemIsSaved });
+          }
+        }
+
+        const data = await getMaterialForUI(id, savedSet || user?.id);
         if (active && data) {
           setMaterial(data);
           setIsSaved(!!data.isSaved);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.warn('Material load warning:', err);
-      });
+      }
+    })();
 
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, user?.id]);
 
   useEffect(() => {
     if (id) {
@@ -73,14 +85,10 @@ export function MaterialDetailsPage() {
     setIsSaved(nextSaved);
     setMaterial((prev) => (prev ? { ...prev, isSaved: nextSaved } : null));
 
-    try {
-      if (nextSaved) {
-        await bookmarksService.addBookmark(material.id);
-      } else {
-        await bookmarksService.removeBookmark(material.id, user.id);
-      }
-    } catch {
-      setIsSaved(!nextSaved);
+    if (nextSaved) {
+      await bookmarksService.addBookmark(material.id, user.id);
+    } else {
+      await bookmarksService.removeBookmark(material.id, user.id);
     }
   };
 
@@ -237,8 +245,10 @@ export function MaterialDetailsPage() {
                 ) : (
                   <iframe
                     title={material.title}
-                    src={`${material.fileUrl}#toolbar=0&navpanes=0`}
-                    className="h-[580px] w-full border-0"
+                    src={`${material.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                    scrolling="no"
+                    className="h-[580px] w-full border-0 overflow-hidden"
+                    style={{ overflow: 'hidden' }}
                   />
                 )
               ) : (

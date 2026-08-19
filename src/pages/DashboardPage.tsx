@@ -75,15 +75,13 @@ export function DashboardPage() {
     if (!user) return;
     const material = materials.find((item) => item.id === id);
     if (!material) return;
-    setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: !item.isSaved } : item)));
-    try {
-      if (material.isSaved) {
-        await bookmarksService.removeBookmark(id, user.id);
-      } else {
-        await bookmarksService.addBookmark(id);
-      }
-    } catch {
-      setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: material.isSaved } : item)));
+    const wasSaved = !!material.isSaved;
+    const nextSaved = !wasSaved;
+    setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: nextSaved } : item)));
+    if (wasSaved) {
+      await bookmarksService.removeBookmark(id, user.id);
+    } else {
+      await bookmarksService.addBookmark(id, user.id);
     }
   };
 

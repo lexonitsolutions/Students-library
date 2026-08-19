@@ -93,7 +93,13 @@ export function ReaderPage() {
               )}
             </div>
           ) : (
-            <iframe title={material.title} src={`${material.fileUrl}#toolbar=0&navpanes=0`} className="h-full w-full border-0" />
+            <iframe
+              title={material.title}
+              src={`${material.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+              scrolling="no"
+              className="h-full w-full border-0 overflow-hidden"
+              style={{ overflow: 'hidden' }}
+            />
           )
         ) : (
           <p className="text-body-sm text-on-surface-variant">Loading document...</p>
