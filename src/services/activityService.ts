@@ -13,6 +13,7 @@ export interface ActivityItem {
   readonly materialId?: string;
   readonly timestamp: string;
   readonly at: string;
+  readonly status?: string;
 }
 
 export async function listRecentActivity(userId: string, limit = 20): Promise<ActivityItem[]> {
@@ -43,7 +44,7 @@ export async function listRecentActivity(userId: string, limit = 20): Promise<Ac
         .limit(limit),
       supabase
         .from('materials')
-        .select('id, uploaded_at, title')
+        .select('id, uploaded_at, title, status')
         .eq('uploader_id', userId)
         .order('uploaded_at', { ascending: false })
         .limit(limit),
@@ -93,6 +94,7 @@ export async function listRecentActivity(userId: string, limit = 20): Promise<Ac
           materialId: row.id,
           at: row.uploaded_at,
           timestamp: timeAgo(row.uploaded_at),
+          status: row.status,
         });
       }
     }
@@ -131,6 +133,7 @@ export async function listRecentActivity(userId: string, limit = 20): Promise<Ac
       materialId: m.id,
       at: m.uploadedAt,
       timestamp: timeAgo(m.uploadedAt),
+      status: m.status,
     });
   }
 
@@ -145,6 +148,7 @@ export async function listRecentActivity(userId: string, limit = 20): Promise<Ac
         materialId: mockMaterials[0]?.id ?? 'm1',
         at: new Date(Date.now() - 3600000 * 4).toISOString(),
         timestamp: timeAgo(new Date(Date.now() - 3600000 * 4).toISOString()),
+        status: mockMaterials[0]?.status ?? 'pending',
       },
       {
         id: 'sample-bm-1',

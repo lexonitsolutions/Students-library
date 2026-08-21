@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, MoreVertical } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, MoreVertical } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { IconButton } from '../components/ui/IconButton';
@@ -21,17 +21,20 @@ export function ReaderPage() {
   }, [id]);
 
   const isImageFile = material
-    ? material.fileUrl.match(/\.(jpeg|jpg|png|webp|gif|heic)($|\?)/i) ||
-      material.fileUrl.startsWith('blob:') ||
+    ? !!(material.filePath || material.fileUrl).match(/\.(jpeg|jpg|png|webp|gif|heic)($|\?)/i) ||
       material.fileUrl.startsWith('data:image/')
     : false;
 
+  const isOfficeDocument = material
+    ? !!(material.filePath || material.fileUrl).match(/\.(doc|docx|ppt|pptx|xls|xlsx)($|\?)/i)
+    : false;
+
+  const isPublicUrl = material
+    ? material.fileUrl.startsWith('http') && !material.fileUrl.includes('localhost') && !material.fileUrl.includes('127.0.0.1')
+    : false;
+
   const imageList = isImageFile && material
-    ? [
-        material.fileUrl,
-        'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=1200&q=80',
-      ]
+    ? [material.fileUrl]
     : [];
 
   return (
@@ -92,6 +95,32 @@ export function ReaderPage() {
                 </>
               )}
             </div>
+          ) : isOfficeDocument ? (
+            isPublicUrl ? (
+              <iframe
+                title={material.title}
+                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.fileUrl)}`}
+                className="h-full w-full border-0 overflow-hidden"
+              />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-surface-container-high">
+                <FileText size={64} className="text-outline-variant" />
+                <div className="text-center px-6">
+                  <h3 className="text-headline-sm font-bold text-on-surface">Preview not available</h3>
+                  <p className="mt-2 text-body-md text-on-surface-variant max-w-sm mx-auto">
+                    Microsoft Office previews require a publicly accessible URL. Since this file was uploaded locally (via a mock user), you can download it to view it on your device.
+                  </p>
+                </div>
+                <a
+                  href={material.fileUrl}
+                  download
+                  className="mt-4 flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-label-md font-semibold text-white hover:opacity-90 transition-opacity"
+                >
+                  <Download size={20} />
+                  Download File
+                </a>
+              </div>
+            )
           ) : (
             <iframe
               title={material.title}

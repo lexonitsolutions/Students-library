@@ -44,13 +44,10 @@ const uploadCategories = [
   },
 ];
 
-function inferMaterialType(fileName: string, selectedType: MaterialType): MaterialType {
-  if (selectedType === 'past-paper') return 'past-paper';
-  if (selectedType === 'doc') return 'doc';
-  const extension = fileName.split('.').pop()?.toLowerCase();
-  if (extension === 'doc' || extension === 'docx') return 'doc';
-  if (extension === 'ppt' || extension === 'pptx') return 'slides';
-  return 'pdf';
+function inferMaterialType(selectedType: MaterialType): MaterialType {
+  // Ensure the material is strictly categorized based on the user's selection, 
+  // ignoring the actual file extension.
+  return selectedType;
 }
 
 export function UploadPage() {
@@ -162,7 +159,7 @@ export function UploadPage() {
         college: String(formData.get('college') ?? '') || undefined,
         branch: branch ? `${course ? `${course} - ` : ''}${branch}` : undefined,
         year: year || undefined,
-        type: inferMaterialType(primaryFile.name, selectedCategory.type),
+        type: inferMaterialType(selectedCategory.type),
       });
 
       // Redirect directly to Manage Uploads in Library page

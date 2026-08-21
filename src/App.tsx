@@ -5,6 +5,7 @@ import { ThemeProvider } from './hooks/useDarkMode';
 import { WorkspaceProvider } from './hooks/useWorkspace';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminManageAdminsPage } from './pages/AdminManageAdminsPage';
+import { MessagesPage } from './pages/MessagesPage';
 import { ExplorePage } from './pages/ExplorePage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LibraryPage } from './pages/LibraryPage';
@@ -43,6 +44,7 @@ function App() {
               <Route element={<AppShell />}>
                 <Route index element={<HomeGate />} />
                 <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/upload" element={<UploadPage />} />
                 <Route path="/materials/:id" element={<MaterialDetailsPage />} />

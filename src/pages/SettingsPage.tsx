@@ -8,8 +8,10 @@ import {
   LogOut,
   Moon,
   Palette,
+  Pencil,
   Shield,
   Sun,
+  SunMoon,
   Trash2,
   UserCog,
 } from 'lucide-react';
@@ -22,6 +24,8 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../hooks/useAuth';
 import { useDarkMode } from '../hooks/useDarkMode';
+import { AccountSettingsModal } from '../components/settings/AccountSettingsModal';
+import { PrivacySettingsModal } from '../components/settings/PrivacySettingsModal';
 
 const settingsSections = [
   {
@@ -49,9 +53,11 @@ const settingsSections = [
 
 export function SettingsPage() {
   const { user, signOut, deleteAccount } = useAuth();
-  const { isDark, toggle: toggleDark } = useDarkMode();
+  const { theme, cycleTheme } = useDarkMode();
   const navigate = useNavigate();
 
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -79,12 +85,20 @@ export function SettingsPage() {
     <div className="mx-auto max-w-xl">
       <h1 className="mb-6 text-headline-lg-mobile text-on-surface sm:text-headline-lg">Settings</h1>
 
-      <Card hoverable={false} className="flex items-center gap-3">
+      <Card hoverable={false} className="flex items-center gap-3 relative">
         <Avatar name={user.name} src={user.avatar} size={48} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-body-md font-semibold text-on-surface">{user.name}</p>
           <p className="truncate text-label-sm text-on-surface-variant">{user.email}</p>
+          <p className="mt-1 truncate text-label-xs font-mono font-bold tracking-wider text-primary">ID: {user.quickId}</p>
         </div>
+        <button 
+          onClick={() => setShowAccountModal(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-soft hover:text-primary transition-colors cursor-pointer ml-auto shrink-0"
+          aria-label="Edit Profile"
+        >
+          <Pencil size={18} />
+        </button>
       </Card>
 
       {settingsSections.map((section) => (
@@ -97,6 +111,15 @@ export function SettingsPage() {
               <button
                 key={item.label}
                 type="button"
+                onClick={() => {
+                  if (item.label === 'Downloads') {
+                    navigate('/library?tab=downloaded');
+                  } else if (item.label === 'Account') {
+                    setShowAccountModal(true);
+                  } else if (item.label === 'Privacy') {
+                    setShowPrivacyModal(true);
+                  }
+                }}
                 className={`flex w-full items-center gap-3 border-b border-card-border px-4 py-3.5 text-left text-body-sm text-on-surface first:rounded-t-xl hover:bg-surface-soft cursor-pointer transition-colors ${
                   section.heading === 'Preferences' && index === section.items.length - 1 ? '' : 'last:rounded-b-xl last:border-b-0'
                 }`}
@@ -112,26 +135,28 @@ export function SettingsPage() {
                   <Palette size={18} className="text-on-surface-variant" />
                   <div>
                     <p className="font-medium text-on-surface">Appearance</p>
-                    <p className="text-label-sm text-on-surface-variant">
-                      {isDark ? 'Dark theme enabled' : 'Light theme enabled'}
+                    <p className="text-label-sm text-on-surface-variant capitalize">
+                      {theme} theme enabled
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={toggleDark}
-                  aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                  className="flex h-8 w-14 items-center rounded-full border border-card-border bg-surface-container-low p-1 transition-all duration-300 hover:border-primary/50 cursor-pointer"
+                  onClick={cycleTheme}
+                  aria-label="Cycle theme"
+                  className="flex h-8 w-16 items-center rounded-full border border-card-border bg-surface-container-low p-1 transition-all duration-300 hover:border-primary/50 cursor-pointer relative"
                 >
                   <span
-                    className="flex h-6 w-6 items-center justify-center rounded-full shadow-sm transition-all duration-300"
+                    className="flex h-6 w-6 items-center justify-center rounded-full shadow-sm transition-all duration-300 absolute left-1"
                     style={{
-                      transform: isDark ? 'translateX(22px)' : 'translateX(0)',
-                      backgroundColor: isDark ? '#818cf8' : '#1e3a8a',
+                      transform: theme === 'dark' ? 'translateX(30px)' : theme === 'mid' ? 'translateX(15px)' : 'translateX(0)',
+                      backgroundColor: theme === 'dark' ? '#818cf8' : theme === 'mid' ? '#6B84E8' : '#1e3a8a',
                     }}
                   >
-                    {isDark ? (
+                    {theme === 'dark' ? (
                       <Moon size={12} className="text-white" />
+                    ) : theme === 'mid' ? (
+                      <SunMoon size={12} className="text-white" />
                     ) : (
                       <Sun size={12} className="text-white" />
                     )}
@@ -255,6 +280,16 @@ export function SettingsPage() {
           </div>
         </div>
       </Modal>
+
+      <AccountSettingsModal 
+        open={showAccountModal} 
+        onClose={() => setShowAccountModal(false)} 
+      />
+
+      <PrivacySettingsModal
+        open={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </div>
   );
 }

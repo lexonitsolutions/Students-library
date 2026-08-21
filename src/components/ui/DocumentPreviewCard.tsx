@@ -1,28 +1,46 @@
-import { Bookmark, Eye } from 'lucide-react';
+import { Bookmark, Eye, Heart, Share2, Download } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Material } from '../../data/types';
 import { cn } from '../../lib/cn';
 import { Avatar } from './Avatar';
+import { getLocalLikesCount, getLocalSharesCount, getLocalDownloadsCount } from '../../services/likesService';
 
 export interface DocumentPreviewCardProps {
   readonly material: Material;
   readonly onToggleSave?: (id: string) => void;
+  readonly onUploaderClick?: (profile: import('./UserProfilePanel').UploaderProfile) => void;
   readonly className?: string;
 }
 
-export function DocumentPreviewCard({ material, onToggleSave, className }: Readonly<DocumentPreviewCardProps>) {
+export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, className }: Readonly<DocumentPreviewCardProps>) {
   const navigate = useNavigate();
+  const [likesCount, setLikesCount] = useState(0);
+  const [sharesCount, setSharesCount] = useState(0);
+  const [downloadsCount, setDownloadsCount] = useState(material.downloads);
+
+  useEffect(() => {
+    setLikesCount(getLocalLikesCount(material.id));
+    setSharesCount(getLocalSharesCount(material.id));
+    setDownloadsCount(getLocalDownloadsCount(material.id, material.downloads));
+  }, [material.id, material.downloads]);
 
   const pagesCount = material.pages || 1;
-  const sizeMb = material.fileSizeMb || 2.4;
+  const sizeMbStr = material.fileSizeMb ? material.fileSizeMb.toString() : material.fileSizeMb === 0 ? '<0.01' : '?';
   const isSaved = !!material.isSaved;
 
-  const fileTypeLabel =
+  const target = material.filePath || material.fileUrl || '';
+  const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
+  const realExt = extMatch ? extMatch[1].toUpperCase() : '';
+
+  const fallbackCategoryLabel =
     material.type === 'past-paper'
       ? 'PAPER'
       : material.type === 'doc'
         ? 'DOC'
         : 'PDF';
+
+  const fileTypeLabel = realExt || fallbackCategoryLabel;
 
   const badgeColor =
     material.type === 'past-paper'
@@ -38,6 +56,8 @@ export function DocumentPreviewCard({ material, onToggleSave, className }: Reado
     : false;
 
   const isPdfFile = material.fileUrl && material.fileUrl.toLowerCase().includes('.pdf');
+  const isOfficeDocument = material.fileUrl && material.fileUrl.match(/\.(doc|docx|ppt|pptx|xls|xlsx)($|\?)/i);
+  const isPublicUrl = material.fileUrl?.startsWith('http') && !material.fileUrl.includes('localhost') && !material.fileUrl.includes('127.0.0.1');
   const actualImageSrc = material.previewUrl || (isImageFile ? material.fileUrl : null);
 
 
@@ -61,6 +81,23 @@ export function DocumentPreviewCard({ material, onToggleSave, className }: Reado
               alt={material.title}
               className="h-full w-full object-cover object-top"
             />
+          ) : isOfficeDocument && material.fileUrl && isPublicUrl ? (
+            <div className="relative h-full w-full overflow-hidden">
+              <iframe
+                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.fileUrl)}`}
+                title={material.title}
+                scrolling="no"
+                className="border-0 pointer-events-none overflow-hidden"
+                style={{
+                  width: 'calc(100% + 28px)',
+                  height: 'calc(100% + 28px)',
+                  marginRight: '-28px',
+                  marginBottom: '-28px',
+                  overflow: 'hidden',
+                  pointerEvents: 'none',
+                }}
+              />
+            </div>
           ) : isPdfFile && material.fileUrl && !material.fileUrl.includes('dummy.pdf') ? (
             <div className="relative h-full w-full overflow-hidden">
               <iframe
@@ -113,7 +150,7 @@ export function DocumentPreviewCard({ material, onToggleSave, className }: Reado
                 </div>
                 <div className="grid grid-cols-2 gap-1 py-0.5 text-slate-700">
                   <span className="font-semibold text-slate-900">Pages & Size</span>
-                  <span className="truncate">{pagesCount} pgs ({sizeMb} MB)</span>
+                  <span className="truncate">{pagesCount} pgs ({sizeMbStr} MB)</span>
                 </div>
               </div>
             </div>
@@ -142,17 +179,45 @@ export function DocumentPreviewCard({ material, onToggleSave, className }: Reado
               </h3>
             </Link>
             <p className="mt-1 text-label-sm font-medium text-on-surface-variant">
-              {pagesCount} page{pagesCount === 1 ? '' : 's'} &bull; {fileTypeLabel} &bull; {sizeMb} MB
+              {pagesCount} page{pagesCount === 1 ? '' : 's'} &bull; {fileTypeLabel} &bull; {sizeMbStr} MB
             </p>
           </div>
         </div>
 
-        {/* Uploader Avatar & Name aligned right */}
-        <div className="mt-2 flex items-center justify-end gap-1.5 text-label-sm text-on-surface-variant font-medium">
-          <Avatar name={material.uploaderName} src={material.uploaderAvatar} size={18} />
-          <span className="max-w-[120px] truncate text-[12px] font-semibold text-on-surface-variant">
-            {material.uploaderName}
-          </span>
+        {/* Stats & Uploader Avatar */}
+        <div className="mt-2 flex items-center justify-between gap-1.5 text-label-sm text-on-surface-variant font-medium">
+          <div className="flex items-center gap-2.5 opacity-80">
+            <div className="flex items-center gap-1" title="Likes">
+              <Heart size={14} className={likesCount > 0 ? 'fill-primary text-primary' : ''} />
+              <span className="text-[12px] font-semibold">{likesCount > 0 ? likesCount.toLocaleString() : '0'}</span>
+            </div>
+            <div className="flex items-center gap-1" title="Downloads">
+              <Download size={14} />
+              <span className="text-[12px] font-semibold">{downloadsCount > 0 ? downloadsCount.toLocaleString() : '0'}</span>
+            </div>
+            <div className="flex items-center gap-1" title="Shares">
+              <Share2 size={14} />
+              <span className="text-[12px] font-semibold">{sharesCount > 0 ? sharesCount.toLocaleString() : '0'}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onUploaderClick?.({
+              uploaderId: material.uploaderId,
+              uploaderName: material.uploaderName,
+              uploaderAvatar: material.uploaderAvatar,
+              uploaderUniversity: material.uploaderUniversity,
+              uploaderCollege: material.uploaderCollege,
+              uploaderLocation: material.uploaderLocation,
+            })}
+            className="flex items-center gap-1.5 shrink-0 rounded-lg px-1.5 py-1 -mx-1.5 hover:bg-surface-container transition-colors cursor-pointer"
+            title={`View ${material.uploaderName}'s profile`}
+          >
+            <Avatar name={material.uploaderName} src={material.uploaderAvatar} size={18} />
+            <span className="max-w-[80px] truncate text-[12px] font-semibold text-on-surface-variant hover:text-primary transition-colors">
+              {material.uploaderName}
+            </span>
+          </button>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BookMarked, LayoutDashboard, LogOut, Plus, ShieldCheck, Users } from 'lucide-react';
+import { ArrowLeftRight, LayoutDashboard, LogOut, Plus, ShieldCheck, Users } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -18,6 +18,7 @@ export function Sidebar() {
   const { workspace, chooseWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const isAdmin = user?.role === 'admin';
   const inAdminWorkspace = isAdmin && workspace !== 'student';
 
@@ -37,97 +38,179 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-card-border medium-liquid-glass px-4 py-6 lg:flex lg:h-full lg:overflow-y-auto">
-      <div className="flex items-center gap-2 px-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-on-primary">
-          <BookMarked size={20} />
-        </div>
-        <div>
-          <p className="text-headline-md leading-tight text-on-surface">QuickLearnit</p>
-          <p className="text-label-sm text-on-surface-variant">Study Smart</p>
-        </div>
-      </div>
+    <>
+      {/* ── Collapsed placeholder: always occupies 64px in the layout flow ── */}
+      <div className="hidden lg:block shrink-0 w-16" />
 
-      <button
-        type="button"
-        onClick={() => navigate('/upload')}
-        className="mt-6 flex h-11 items-center justify-center gap-2 rounded-lg bg-primary text-label-md font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-container cursor-pointer"
+      {/* ── Actual sidebar: absolute so it overlays content when expanded ── */}
+      <aside
+        onMouseEnter={() => setExpanded(true)}
+        onMouseLeave={() => setExpanded(false)}
+        className={cn(
+          // Base / positioning
+          'hidden lg:flex absolute left-0 top-0 z-20 h-full flex-col',
+          'border-r border-card-border medium-liquid-glass',
+          'overflow-hidden transition-[width] duration-250 ease-in-out',
+          // Width driven by expanded state
+          expanded ? 'w-64 shadow-lg' : 'w-16',
+        )}
       >
-        <Plus size={18} />
-        Upload
-      </button>
-
-      {isAdmin && (
-        <div className="mt-5">
-          <p className="px-3 text-label-sm font-semibold uppercase tracking-wider text-on-surface-variant/70">
-            Admin
-          </p>
-          <nav className="mt-1 flex flex-col gap-1">
-            {adminNavItems.map((item) => (
-              <NavLink
-                key={item.label}
-                to={item.to}
-                onClick={() => chooseWorkspace('admin')}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md transition-all duration-200',
-                    isActive
-                      ? 'bg-primary-container/10 text-primary font-semibold'
-                      : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface hover:translate-x-1',
-                  )
-                }
-              >
-                <item.icon size={20} />
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+        {/* ── Upload button ── */}
+        <div className="shrink-0 px-2 pt-4 pb-2">
           <button
             type="button"
-            onClick={handleSwitchWorkspace}
-            className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-body-sm text-on-surface-variant transition-colors duration-150 hover:bg-surface-container-low hover:text-on-surface cursor-pointer"
+            onClick={() => navigate('/upload')}
+            className={cn(
+              'flex h-10 items-center rounded-lg bg-primary text-on-primary',
+              'transition-all duration-200 hover:bg-primary-container cursor-pointer shadow-xs',
+              expanded ? 'w-full justify-start gap-2 px-3' : 'w-10 justify-center mx-auto',
+            )}
           >
-            <ArrowLeftRight size={18} />
-            {inAdminWorkspace ? 'Switch to Student view' : 'Switch to Admin Workspace'}
+            <Plus size={18} className="shrink-0" />
+            <span
+              className={cn(
+                'whitespace-nowrap text-body-lg font-semibold overflow-hidden transition-all duration-200',
+                expanded ? 'opacity-100 max-w-[120px]' : 'opacity-0 max-w-0',
+              )}
+            >
+              Upload
+            </span>
           </button>
-          <p className="mt-3 flex items-center gap-1.5 px-3 text-label-sm font-semibold uppercase tracking-wider text-on-surface-variant/70">
-            <ShieldCheck size={14} /> Student
-          </p>
         </div>
-      )}
 
-      <nav className="mt-1 flex flex-1 flex-col gap-1">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.label}
-            to={item.to}
-            end={item.to === '/'}
-            onClick={() => isAdmin && chooseWorkspace('student')}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md transition-all duration-200',
-                isActive
-                  ? 'bg-primary-container/10 text-primary font-semibold'
-                  : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface hover:translate-x-1',
-              )
-            }
+        {/* ── Admin section ── */}
+        {isAdmin && (
+          <div className="px-2 mb-1">
+            {expanded && (
+              <p className="px-1 py-1 text-label-xs font-bold uppercase tracking-wider text-on-surface-variant/60">
+                Admin
+              </p>
+            )}
+            <nav className="flex flex-col gap-0.5">
+              {adminNavItems.map((item) => (
+                <NavLink
+                  key={item.label}
+                  to={item.to}
+                  title={!expanded ? item.label : undefined}
+                  onClick={() => chooseWorkspace('admin')}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center rounded-lg transition-all duration-150 h-10',
+                      expanded ? 'gap-3 px-3' : 'justify-center w-10 mx-auto',
+                      isActive
+                        ? 'bg-primary/10 text-primary font-semibold'
+                        : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
+                    )
+                  }
+                >
+                  <item.icon size={20} className="shrink-0" />
+                  <span
+                    className={cn(
+                      'whitespace-nowrap text-body-lg overflow-hidden transition-all duration-200',
+                      expanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0',
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </NavLink>
+              ))}
+            </nav>
+
+            {/* Switch workspace */}
+            <button
+              type="button"
+              onClick={handleSwitchWorkspace}
+              title={!expanded ? (inAdminWorkspace ? 'Student View' : 'Admin Workspace') : undefined}
+              className={cn(
+                'flex items-center rounded-lg h-10 transition-colors duration-150 cursor-pointer',
+                'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
+                expanded ? 'w-full gap-3 px-3' : 'justify-center w-10 mx-auto',
+              )}
+            >
+              <ArrowLeftRight size={18} className="shrink-0" />
+              <span
+                className={cn(
+                  'whitespace-nowrap text-body-md overflow-hidden transition-all duration-200',
+                  expanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0',
+                )}
+              >
+                {inAdminWorkspace ? 'Student View' : 'Admin Workspace'}
+              </span>
+            </button>
+
+            {expanded && (
+              <p className="mt-1 px-1 py-1 flex items-center gap-1.5 text-label-xs font-bold uppercase tracking-wider text-on-surface-variant/60">
+                <ShieldCheck size={13} /> Student
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ── Main nav ── */}
+        <nav className="flex flex-1 flex-col gap-0.5 px-2 py-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.label}
+              to={item.to}
+              end={item.to === '/'}
+              title={!expanded ? item.label : undefined}
+              onClick={() => isAdmin && chooseWorkspace('student')}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center rounded-lg transition-all duration-150 h-10',
+                  expanded ? 'gap-3 px-3' : 'justify-center w-10 mx-auto',
+                  isActive
+                    ? 'bg-primary/10 text-primary font-semibold'
+                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <item.icon
+                    size={20}
+                    className={cn('shrink-0', isActive ? 'text-primary' : '')}
+                  />
+                  <span
+                    className={cn(
+                      'whitespace-nowrap text-body-lg overflow-hidden transition-all duration-200',
+                      expanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0',
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* ── Log out ── */}
+        <div className="shrink-0 px-2 pb-4 pt-2 border-t border-card-border/50">
+          <button
+            type="button"
+            onClick={() => setShowLogoutAlert(true)}
+            title={!expanded ? 'Log out' : undefined}
+            className={cn(
+              'flex items-center rounded-lg h-10 transition-colors duration-150 cursor-pointer',
+              'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
+              expanded ? 'w-full gap-3 px-3' : 'justify-center w-10 mx-auto',
+            )}
           >
-            <item.icon size={20} />
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+            <LogOut size={20} className="shrink-0" />
+            <span
+              className={cn(
+                'whitespace-nowrap text-body-lg overflow-hidden transition-all duration-200',
+                expanded ? 'opacity-100 max-w-[120px]' : 'opacity-0 max-w-0',
+              )}
+            >
+              Log out
+            </span>
+          </button>
+        </div>
+      </aside>
 
-      <button
-        type="button"
-        onClick={() => setShowLogoutAlert(true)}
-        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-md text-on-surface-variant transition-colors duration-150 hover:bg-surface-container-low hover:text-on-surface cursor-pointer"
-      >
-        <LogOut size={20} />
-        Log out
-      </button>
-
-      {/* Logout Confirmation Alert Modal */}
+      {/* ── Logout Modal ── */}
       <Modal open={showLogoutAlert} onClose={() => setShowLogoutAlert(false)} title="Confirm Logout">
         <div className="flex flex-col items-center text-center gap-3 py-2">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
@@ -149,7 +232,7 @@ export function Sidebar() {
           </div>
         </div>
       </Modal>
-    </aside>
+    </>
   );
 }
 

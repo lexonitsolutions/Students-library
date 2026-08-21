@@ -1,17 +1,17 @@
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
+  BookOpen,
   Bookmark,
-  Building2,
   ChevronLeft,
   ChevronRight,
+  Database,
   Download,
   Eye,
   FileText,
   Flag,
-  GraduationCap,
-  MapPin,
-  Maximize2,
+  Heart,
+  Share2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -21,10 +21,9 @@ import { Card } from '../components/ui/Card';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import * as bookmarksService from '../services/bookmarksService';
+import { toggleLike, getLocalLikesCount, getLocalStorageLikedIds, incrementLocalSharesCount, incrementLocalDownloadsCount } from '../services/likesService';
 import { getMaterialForUI, incrementViews, recordDownload } from '../services/materialsService';
 import { reportMaterial } from '../services/reportsService';
-import { cn } from '../lib/cn';
-import { accentBg, materialTypeIcon } from '../lib/materialIcons';
 import { mockMaterials } from '../data/mockData';
 
 export function MaterialDetailsPage() {
@@ -33,8 +32,10 @@ export function MaterialDetailsPage() {
   const { user } = useAuth();
   const [material, setMaterial] = useState<Material | null>(null);
   const [isSaved, setIsSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'reader' | 'preview'>('reader');
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -62,6 +63,8 @@ export function MaterialDetailsPage() {
         if (active && data) {
           setMaterial(data);
           setIsSaved(!!data.isSaved);
+          setLikesCount(getLocalLikesCount(data.id));
+          if (user) setIsLiked(getLocalStorageLikedIds(user.id).has(data.id));
         }
       } catch (err) {
         console.warn('Material load warning:', err);
@@ -93,18 +96,87 @@ export function MaterialDetailsPage() {
   };
 
   const handleDownload = async () => {
-    if (!material) return;
-    setMaterial((prev) => (prev ? { ...prev, downloads: prev.downloads + 1 } : null));
+    if (!material || isDownloading) return;
+    
+    setIsDownloading(true);
     try {
-      await recordDownload(material.id);
-    } catch {}
+      // 1. Fetch the file to memory
+      const response = await fetch(material.fileUrl);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      
+      const target = material.filePath || material.fileUrl || '';
+      const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
+      const ext = extMatch ? extMatch[1] : 'pdf';
+      const fileName = `${material.title}.${ext}`;
 
-    const link = document.createElement('a');
-    link.href = material.fileUrl;
-    link.download = `${material.title}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // 2. Prompt user for save location
+      try {
+        if ('showSaveFilePicker' in window) {
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: fileName,
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } else {
+          // Fallback for Firefox/Safari
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // User cancelled Save As dialog
+        throw err;
+      }
+      
+      // 3. Record download only after successful completion
+      const newCount = incrementLocalDownloadsCount(material.id, material.downloads);
+      setMaterial((prev) => (prev ? { ...prev, downloads: newCount } : null));
+      await recordDownload(material.id).catch(() => {});
+    } catch (err) {
+      console.warn('Download error:', err);
+      alert('Failed to download the file. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!material || !user) {
+      alert('You must be signed in to like materials.');
+      return;
+    }
+    try {
+      const result = await toggleLike(user.id, material.id);
+      setIsLiked(result.isLiked);
+      setLikesCount(result.likesCount);
+    } catch (err) {
+      console.warn('Like toggle failed:', err);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      if (material) incrementLocalSharesCount(material.id);
+      if (navigator.share) {
+        await navigator.share({
+          title: material?.title,
+          text: `Check out ${material?.title} on Lexon!`,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard!');
+      }
+    } catch (err) {
+      console.warn('Share failed:', err);
+    }
   };
 
   const handleReport = async () => {
@@ -127,19 +199,16 @@ export function MaterialDetailsPage() {
     );
   }
 
-  const TypeIcon = materialTypeIcon[material.type] || FileText;
+  const isImageFile = material
+    ? !!(material.filePath || material.fileUrl).match(/\.(jpeg|jpg|png|webp|gif|heic)($|\?)/i) ||
+      material.fileUrl.startsWith('data:image/')
+    : false;
 
-  const isImageFile =
-    material.fileUrl.match(/\.(jpeg|jpg|png|webp|gif|heic)($|\?)/i) ||
-    material.fileUrl.startsWith('blob:') ||
-    material.fileUrl.startsWith('data:image/');
+  const isOfficeDocument = material ? !!(material.filePath || material.fileUrl).match(/\.(doc|docx|ppt|pptx|xls|xlsx)($|\?)/i) : false;
+  const isPublicUrl = material ? material.fileUrl.startsWith('http') && !material.fileUrl.includes('localhost') && !material.fileUrl.includes('127.0.0.1') : false;
 
-  const imageList = isImageFile
-    ? [
-        material.fileUrl,
-        'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=1200&q=80',
-      ]
+  const imageList = isImageFile && material
+    ? [material.fileUrl]
     : [];
 
   return (
@@ -171,110 +240,98 @@ export function MaterialDetailsPage() {
           className="lg:col-span-2"
         >
           <Card padded={false} hoverable={false} className="overflow-hidden border border-card-border">
-            <div className="flex items-center justify-between border-b border-card-border px-4 py-3 bg-white">
-              <div className="flex items-center gap-1 rounded-lg bg-surface-soft p-1">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('reader')}
-                  className={cn(
-                    'rounded-lg px-3 py-1.5 text-label-sm font-semibold transition-colors cursor-pointer',
-                    activeTab === 'reader'
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
-                  )}
-                >
-                  Paper Reader
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('preview')}
-                  className={cn(
-                    'rounded-lg px-3 py-1.5 text-label-sm font-semibold transition-colors cursor-pointer',
-                    activeTab === 'preview'
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
-                  )}
-                >
-                  Preview Card
-                </button>
-              </div>
-            </div>
-
             <div className="relative min-h-[520px] sm:min-h-[600px] w-full bg-surface-container-low flex flex-col items-center justify-center group">
-              {activeTab === 'reader' ? (
-                isImageFile ? (
-                  <div className="relative flex h-[580px] w-full items-center justify-center p-4 overflow-hidden bg-surface-container-low">
-                    <img
-                      src={imageList[currentImageIndex] || material.fileUrl}
-                      alt={`${material.title} page ${currentImageIndex + 1}`}
-                      className="max-h-full max-w-full rounded-lg object-contain shadow-md transition-all duration-300"
-                    />
+              {isImageFile ? (
+                <div className="relative flex h-[580px] w-full items-center justify-center p-4 overflow-hidden bg-surface-container-low">
+                  <img
+                    src={imageList[currentImageIndex] || material.fileUrl}
+                    alt={`${material.title} page ${currentImageIndex + 1}`}
+                    className="max-h-full max-w-full rounded-lg object-contain shadow-md transition-all duration-300"
+                  />
 
-                    {imageList.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageList.length - 1));
-                          }}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-xs hover:bg-black/80 hover:scale-105 transition-all cursor-pointer z-10"
-                          aria-label="Previous Page Image"
-                        >
-                          <ChevronLeft size={22} />
-                        </button>
+                  {imageList.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageList.length - 1));
+                        }}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-xs hover:bg-black/80 hover:scale-105 transition-all cursor-pointer z-10"
+                        aria-label="Previous Page Image"
+                      >
+                        <ChevronLeft size={22} />
+                      </button>
 
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentImageIndex((prev) => (prev < imageList.length - 1 ? prev + 1 : 0));
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-xs hover:bg-black/80 hover:scale-105 transition-all cursor-pointer z-10"
-                          aria-label="Next Page Image"
-                        >
-                          <ChevronRight size={22} />
-                        </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentImageIndex((prev) => (prev < imageList.length - 1 ? prev + 1 : 0));
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-xs hover:bg-black/80 hover:scale-105 transition-all cursor-pointer z-10"
+                        aria-label="Next Page Image"
+                      >
+                        <ChevronRight size={22} />
+                      </button>
 
-                        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/75 px-3 py-1 text-label-sm font-semibold text-white backdrop-blur-xs shadow-md z-10">
-                          Page {currentImageIndex + 1} of {imageList.length}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                ) : (
+                      <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/75 px-3 py-1 text-label-sm font-semibold text-white backdrop-blur-xs shadow-md z-10">
+                        Page {currentImageIndex + 1} of {imageList.length}
+                      </span>
+                    </>
+                  )}
+                </div>
+              ) : isOfficeDocument ? (
+                isPublicUrl ? (
                   <iframe
                     title={material.title}
-                    src={`${material.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                    scrolling="no"
+                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.fileUrl)}`}
                     className="h-[580px] w-full border-0 overflow-hidden"
-                    style={{ overflow: 'hidden' }}
                   />
+                ) : (
+                  <div className="flex h-[580px] w-full flex-col items-center justify-center gap-4 bg-surface-container-high p-6 text-center">
+                    <FileText size={48} className="text-outline-variant" />
+                    <div>
+                      <h3 className="text-title-md font-bold text-on-surface">Preview not available</h3>
+                      <p className="mt-1 text-body-sm text-on-surface-variant max-w-sm mx-auto">
+                        Microsoft Office previews require a publicly accessible URL. Since this file was uploaded locally, you can download it to view it.
+                      </p>
+                    </div>
+                    <Button variant="primary" size="md" onClick={() => window.open(material.fileUrl, '_blank')}>
+                      Download File
+                    </Button>
+                  </div>
                 )
               ) : (
-                <div className="flex aspect-[4/5] flex-col items-center justify-center gap-4 p-8 text-center sm:aspect-[3/4]">
-                  <span className={cn('flex h-20 w-20 items-center justify-center rounded-2xl', accentBg[material.accentColor])}>
-                    <TypeIcon size={40} />
-                  </span>
-                  <div>
-                    <h3 className="text-headline-md font-bold text-on-surface">{material.title}</h3>
-                    <p className="mt-1 text-body-sm text-on-surface-variant">{material.subject} &bull; {material.semester}</p>
-                    <p className="mt-2 text-label-sm text-outline">
-                      {material.pages ? `${material.pages} pages` : 'Document'} &bull; {material.fileSizeMb ? `${material.fileSizeMb} MB` : 'File'}
-                    </p>
-                  </div>
-                  <Button variant="primary" size="md" icon={<Maximize2 size={16} />} onClick={() => navigate(`/reader/${material.id}`)}>
-                    Open Fullscreen Reader
-                  </Button>
-                </div>
+                <iframe
+                  title={material.title}
+                  src={`${material.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                  scrolling="no"
+                  className="h-[580px] w-full border-0 overflow-hidden"
+                  style={{ overflow: 'hidden' }}
+                />
               )}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-4 py-3 bg-white text-label-sm text-on-surface-variant">
               <span className="flex items-center gap-2">
                 <FileText size={16} className="text-primary" />
-                <span className="font-medium text-on-surface">{material.type.toUpperCase()} Paper</span>
-                {material.fileSizeMb && <span>({material.fileSizeMb} MB)</span>}
+                <span className="font-medium text-on-surface">
+                  {(() => {
+                    const target = material.filePath || material.fileUrl || '';
+                    const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
+                    const ext = extMatch ? extMatch[1].toLowerCase() : '';
+                    if (['pdf'].includes(ext)) return 'PDF Document';
+                    if (['doc', 'docx'].includes(ext)) return 'Word Document';
+                    if (['ppt', 'pptx'].includes(ext)) return 'PowerPoint';
+                    if (['xls', 'xlsx'].includes(ext)) return 'Excel Spreadsheet';
+                    if (['jpg', 'jpeg', 'png', 'webp', 'heic', 'gif'].includes(ext) || target.startsWith('data:image/') || target.startsWith('blob:')) return 'Image File';
+                    return 'Document';
+                  })()}
+                </span>
+                <span className="opacity-75">
+                  ({material.fileSizeMb ? `${material.fileSizeMb} MB` : material.fileSizeMb === 0 ? '< 0.01 MB' : 'Unknown Size'})
+                </span>
               </span>
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1.5">
@@ -327,35 +384,62 @@ export function MaterialDetailsPage() {
                 icon={<Eye size={18} />}
                 onClick={() => navigate(`/reader/${material.id}`)}
               >
-                View Paper
+                {material.type === 'past-paper'
+                  ? 'View Papers'
+                  : material.type === 'doc'
+                    ? 'Solve'
+                    : 'View Material'}
               </Button>
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-4 gap-2.5">
                 <Button
-                  variant={isSaved ? 'primary' : 'secondary'}
+                  variant={isLiked ? 'primary' : 'secondary'}
                   size="md"
-                  onClick={toggleSave}
-                  className="justify-center cursor-pointer"
-                  icon={<Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} />}
+                  onClick={handleLike}
+                  className="justify-center cursor-pointer px-0"
+                  icon={<Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />}
+                  title="Like"
+                  aria-label="Like"
                 >
-                  {isSaved ? 'Saved' : 'Save'}
+                  {likesCount > 0 ? likesCount.toLocaleString() : null}
                 </Button>
 
                 <Button
                   variant="secondary"
                   size="md"
+                  onClick={handleShare}
+                  className="justify-center cursor-pointer px-0"
+                  icon={<Share2 size={18} />}
+                  title="Share"
+                  aria-label="Share"
+                />
+
+                <Button
+                  variant={isSaved ? 'primary' : 'secondary'}
+                  size="md"
+                  onClick={toggleSave}
+                  className="justify-center cursor-pointer px-0"
+                  icon={<Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />}
+                  title={isSaved ? 'Unsave' : 'Save'}
+                  aria-label={isSaved ? 'Unsave' : 'Save'}
+                />
+
+                <Button
+                  variant="secondary"
+                  size="md"
                   onClick={handleDownload}
-                  className="justify-center cursor-pointer"
-                  icon={<Download size={16} />}
-                >
-                  Download
-                </Button>
+                  className="justify-center cursor-pointer px-0"
+                  icon={isDownloading ? <span className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Download size={18} />}
+                  title="Download"
+                  aria-label="Download"
+                  disabled={isDownloading}
+                />
               </div>
             </div>
           </Card>
 
           <Card hoverable={false} className="flex flex-col gap-4 border border-card-border">
-            <h3 className="text-headline-md font-bold text-on-surface">Uploader Details</h3>
+            <h3 className="text-headline-md font-bold text-on-surface">Material Info</h3>
 
             <div className="flex items-center gap-3 border-b border-card-border pb-4">
               <Avatar
@@ -375,34 +459,33 @@ export function MaterialDetailsPage() {
 
             <div className="flex flex-col gap-3 text-body-sm">
               <div className="flex items-start gap-2.5">
+                <BookOpen size={18} className="mt-0.5 shrink-0 text-primary" />
+                <div>
+                  <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">Subject</p>
+                  <p className="font-semibold text-on-surface">{material.subject}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <Database size={18} className="mt-0.5 shrink-0 text-primary" />
+                <div>
+                  <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">File Size</p>
+                  <p className="font-semibold text-on-surface">
+                    {material.fileSizeMb ? `${material.fileSizeMb} MB` : material.fileSizeMb === 0 ? '< 0.01 MB' : 'Unknown'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
                 <FileText size={18} className="mt-0.5 shrink-0 text-primary" />
                 <div>
-                  <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">Papers Uploaded</p>
-                  <p className="font-semibold text-on-surface">{material.uploaderUploadsCount || 3} Papers Uploaded by Uploader</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <GraduationCap size={18} className="mt-0.5 shrink-0 text-primary" />
-                <div>
-                  <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">University</p>
-                  <p className="font-semibold text-on-surface">{material.uploaderUniversity || 'Fergusson College Pune'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <Building2 size={18} className="mt-0.5 shrink-0 text-primary" />
-                <div>
-                  <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">College & Department</p>
-                  <p className="font-semibold text-on-surface">{material.uploaderCollege || 'Fergusson College Pune'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5">
-                <MapPin size={18} className="mt-0.5 shrink-0 text-primary" />
-                <div>
-                  <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">Place / Location</p>
-                  <p className="font-semibold text-on-surface">{material.uploaderLocation || 'Fergusson College Pune'}</p>
+                  <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">Pages</p>
+                  <p className="font-semibold text-on-surface">
+                    {(() => {
+                      const pages = material.pages || 1;
+                      return `${pages} Page${pages === 1 ? '' : 's'}`;
+                    })()}
+                  </p>
                 </div>
               </div>
             </div>

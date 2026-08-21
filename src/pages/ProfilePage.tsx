@@ -16,13 +16,14 @@ import { timeAgo } from '../lib/timeAgo';
 import { listRecentActivity, type ActivityItem } from '../services/activityService';
 import { listMyUploadsForUI } from '../services/materialsService';
 import { uploadAvatar } from '../services/profileService';
+import { resizeImageFile } from '../lib/imageUtils';
 
 const AVATAR_PRESETS = [
-  'https://i.pravatar.cc/160?img=12',
-  'https://i.pravatar.cc/160?img=33',
-  'https://i.pravatar.cc/160?img=68',
-  'https://i.pravatar.cc/160?img=47',
-  'https://i.pravatar.cc/160?img=11',
+  'https://i.pravatar.cc/400?img=12',
+  'https://i.pravatar.cc/400?img=33',
+  'https://i.pravatar.cc/400?img=68',
+  'https://i.pravatar.cc/400?img=47',
+  'https://i.pravatar.cc/400?img=11',
 ];
 
 const collegesList = [...universities, 'College of Engineering', 'College of Science', 'School of Engineering'];
@@ -83,20 +84,28 @@ export function ProfilePage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const publicUrl = await uploadAvatar(user.id, file);
-    setEditAvatar(publicUrl);
+    try {
+      const publicUrl = await uploadAvatar(user.id, file);
+      setEditAvatar(publicUrl);
+    } catch (err) {
+      try {
+        const dataUrl = await resizeImageFile(file, 800);
+        setEditAvatar(dataUrl);
+      } catch (e) {
+        console.error('Failed to resize avatar', e);
+      }
+    }
   };
 
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setEditCover(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const dataUrl = await resizeImageFile(file, 1200);
+        setEditCover(dataUrl);
+      } catch (e) {
+        console.error('Failed to resize cover', e);
+      }
     }
   };
 
@@ -300,6 +309,11 @@ export function ProfilePage() {
                             {activity.label}
                           </span>
                           <span className="font-medium text-on-surface hover:underline">{activity.target}</span>
+                          {activity.type === 'uploaded' && activity.status === 'pending' && (
+                             <span className="inline-block align-middle ml-2 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tracking-wider bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 whitespace-nowrap">
+                               Pending Approval
+                             </span>
+                          )}
                         </p>
                         <span className="mt-1 block text-label-sm text-outline">{activity.timestamp}</span>
                       </div>

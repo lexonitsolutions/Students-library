@@ -1,45 +1,63 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
+export type ThemeType = 'light' | 'mid' | 'dark';
+
 interface ThemeContextValue {
+  theme: ThemeType;
+  setTheme: (theme: ThemeType) => void;
+  cycleTheme: () => void;
+  // Keep isDark for backwards compatibility where possible, though mid may not be strictly dark
   isDark: boolean;
-  toggle: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-function getInitialTheme(): boolean {
+function getInitialTheme(): ThemeType {
   const stored = localStorage.getItem('quicklearnit-theme') || localStorage.getItem('lexon-theme');
-  if (stored) return stored === 'dark';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (stored === 'light' || stored === 'mid' || stored === 'dark') {
+    return stored as ThemeType;
+  }
+  // Fallback to media query if nothing is stored
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [isDark, setIsDark] = useState<boolean>(getInitialTheme);
+  const [theme, setThemeState] = useState<ThemeType>(getInitialTheme);
 
   useEffect(() => {
     const root = document.documentElement;
-    if (isDark) {
-      root.classList.add('dark');
-      localStorage.setItem('quicklearnit-theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('quicklearnit-theme', 'light');
+    root.classList.remove('light', 'mid', 'dark');
+    if (theme !== 'light') {
+      root.classList.add(theme);
     }
-  }, [isDark]);
+    localStorage.setItem('quicklearnit-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'quicklearnit-theme' || e.key === 'lexon-theme') {
-        setIsDark(e.newValue === 'dark');
+        if (e.newValue === 'light' || e.newValue === 'mid' || e.newValue === 'dark') {
+          setThemeState(e.newValue as ThemeType);
+        }
       }
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const toggle = useCallback(() => setIsDark((prev) => !prev), []);
+  const setTheme = useCallback((newTheme: ThemeType) => setThemeState(newTheme), []);
+  
+  const cycleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      if (prev === 'light') return 'mid';
+      if (prev === 'mid') return 'dark';
+      return 'light';
+    });
+  }, []);
 
-  return createElement(ThemeContext.Provider, { value: { isDark, toggle } }, children);
+  const isDark = theme === 'dark' || theme === 'mid';
+
+  return createElement(ThemeContext.Provider, { value: { theme, setTheme, cycleTheme, isDark } }, children);
 }
 
 export function useDarkMode(): ThemeContextValue {

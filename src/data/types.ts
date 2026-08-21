@@ -28,10 +28,15 @@ export interface Material {
   readonly fileSizeMb?: number;
   readonly previewUrl?: string;
   readonly isSaved?: boolean;
+  readonly likes?: number;
+  readonly isLiked?: boolean;
+  readonly shares?: number;
 }
 
 export interface User {
   readonly id: string;
+  readonly quickId?: string;
+  readonly isIdPublic?: boolean;
   readonly name: string;
   readonly username?: string;
   readonly email: string;

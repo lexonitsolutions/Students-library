@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { MaterialCard } from '../components/ui/MaterialCard';
 import { MaterialRow } from '../components/ui/MaterialRow';
+import { UserProfilePanel, type UploaderProfile } from '../components/ui/UserProfilePanel';
 import { categories } from '../data/mockData';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
@@ -18,6 +19,7 @@ export function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedProfile, setSelectedProfile] = useState<UploaderProfile | null>(null);
 
   // Initialize with mock materials immediately so data is always present
   const [materials, setMaterials] = useState<Material[]>(() => getFilteredMockMaterials({}));
@@ -233,7 +235,7 @@ export function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredMaterials.map((material) => (
-              <MaterialCard key={material.id} material={material} onToggleSave={toggleSave} />
+              <MaterialCard key={material.id} material={material} onToggleSave={toggleSave} onUploaderClick={setSelectedProfile} />
             ))}
           </div>
         )}
@@ -261,6 +263,9 @@ export function DashboardPage() {
           </Link>
         </Card>
       </section>
+
+      {/* User Profile Panel */}
+      <UserProfilePanel profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
     </div>
   );
 }
