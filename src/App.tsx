@@ -1,9 +1,11 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
 import { AuthProvider } from './hooks/useAuth';
+import { ThemeProvider } from './hooks/useDarkMode';
 import { WorkspaceProvider } from './hooks/useWorkspace';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminManageAdminsPage } from './pages/AdminManageAdminsPage';
+import { MessagesPage } from './pages/MessagesPage';
 import { ExplorePage } from './pages/ExplorePage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LibraryPage } from './pages/LibraryPage';
@@ -27,8 +29,9 @@ import { PublicOnlyRoute } from './routes/PublicOnlyRoute';
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <WorkspaceProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <WorkspaceProvider>
           <Routes>
             <Route element={<PublicOnlyRoute />}>
               <Route path="/onboarding" element={<OnboardingPage />} />
@@ -41,6 +44,7 @@ function App() {
               <Route element={<AppShell />}>
                 <Route index element={<HomeGate />} />
                 <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/upload" element={<UploadPage />} />
                 <Route path="/materials/:id" element={<MaterialDetailsPage />} />
@@ -61,7 +65,8 @@ function App() {
           </Routes>
         </WorkspaceProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </ThemeProvider>
+  </BrowserRouter>
   );
 }
 

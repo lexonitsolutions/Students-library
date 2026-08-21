@@ -44,6 +44,7 @@ export function LibraryPage() {
 
   const [activeTab, setActiveTabState] = useState<(typeof tabs)[number]>(() => {
     if (tabParam === 'uploads' || tabParam === 'manage-uploads') return 'Manage Uploads';
+    if (tabParam === 'downloaded') return 'Downloaded';
     return 'Saved';
   });
 
@@ -64,6 +65,8 @@ export function LibraryPage() {
   useEffect(() => {
     if (tabParam === 'uploads' || tabParam === 'manage-uploads') {
       setActiveTabState('Manage Uploads');
+    } else if (tabParam === 'downloaded') {
+      setActiveTabState('Downloaded');
     }
   }, [tabParam]);
 
@@ -71,6 +74,8 @@ export function LibraryPage() {
     setActiveTabState(tab);
     if (tab === 'Manage Uploads') {
       setSearchParams({ tab: 'uploads' }, { replace: true });
+    } else if (tab === 'Downloaded') {
+      setSearchParams({ tab: 'downloaded' }, { replace: true });
     } else {
       setSearchParams({}, { replace: true });
     }

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Camera, ChevronRight, Download, Edit, Lock, School, Upload, User } from 'lucide-react';
+import { Bookmark, BookOpen, Camera, ChevronRight, Download, Edit, Lock, School, Upload, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
@@ -16,13 +16,14 @@ import { timeAgo } from '../lib/timeAgo';
 import { listRecentActivity, type ActivityItem } from '../services/activityService';
 import { listMyUploadsForUI } from '../services/materialsService';
 import { uploadAvatar } from '../services/profileService';
+import { resizeImageFile } from '../lib/imageUtils';
 
 const AVATAR_PRESETS = [
-  'https://i.pravatar.cc/160?img=12',
-  'https://i.pravatar.cc/160?img=33',
-  'https://i.pravatar.cc/160?img=68',
-  'https://i.pravatar.cc/160?img=47',
-  'https://i.pravatar.cc/160?img=11',
+  'https://i.pravatar.cc/400?img=12',
+  'https://i.pravatar.cc/400?img=33',
+  'https://i.pravatar.cc/400?img=68',
+  'https://i.pravatar.cc/400?img=47',
+  'https://i.pravatar.cc/400?img=11',
 ];
 
 const collegesList = [...universities, 'College of Engineering', 'College of Science', 'School of Engineering'];
@@ -49,6 +50,12 @@ export function ProfilePage() {
 
   const [uploads, setUploads] = useState<Material[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'uploaded' | 'saved' | 'downloaded'>('all');
+
+  const filteredActivities = activityItems.filter((item) => {
+    if (activityFilter === 'all') return true;
+    return item.type === activityFilter;
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -77,20 +84,28 @@ export function ProfilePage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const publicUrl = await uploadAvatar(user.id, file);
-    setEditAvatar(publicUrl);
+    try {
+      const publicUrl = await uploadAvatar(user.id, file);
+      setEditAvatar(publicUrl);
+    } catch (err) {
+      try {
+        const dataUrl = await resizeImageFile(file, 800);
+        setEditAvatar(dataUrl);
+      } catch (e) {
+        console.error('Failed to resize avatar', e);
+      }
+    }
   };
 
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setEditCover(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const dataUrl = await resizeImageFile(file, 1200);
+        setEditCover(dataUrl);
+      } catch (e) {
+        console.error('Failed to resize cover', e);
+      }
     }
   };
 
@@ -246,17 +261,82 @@ export function ProfilePage() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-headline-md text-on-surface">Recent Activity</h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-headline-md text-on-surface">Recent Activity</h2>
+              <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1 border border-card-border text-label-sm">
+                {(['all', 'uploaded', 'saved', 'downloaded'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setActivityFilter(filter)}
+                    className={`capitalize px-2.5 py-1 rounded-md transition-colors cursor-pointer font-medium ${
+                      activityFilter === filter
+                        ? 'bg-primary text-on-primary shadow-xs'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-soft'
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <Card hoverable={false} padded={false}>
-              {activityItems.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 border-b border-card-border px-4 py-3.5 last:border-b-0">
-                  <Download size={16} className="mt-0.5 shrink-0 text-outline" />
+              {filteredActivities.length > 0 ? (
+                filteredActivities.map((activity) => {
+                  let Icon = Download;
+                  let iconBg = 'text-emerald-600 bg-emerald-500/10 dark:text-emerald-400';
+                  let labelStyle = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+
+                  if (activity.type === 'uploaded') {
+                    Icon = Upload;
+                    iconBg = 'text-primary bg-primary/10';
+                    labelStyle = 'bg-primary/10 text-primary';
+                  } else if (activity.type === 'saved') {
+                    Icon = Bookmark;
+                    iconBg = 'text-amber-600 bg-amber-500/10 dark:text-amber-400';
+                    labelStyle = 'bg-amber-500/10 text-amber-700 dark:text-amber-300';
+                  }
+
+                  const rowContent = (
+                    <div className="flex items-start gap-3 border-b border-card-border px-4 py-3.5 last:border-b-0 hover:bg-surface-soft transition-colors cursor-pointer">
+                      <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
+                        <Icon size={14} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body-sm text-on-surface-variant">
+                          <span className={`inline-block rounded-md px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider mr-1.5 ${labelStyle}`}>
+                            {activity.label}
+                          </span>
+                          <span className="font-medium text-on-surface hover:underline">{activity.target}</span>
+                          {activity.type === 'uploaded' && activity.status === 'pending' && (
+                             <span className="inline-block align-middle ml-2 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tracking-wider bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 whitespace-nowrap">
+                               Pending Approval
+                             </span>
+                          )}
+                        </p>
+                        <span className="mt-1 block text-label-sm text-outline">{activity.timestamp}</span>
+                      </div>
+                    </div>
+                  );
+
+                  if (activity.materialId) {
+                    return (
+                      <Link key={activity.id} to={`/materials/${activity.materialId}`} className="block">
+                        {rowContent}
+                      </Link>
+                    );
+                  }
+
+                  return <div key={activity.id}>{rowContent}</div>;
+                })
+              ) : (
+                <div className="px-4 py-8 text-center">
                   <p className="text-body-sm text-on-surface-variant">
-                    <span className="font-medium text-on-surface">{activity.label}</span> {activity.target}
-                    <span className="mt-0.5 block text-label-sm text-outline">{activity.timestamp}</span>
+                    No recent {activityFilter === 'all' ? 'activity' : `${activityFilter} materials`} found.
                   </p>
                 </div>
-              ))}
+              )}
             </Card>
           </section>
         </div>

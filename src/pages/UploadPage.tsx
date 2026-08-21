@@ -44,13 +44,10 @@ const uploadCategories = [
   },
 ];
 
-function inferMaterialType(fileName: string, selectedType: MaterialType): MaterialType {
-  if (selectedType === 'past-paper') return 'past-paper';
-  if (selectedType === 'doc') return 'doc';
-  const extension = fileName.split('.').pop()?.toLowerCase();
-  if (extension === 'doc' || extension === 'docx') return 'doc';
-  if (extension === 'ppt' || extension === 'pptx') return 'slides';
-  return 'pdf';
+function inferMaterialType(selectedType: MaterialType): MaterialType {
+  // Ensure the material is strictly categorized based on the user's selection, 
+  // ignoring the actual file extension.
+  return selectedType;
 }
 
 export function UploadPage() {
@@ -113,17 +110,37 @@ export function UploadPage() {
     const course = String(formData.get('course') ?? selectedCourse).trim();
     const branch = String(formData.get('branch') ?? '').trim();
     const year = String(formData.get('year') ?? '').trim();
+    const college = String(formData.get('college') ?? '').trim();
     const description = String(formData.get('description') ?? '').trim();
+
+    if (files.length === 0) {
+      setError('File to be uploaded is required. Please select at least one file.');
+      return;
+    }
 
     if (!title) {
       setError('Title is required.');
       return;
     }
 
-    if (selectedCategory.id !== 'doc' && selectedCategory.id !== 'past-paper') {
+    if (selectedCategory.id === 'past-paper') {
+      if (!college) {
+        setError('College / University name is required.');
+        return;
+      }
+    } else if (selectedCategory.id === 'doc') {
+      if (!year) {
+        setError('Student Year is required.');
+        return;
+      }
+    } else if (selectedCategory.id === 'materials') {
       const subject = String(formData.get('subject') ?? '').trim();
       if (!subject) {
         setError('Subject is required.');
+        return;
+      }
+      if (!year) {
+        setError('Student Year is required.');
         return;
       }
     }
@@ -142,7 +159,7 @@ export function UploadPage() {
         college: String(formData.get('college') ?? '') || undefined,
         branch: branch ? `${course ? `${course} - ` : ''}${branch}` : undefined,
         year: year || undefined,
-        type: inferMaterialType(primaryFile.name, selectedCategory.type),
+        type: inferMaterialType(selectedCategory.type),
       });
 
       // Redirect directly to Manage Uploads in Library page
@@ -266,7 +283,7 @@ export function UploadPage() {
             {isPastPaper && <ImageIcon size={30} className="text-amber-500" />}
           </div>
           <p className="text-body-md font-semibold text-on-surface">
-            Select or Drag {selectedCategory.badge} {isPastPaper ? 'PDFs or Gallery Images' : 'File(s)'}
+            Select or Drag {selectedCategory.badge} {isPastPaper ? 'PDFs or Gallery Images' : 'File(s)'} <span className="text-red-500 font-bold">*</span>
           </p>
           <p className="text-label-sm text-on-surface-variant">
             {isPastPaper
@@ -277,6 +294,7 @@ export function UploadPage() {
             ref={inputRef}
             type="file"
             multiple
+            required
             accept={
               isPastPaper
                 ? '.pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.heic,image/*'
@@ -288,7 +306,7 @@ export function UploadPage() {
             }}
           />
           <Button type="button" variant="secondary" size="sm" className="mt-2 cursor-pointer" onClick={() => inputRef.current?.click()}>
-            {isPastPaper ? 'Select Files / Multiple Gallery Images' : 'Browse Files'}
+            {isPastPaper ? 'Select Files / Multiple Gallery Images' : 'Browse Files *'}
           </Button>
         </motion.div>
 
@@ -365,7 +383,7 @@ export function UploadPage() {
         )}
 
         <Input
-          label={`${selectedCategory.badge} Title`}
+          label={`${selectedCategory.badge} Title *`}
           name="title"
           placeholder={
             isAssignment
@@ -395,7 +413,7 @@ export function UploadPage() {
 
         {/* Dynamic Metadata Form Fields */}
         {isAssignment ? (
-          /* For Assignments, collect Course, Branch, and Year */
+          /* For Assignments, collect Course, Branch, and Year * (Mandatory: File, Title, Year) */
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Select
               label="Course"
@@ -406,17 +424,17 @@ export function UploadPage() {
               onChange={(e) => setSelectedCourse(e.target.value)}
             />
             <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
-            <Input label="Student Year" placeholder="1st year, 2nd year ..." name="year" />
+            <Input label="Student Year *" placeholder="1st year, 2nd year ..." name="year" required />
           </div>
         ) : isPastPaper ? (
-          /* For Past Exam Papers, collect ONLY College / University (No Course, Subject, Description, Branch, Semester, or Student Year) */
+          /* For Past Exam Papers, collect ONLY College / University * (All fields mandatory: File, Title, College/University) */
           <CollegeAutocomplete
-            label="College / University"
+            label="College / University *"
             name="college"
-            placeholder="Enter your college or university name"
+            placeholder="Enter your college or university name *"
           />
         ) : (
-          /* For Study Materials, collect Course, Branch, Subject, and Year (No College or Semester) */
+          /* For Study Materials, collect Course, Branch, Subject *, and Year * (No College or Semester) */
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Select
               label="Course"
@@ -427,8 +445,8 @@ export function UploadPage() {
               onChange={(e) => setSelectedCourse(e.target.value)}
             />
             <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
-            <Select label="Subject" placeholder="Select Subject" options={subjects} name="subject" />
-            <Input label="Student Year" placeholder="1st year, 2nd year ..." name="year" />
+            <Select label="Subject *" placeholder="Select Subject *" options={subjects} name="subject" required />
+            <Input label="Student Year *" placeholder="1st year, 2nd year ..." name="year" required />
           </div>
         )}
 

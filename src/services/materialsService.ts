@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { toMaterial } from '../lib/materialMapper';
-import { listBookmarkedMaterials } from './bookmarksService';
+import { listBookmarkedMaterialIds, listBookmarkedMaterials } from './bookmarksService';
 import { mockMaterials } from '../data/mockData';
 import type { Material } from '../data/types';
 import type { MaterialRow, MaterialStatus, MaterialType, PublicProfileRow } from '../types/database.types';
@@ -26,12 +26,24 @@ export function getFilteredMockMaterials(filters: MaterialFilters = {}, savedIds
   return list;
 }
 
+const profileCache = new Map<string, PublicProfileRow>();
+let cachedApprovedMaterials: Material[] = [];
+
 async function fetchUploaders(rows: readonly MaterialRow[]): Promise<Map<string, PublicProfileRow>> {
-  const ids = [...new Set(rows.map((row) => row.uploader_id))];
-  if (ids.length === 0) return new Map();
-  const { data, error } = await supabase.from('public_profiles').select('*').in('id', ids);
-  if (error) throw error;
-  return new Map(data.map((profile) => [profile.id, profile]));
+  const missingIds = [...new Set(rows.map((row) => row.uploader_id))].filter((id) => !profileCache.has(id));
+  if (missingIds.length > 0) {
+    try {
+      const { data, error } = await supabase.from('public_profiles').select('*').in('id', missingIds);
+      if (!error && data) {
+        for (const profile of data) {
+          profileCache.set(profile.id, profile);
+        }
+      }
+    } catch {
+      // Ignore network errors, fall back to cached/default profiles
+    }
+  }
+  return profileCache;
 }
 
 async function toMaterialsWithUploaders(rows: MaterialRow[], savedIds?: Set<string>): Promise<Material[]> {
@@ -39,37 +51,62 @@ async function toMaterialsWithUploaders(rows: MaterialRow[], savedIds?: Set<stri
   return rows.map((row) => toMaterial(row, uploaders.get(row.uploader_id), savedIds?.has(row.id)));
 }
 
-/** Approved materials joined with uploader name/avatar, ready for MaterialCard/MaterialRow. */
+/** Invalidate cached materials to force an immediate reload from the database */
+export function invalidateMaterialsCache(): void {
+  cachedApprovedMaterials = [];
+}
+
+/** Approved materials joined with uploader name/avatar, reloaded directly from database. */
 export async function listApprovedMaterialsForUI(filters: MaterialFilters = {}, savedIds?: Set<string>): Promise<Material[]> {
-  let dbMaterials: Material[] = [];
   try {
     const rows = await listApprovedMaterials(filters);
-    dbMaterials = await toMaterialsWithUploaders(rows, savedIds);
+    const dbMaterials = await toMaterialsWithUploaders(rows, savedIds);
+    if (dbMaterials && dbMaterials.length > 0) {
+      cachedApprovedMaterials = dbMaterials;
+    }
   } catch (err) {
     console.warn('Using mock materials fallback:', err);
   }
 
-  // Merge mock materials so every category tab (Past Papers, Assignments, Docs) always has sample data
   const mockItems = getFilteredMockMaterials(filters, savedIds);
-  const existingIds = new Set(dbMaterials.map((m) => m.id));
-  const combined = [...dbMaterials];
+  const existingIds = new Set(cachedApprovedMaterials.map((m) => m.id));
+  const combined: Material[] = cachedApprovedMaterials.map((m) => ({
+    ...m,
+    isSaved: savedIds ? savedIds.has(m.id) : m.isSaved,
+  }));
+
   for (const mockItem of mockItems) {
     if (!existingIds.has(mockItem.id)) {
       combined.push(mockItem);
+      existingIds.add(mockItem.id);
     }
   }
+
   return combined;
 }
 
 /** A single material joined with its uploader, for the details/reader pages. */
-export async function getMaterialForUI(id: string, savedIds?: Set<string>): Promise<Material> {
+export async function getMaterialForUI(id: string, userIdOrSavedIds?: string | Set<string>): Promise<Material> {
+  let savedIds: Set<string> | undefined;
+  if (userIdOrSavedIds instanceof Set) {
+    savedIds = userIdOrSavedIds;
+  } else if (typeof userIdOrSavedIds === 'string') {
+    try {
+      savedIds = await listBookmarkedMaterialIds(userIdOrSavedIds);
+    } catch {
+      savedIds = undefined;
+    }
+  }
+
+  const isItemSaved = savedIds ? savedIds.has(id) : false;
+
   try {
     const row = await getMaterialById(id);
     const uploaders = await fetchUploaders([row]);
-    return toMaterial(row, uploaders.get(row.uploader_id), savedIds?.has(row.id));
+    return toMaterial(row, uploaders.get(row.uploader_id), isItemSaved);
   } catch {
     const mock = mockMaterials.find((m) => m.id === id) || mockMaterials[0];
-    return { ...mock, isSaved: savedIds?.has(mock.id) };
+    return { ...mock, isSaved: isItemSaved || !!mock.isSaved };
   }
 }
 
@@ -101,6 +138,7 @@ export async function listMyUploadsForUI(userId: string): Promise<Material[]> {
 
 /** The user's saved (bookmarked) materials, joined with uploader info. */
 export async function listSavedMaterialsForUI(userId: string): Promise<Material[]> {
+  const savedIdsSet = await listBookmarkedMaterialIds(userId);
   let dbSaved: Material[] = [];
   try {
     const rows = await listBookmarkedMaterials(userId);
@@ -110,16 +148,34 @@ export async function listSavedMaterialsForUI(userId: string): Promise<Material[
     console.warn('listSavedMaterialsForUI DB notice:', err);
   }
 
-  // Filter mockMaterials for items marked as saved
+  const existingIds = new Set(dbSaved.map((m) => m.id));
+
+  // Include any saved items from mockMaterials (pastpapers, assignments/docs, and pdfs)
   const mockSaved = mockMaterials
-    .filter((m) => m.isSaved)
+    .filter((m) => m.isSaved || savedIdsSet.has(m.id))
     .map((m) => ({ ...m, isSaved: true }));
 
-  const existingIds = new Set(dbSaved.map((m) => m.id));
   const combined = [...dbSaved];
   for (const item of mockSaved) {
     if (!existingIds.has(item.id)) {
       combined.push(item);
+      existingIds.add(item.id);
+    }
+  }
+
+  // Fetch any additional saved material IDs from DB if not already present
+  const missingIds = [...savedIdsSet].filter((id) => !existingIds.has(id));
+  if (missingIds.length > 0) {
+    try {
+      const { data: missingRows } = await supabase.from('materials').select('*').in('id', missingIds);
+      if (missingRows && missingRows.length > 0) {
+        const uploaders = await fetchUploaders(missingRows);
+        for (const row of missingRows) {
+          combined.push(toMaterial(row, uploaders.get(row.uploader_id), true));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch missing saved materials:', e);
     }
   }
 
@@ -274,6 +330,7 @@ export async function uploadMaterial(params: UploadMaterialParams): Promise<Mate
       uploaderId: uploaderId || effectiveUploaderId,
     };
     mockMaterials.unshift(mockItem);
+    invalidateMaterialsCache();
 
     return data;
   } catch (err) {

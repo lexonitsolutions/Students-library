@@ -6,9 +6,13 @@ import * as profileService from '../services/profileService';
 import type { User } from '../data/types';
 import type { ProfileRow, ProfileStatsRow } from '../types/database.types';
 
+import { generateQuickId, isIdPublic } from '../lib/idUtils';
+
 function toUser(profile: ProfileRow, stats: ProfileStatsRow | null): User {
   return {
     id: profile.id,
+    quickId: generateQuickId(profile.id),
+    isIdPublic: isIdPublic(profile.id),
     name: profile.name,
     username: profile.username ?? undefined,
     email: profile.email ?? '',
@@ -262,7 +266,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   );
 
   const user = useMemo<User | null>(
-    () => demoUser ?? (profile ? toUser(profile, stats) : null),
+    () => {
+      if (demoUser) {
+        return {
+          ...demoUser,
+          quickId: generateQuickId(demoUser.id),
+          isIdPublic: isIdPublic(demoUser.id),
+        };
+      }
+      return profile ? toUser(profile, stats) : null;
+    },
     [demoUser, profile, stats],
   );
 

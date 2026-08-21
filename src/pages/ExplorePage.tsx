@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Chip } from '../components/ui/Chip';
 import { MaterialCard } from '../components/ui/MaterialCard';
 import { Select } from '../components/ui/Select';
+import { UserProfilePanel, type UploaderProfile } from '../components/ui/UserProfilePanel';
 import { subjects, universities } from '../data/mockData';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
@@ -20,6 +21,7 @@ export function ExplorePage() {
   const [visibleCount, setVisibleCount] = useState(6);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProfile, setSelectedProfile] = useState<UploaderProfile | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -61,15 +63,13 @@ export function ExplorePage() {
     if (!user) return;
     const material = materials.find((item) => item.id === id);
     if (!material) return;
-    setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: !item.isSaved } : item)));
-    try {
-      if (material.isSaved) {
-        await bookmarksService.removeBookmark(id, user.id);
-      } else {
-        await bookmarksService.addBookmark(id);
-      }
-    } catch {
-      setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: material.isSaved } : item)));
+    const wasSaved = !!material.isSaved;
+    const nextSaved = !wasSaved;
+    setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: nextSaved } : item)));
+    if (wasSaved) {
+      await bookmarksService.removeBookmark(id, user.id);
+    } else {
+      await bookmarksService.addBookmark(id, user.id);
     }
   };
 
@@ -82,6 +82,7 @@ export function ExplorePage() {
   const visible = sorted.slice(0, visibleCount);
 
   return (
+    <>
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
       <aside className="w-full shrink-0 lg:sticky lg:top-0 lg:w-64">
         <h2 className="mb-4 text-headline-md text-on-surface">Filters</h2>
@@ -135,7 +136,7 @@ export function ExplorePage() {
         <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <AnimatePresence>
             {visible.map((material) => (
-              <MaterialCard key={material.id} material={material} onToggleSave={toggleSave} />
+              <MaterialCard key={material.id} material={material} onToggleSave={toggleSave} onUploaderClick={setSelectedProfile} />
             ))}
           </AnimatePresence>
         </motion.div>
@@ -149,6 +150,9 @@ export function ExplorePage() {
         )}
       </div>
     </div>
+
+    <UserProfilePanel profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
+  </>
   );
 }
 

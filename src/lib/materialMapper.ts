@@ -9,6 +9,32 @@ function accentColorFor(id: string): Material['accentColor'] {
 }
 
 export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefined, isSaved = false): Material {
+  let finalUploaderName = uploader?.name;
+  let finalAvatar = uploader?.avatar_url;
+  let finalUniversity = uploader?.university ?? row.university;
+  let finalCollege = uploader?.college ?? row.college;
+  let finalLocation = uploader?.branch ? `${uploader.branch}, ${uploader.university ?? ''}` : row.university;
+  let finalUploadsCount = 3;
+
+  if (!uploader) {
+    try {
+      const raw = localStorage.getItem('quicklearnit.demo_user');
+      if (raw) {
+        const demoUser = JSON.parse(raw);
+        if (demoUser.id === row.uploader_id || !row.uploader_id) {
+          finalUploaderName = demoUser.name;
+          finalAvatar = demoUser.avatar || demoUser.coverImage;
+          finalUniversity = demoUser.university;
+          finalCollege = demoUser.college;
+          finalLocation = demoUser.location || (demoUser.university ? `${demoUser.university} Campus` : null);
+          finalUploadsCount = demoUser.stats?.uploads || 3;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return {
     id: row.id,
     title: row.title,
@@ -17,12 +43,12 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     semester: row.semester ?? '',
     type: row.type,
     uploaderId: row.uploader_id,
-    uploaderName: uploader?.name ?? 'Unknown',
-    uploaderAvatar: uploader?.avatar_url ?? `https://i.pravatar.cc/80?u=${row.uploader_id}`,
-    uploaderUniversity: uploader?.university ?? row.university ?? 'Harvard University',
-    uploaderCollege: uploader?.college ?? row.college ?? 'School of Academic Studies',
-    uploaderLocation: uploader?.branch ? `${uploader.branch}, ${uploader.university ?? ''}` : row.university ?? 'Cambridge, MA',
-    uploaderUploadsCount: 3,
+    uploaderName: finalUploaderName || 'Anonymous Student',
+    uploaderAvatar: finalAvatar || `https://i.pravatar.cc/80?u=${row.uploader_id}`,
+    uploaderUniversity: finalUniversity || 'Harvard University',
+    uploaderCollege: finalCollege || 'School of Academic Studies',
+    uploaderLocation: finalLocation || 'Cambridge, MA',
+    uploaderUploadsCount: finalUploadsCount,
     uploadedAt: row.created_at,
     views: row.views_count,
     downloads: row.downloads_count,
