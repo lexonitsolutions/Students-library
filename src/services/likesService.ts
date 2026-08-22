@@ -40,6 +40,29 @@ export function setLocalLikesCount(materialId: string, count: number): void {
   }
 }
 
+const LOCAL_SHARED_KEY_PREFIX = 'quicklearnit_shared_ids_';
+
+export function getLocalStorageSharedIds(userId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`${LOCAL_SHARED_KEY_PREFIX}${userId}`);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return new Set();
+}
+
+function saveLocalStorageSharedIds(userId: string, ids: Set<string>): void {
+  try {
+    localStorage.setItem(`${LOCAL_SHARED_KEY_PREFIX}${userId}`, JSON.stringify([...ids]));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function getLocalSharesCount(materialId: string): number {
   try {
     const raw = localStorage.getItem(`quicklearnit_shares_count_${materialId}`);
@@ -50,14 +73,24 @@ export function getLocalSharesCount(materialId: string): number {
   return 0;
 }
 
-export function incrementLocalSharesCount(materialId: string): number {
+export function incrementLocalSharesCount(materialId: string, userId?: string): { newCount: number; alreadyShared: boolean } {
+  const effectiveUserId = userId || 'anonymous_guest';
+  const sharedIds = getLocalStorageSharedIds(effectiveUserId);
+
+  if (sharedIds.has(materialId)) {
+    return { newCount: getLocalSharesCount(materialId), alreadyShared: true };
+  }
+
+  sharedIds.add(materialId);
+  saveLocalStorageSharedIds(effectiveUserId, sharedIds);
+
   const newCount = getLocalSharesCount(materialId) + 1;
   try {
     localStorage.setItem(`quicklearnit_shares_count_${materialId}`, newCount.toString());
   } catch {
     // Ignore
   }
-  return newCount;
+  return { newCount, alreadyShared: false };
 }
 
 export function getLocalDownloadsCount(materialId: string, initialDbValue: number): number {

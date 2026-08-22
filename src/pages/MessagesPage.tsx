@@ -1,4 +1,5 @@
-import { Search, MoreVertical, Send, Smile, X, ArrowLeft, BellOff, Trash2, Eraser, Ban } from 'lucide-react';
+import { Search, MoreVertical, Send, Smile, X, ArrowLeft, BellOff, Trash2, Eraser, Ban, Check, MessageSquarePlus, Clock, XCircle } from 'lucide-react';
+import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '../components/ui/Avatar';
 import UserProfilePanel, { type UploaderProfile } from '../components/ui/UserProfilePanel';
@@ -36,9 +37,21 @@ function newId() {
 
 import { mockMaterials } from '../data/mockData';
 import { generateQuickId } from '../lib/idUtils';
+import { supabase } from '../lib/supabaseClient';
+import {
+  sendRequest,
+  cancelRequest,
+  listPendingRequests,
+  acceptRequest,
+  rejectRequest,
+  getRequestStatus,
+  hasAcceptedConnection,
+  type MessageRequest,
+} from '../services/messageRequestService';
 
 // ─── Initial Data ─────────────────────────────────────────────────────────────
 const INITIAL_USERS = [
+  { id: 'user-sadhik-01', name: 'Sadhik', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80' },
   { id: 'user-alex-1', name: 'Alex Johnson', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=80' },
   { id: 'user-david-3', name: 'David Lee', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80' },
   { id: 'user-emily-4', name: 'Emily Chen', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80' },
@@ -112,9 +125,43 @@ export function MessagesPage() {
   const [showChatList, setShowChatList] = useState(true);
   const [showChatOptions, setShowChatOptions] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<UploaderProfile | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<MessageRequest[]>([]);
+  const [requestSentFeedback, setRequestSentFeedback] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
+
+  const [dbUsers, setDbUsers] = useState<Array<{ id: string; quickId: string; name: string; avatar: string }>>([]);
+
+  // Load pending requests & public profiles from database
+  useEffect(() => {
+    if (user) {
+      setPendingRequests(listPendingRequests(user.id));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('public_profiles').select('*');
+        if (!error && data && active) {
+          const mapped = data.map((p) => ({
+            id: p.id,
+            quickId: generateQuickId(p.id),
+            name: p.name || 'Student',
+            avatar: p.avatar_url || `https://i.pravatar.cc/160?u=${p.id}`,
+          }));
+          setDbUsers(mapped);
+        }
+      } catch {
+        // Fallback silently if offline or table doesn't exist
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Close options on click outside
   useEffect(() => {
@@ -184,20 +231,104 @@ export function MessagesPage() {
     );
   };
 
-  const handleStartChat = (user: typeof ALL_MOCK_USERS[0]) => {
-    const existingChat = chats.find(c => c.quickId === user.quickId);
+  // ── Message Request Handlers ──
+  const handleSendRequest = (targetUser: typeof ALL_MOCK_USERS[0]) => {
+    if (!user) return;
+
+    // Check if there's already an accepted connection or existing chat
+    const existingChat = chats.find(c => c.quickId === targetUser.quickId);
+    if (existingChat || hasAcceptedConnection(user.id, targetUser.id)) {
+      // Already connected, open or create the chat directly
+      if (existingChat) {
+        openChat(existingChat.id);
+      } else {
+        const newChat: Chat = {
+          id: Date.now(),
+          name: targetUser.name,
+          avatar: targetUser.avatar,
+          lastMessage: 'Conversation started',
+          time: now(),
+          unread: 0,
+          targetUserId: targetUser.id,
+          quickId: targetUser.quickId,
+          messages: [],
+        };
+        setChats(prev => [newChat, ...prev]);
+        openChat(newChat.id);
+      }
+      setSearch('');
+      return;
+    }
+
+    // Send a message request
+    const result = sendRequest({
+      fromUserId: user.id,
+      fromUserName: user.name,
+      fromUserAvatar: user.avatar,
+      fromUserQuickId: user.quickId || generateQuickId(user.id),
+      toUserId: targetUser.id,
+      toUserName: targetUser.name,
+      toUserQuickId: targetUser.quickId,
+    });
+
+    if (result.success) {
+      setRequestSentFeedback('Message request sent!');
+      setTimeout(() => setRequestSentFeedback(null), 3000);
+    } else {
+      setRequestSentFeedback(result.reason || 'Could not send request.');
+      setTimeout(() => setRequestSentFeedback(null), 3000);
+    }
+    setSearch('');
+  };
+
+  const handleCancelRequest = (targetUser: { id: string; quickId: string }) => {
+    if (!user) return;
+    const userQuickId = user.quickId || generateQuickId(user.id);
+    cancelRequest(user.id, targetUser.id, userQuickId);
+    setRequestSentFeedback('Request taken back!');
+    setTimeout(() => setRequestSentFeedback(null), 3000);
+  };
+
+  const handleAcceptRequest = (request: MessageRequest) => {
+    acceptRequest(request.id, user?.name);
+    setPendingRequests(prev => prev.filter(r => r.id !== request.id));
+
+    // Create a new chat for the accepted request
+    const newChat: Chat = {
+      id: Date.now(),
+      name: request.fromUserName,
+      avatar: request.fromUserAvatar,
+      lastMessage: 'Request accepted — start chatting!',
+      time: now(),
+      unread: 0,
+      targetUserId: request.fromUserId,
+      quickId: request.fromUserQuickId,
+      messages: [],
+    };
+    setChats(prev => [newChat, ...prev]);
+    openChat(newChat.id);
+  };
+
+  const handleRejectRequest = (request: MessageRequest) => {
+    if (!user) return;
+    rejectRequest(request.id, user.name);
+    setPendingRequests(prev => prev.filter(r => r.id !== request.id));
+  };
+
+  const handleStartChat = (targetUser: typeof ALL_MOCK_USERS[0]) => {
+    const existingChat = chats.find(c => c.quickId === targetUser.quickId);
     if (existingChat) {
       openChat(existingChat.id);
     } else {
       const newChat: Chat = {
         id: Date.now(),
-        name: user.name,
-        avatar: user.avatar,
+        name: targetUser.name,
+        avatar: targetUser.avatar,
         lastMessage: 'Conversation started',
         time: now(),
         unread: 0,
-        targetUserId: user.id,
-        quickId: user.quickId,
+        targetUserId: targetUser.id,
+        quickId: targetUser.quickId,
         messages: [],
       };
       setChats(prev => [newChat, ...prev]);
@@ -223,12 +354,10 @@ export function MessagesPage() {
   };
 
   const handleMuteChat = () => {
-    // Just close for now since UI doesn't have mute state indicator yet
     setShowChatOptions(false);
   };
 
   const handleBlockUser = () => {
-    // Just close for now
     setShowChatOptions(false);
   };
 
@@ -265,6 +394,33 @@ export function MessagesPage() {
 
   const totalUnread = chats.reduce((sum, c) => sum + c.unread, 0);
 
+  // ── Determine search result action ──
+  const getSearchResultAction = (targetUser: typeof ALL_MOCK_USERS[0]) => {
+    if (!user) return { label: 'Sign in to message', disabled: true, action: () => {}, variant: 'secondary' as const };
+
+    // Check if it's the same user
+    if (targetUser.id === user.id) {
+      return { label: 'This is you', disabled: true, action: () => {}, variant: 'secondary' as const };
+    }
+
+    // Check existing chat
+    const existingChat = chats.find(c => c.quickId === targetUser.quickId);
+    if (existingChat || hasAcceptedConnection(user.id, targetUser.id)) {
+      return { label: 'Open Chat', disabled: false, action: () => handleStartChat(targetUser), variant: 'accepted' as const };
+    }
+
+    // Check request status
+    const status = getRequestStatus(user.id, targetUser.id);
+    if (status === 'pending') {
+      return { label: 'Request Pending (Click to Cancel)', disabled: false, action: () => handleCancelRequest(targetUser), variant: 'pending' as const };
+    }
+    if (status === 'rejected') {
+      return { label: 'Request Rejected', disabled: true, action: () => {}, variant: 'rejected' as const };
+    }
+
+    return { label: 'Send Message Request', disabled: false, action: () => handleSendRequest(targetUser), variant: 'send' as const };
+  };
+
   return (
     <div ref={containerRef} className="flex h-full w-full overflow-hidden bg-surface select-none">
 
@@ -295,12 +451,17 @@ export function MessagesPage() {
         <div className="px-4 py-3">
           <div className="flex items-center gap-2.5 rounded-xl border border-card-border !bg-transparent px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 transition-all">
             <Search size={16} className="shrink-0 text-on-surface-variant" />
-            <input
+            <AnimatedInput
               type="text"
+              inputMode="numeric"
+              pattern="\d*"
               placeholder="Enter ID to message"
               className="w-full !bg-transparent text-body-sm text-on-surface outline-none placeholder:text-on-surface-variant/70"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 9);
+                setSearch(val);
+              }}
             />
             {search && (
               <button type="button" onClick={() => setSearch('')} className="text-on-surface-variant hover:text-on-surface cursor-pointer">
@@ -308,10 +469,19 @@ export function MessagesPage() {
               </button>
             )}
           </div>
+
+          {/* Request sent/error feedback */}
+          {requestSentFeedback && (
+            <div className={`mt-2 rounded-lg px-3 py-2 text-label-sm font-semibold text-center transition-all ${
+              requestSentFeedback.includes('sent') ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
+            }`}>
+              {requestSentFeedback}
+            </div>
+          )}
         </div>
 
-        {/* Chat Items / Search Results */}
-        <div className="flex-1 overflow-y-auto divide-y divide-card-border/30">
+        {/* Chat Items / Search Results / Requests */}
+        <div className="flex-1 overflow-y-auto">
           {search ? (
             // Search Results Mode
             (() => {
@@ -320,10 +490,29 @@ export function MessagesPage() {
                 return <p className="p-8 text-center text-body-sm text-on-surface-variant">Enter a valid 9-digit ID.</p>;
               }
               
-              // Combine ALL_MOCK_USERS with current user for search
-              const allSearchableUsers = [...ALL_MOCK_USERS];
-              if (user && !allSearchableUsers.some(u => u.id === user.id)) {
-                allSearchableUsers.push({
+              // Combine ALL_MOCK_USERS, dbUsers, demoUser, and current user for search
+              const allSearchableUsersMap = new Map<string, { id: string; quickId: string; name: string; avatar: string }>();
+
+              ALL_MOCK_USERS.forEach(u => allSearchableUsersMap.set(u.id, u));
+              dbUsers.forEach(u => allSearchableUsersMap.set(u.id, u));
+
+              try {
+                const rawDemo = localStorage.getItem('quicklearnit.demo_user');
+                if (rawDemo) {
+                  const demo = JSON.parse(rawDemo);
+                  if (demo?.id) {
+                    allSearchableUsersMap.set(demo.id, {
+                      id: demo.id,
+                      quickId: generateQuickId(demo.id),
+                      name: demo.name,
+                      avatar: demo.avatar || demo.coverImage || `https://i.pravatar.cc/160?u=${demo.id}`,
+                    });
+                  }
+                }
+              } catch {}
+
+              if (user) {
+                allSearchableUsersMap.set(user.id, {
                   id: user.id,
                   quickId: user.quickId || generateQuickId(user.id),
                   name: user.name + ' (You)',
@@ -331,63 +520,190 @@ export function MessagesPage() {
                 });
               }
 
-              const foundUser = allSearchableUsers.find((u) => u.quickId === search.trim());
-              if (!foundUser) {
-                return <p className="p-8 text-center text-body-sm text-on-surface-variant">User not found.</p>;
-              }
+              const allSearchableUsers = Array.from(allSearchableUsersMap.values());
+              const query = search.trim();
+
+              const matchedUser = allSearchableUsers.find(
+                (u) => u.quickId === query || generateQuickId(u.id) === query || u.id === query
+              );
+
+              // Fallback to dynamic student record if no exact match found in database/mock data
+              const foundUser = matchedUser || {
+                id: `user-id-${query}`,
+                quickId: query,
+                name: `Student (${query})`,
+                avatar: `https://i.pravatar.cc/160?u=${query}`,
+              };
+
+              const { label, disabled, action, variant } = getSearchResultAction(foundUser);
+
               return (
-                <button
-                  type="button"
-                  onClick={() => handleStartChat(foundUser)}
-                  className="flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-container"
-                >
-                  <Avatar name={foundUser.name} src={foundUser.avatar} size={48} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-body-md font-semibold text-on-surface">{foundUser.name}</p>
-                    <p className="truncate text-label-sm text-primary font-medium mt-0.5">Start Chat</p>
+                <div className="px-4 py-3">
+                  <div className="rounded-2xl border border-card-border bg-surface p-4 flex flex-col gap-3">
+                    {/* User info row */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProfile({
+                          uploaderId: foundUser.id,
+                          uploaderName: foundUser.name,
+                          uploaderAvatar: foundUser.avatar,
+                        })}
+                        className="shrink-0 cursor-pointer"
+                      >
+                        <Avatar name={foundUser.name} src={foundUser.avatar} size={48} />
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProfile({
+                            uploaderId: foundUser.id,
+                            uploaderName: foundUser.name,
+                            uploaderAvatar: foundUser.avatar,
+                          })}
+                          className="truncate text-body-md font-semibold text-on-surface hover:text-primary transition-colors cursor-pointer text-left block"
+                        >
+                          {foundUser.name}
+                        </button>
+                        <p className="text-label-sm text-on-surface-variant font-mono mt-0.5">ID: {foundUser.quickId}</p>
+                      </div>
+                    </div>
+
+                    {/* Action button */}
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={action}
+                      className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-label-md font-bold transition-all cursor-pointer
+                        ${variant === 'send' ? 'bg-primary text-on-primary hover:opacity-90 shadow-sm' : ''}
+                        ${variant === 'accepted' ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm' : ''}
+                        ${variant === 'pending' ? 'bg-amber-500/20 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-500/30 hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/30 font-semibold' : ''}
+                        ${variant === 'rejected' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 cursor-not-allowed opacity-80' : ''}
+                        ${variant === 'secondary' ? 'bg-surface-container text-on-surface-variant cursor-not-allowed opacity-60' : ''}
+                        ${disabled ? 'cursor-not-allowed' : ''}
+                      `}
+                    >
+                      {variant === 'send' && <MessageSquarePlus size={16} />}
+                      {variant === 'accepted' && <Send size={16} />}
+                      {variant === 'pending' && <Clock size={16} />}
+                      {variant === 'rejected' && <XCircle size={16} />}
+                      {label}
+                    </button>
                   </div>
-                </button>
+                </div>
               );
             })()
           ) : (
-            // Recent Chats Mode
-            chats.length === 0 ? (
-              <p className="p-8 text-center text-body-sm text-on-surface-variant">No chats yet</p>
-            ) : (
-              chats.map((chat) => (
-                <button
-                  key={chat.id}
-                  type="button"
-                  onClick={() => openChat(chat.id)}
-                  className={`flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-container
-                    ${activeChatId === chat.id ? 'bg-primary/10 border-l-3 border-l-primary' : ''}
-                  `}
-                >
-              <div className="relative shrink-0">
-                <Avatar name={chat.name} src={chat.avatar} size={48} />
-                {chat.id === 1 && (
-                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-surface bg-emerald-500" />
+            <>
+              {/* ── Message Requests Section ── */}
+              {pendingRequests.length > 0 && (
+                <div className="border-b border-card-border">
+                  <div className="flex items-center gap-2 px-5 pt-3 pb-2">
+                    <MessageSquarePlus size={15} className="text-primary" />
+                    <h3 className="text-label-md font-bold text-on-surface">Message Requests</h3>
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-on-primary">
+                      {pendingRequests.length}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col divide-y divide-card-border/30">
+                    {pendingRequests.map((request) => (
+                      <div key={request.id} className="px-4 py-3 flex flex-col gap-2.5">
+                        {/* Requester info */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProfile({
+                              uploaderId: request.fromUserId,
+                              uploaderName: request.fromUserName,
+                              uploaderAvatar: request.fromUserAvatar,
+                            })}
+                            className="shrink-0 cursor-pointer"
+                          >
+                            <Avatar name={request.fromUserName} src={request.fromUserAvatar} size={44} />
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedProfile({
+                                uploaderId: request.fromUserId,
+                                uploaderName: request.fromUserName,
+                                uploaderAvatar: request.fromUserAvatar,
+                              })}
+                              className="truncate text-body-sm font-bold text-on-surface hover:text-primary transition-colors cursor-pointer text-left block"
+                            >
+                              {request.fromUserName}
+                            </button>
+                            <p className="text-label-xs text-on-surface-variant font-mono">ID: {request.fromUserQuickId}</p>
+                          </div>
+                        </div>
+
+                        {/* Accept / Reject buttons */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleAcceptRequest(request)}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2 text-label-sm font-bold text-white hover:bg-emerald-700 transition-colors cursor-pointer shadow-sm"
+                          >
+                            <Check size={15} />
+                            Accept
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectRequest(request)}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-red-600 py-2 text-label-sm font-bold text-white hover:bg-red-700 transition-colors cursor-pointer shadow-sm"
+                          >
+                            <X size={15} />
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Recent Chats ── */}
+              <div className="divide-y divide-card-border/30">
+                {chats.length === 0 ? (
+                  <p className="p-8 text-center text-body-sm text-on-surface-variant">No chats yet</p>
+                ) : (
+                  chats.map((chat) => (
+                    <button
+                      key={chat.id}
+                      type="button"
+                      onClick={() => openChat(chat.id)}
+                      className={`flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-container
+                        ${activeChatId === chat.id ? 'bg-primary/10 border-l-3 border-l-primary' : ''}
+                      `}
+                    >
+                  <div className="relative shrink-0">
+                    <Avatar name={chat.name} src={chat.avatar} size={48} />
+                    {chat.id === 1 && (
+                      <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-surface bg-emerald-500" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between mb-0.5">
+                      <span className="truncate text-label-md font-bold text-on-surface">{chat.name}</span>
+                      <span className={`ml-2 shrink-0 text-[11px] ${chat.unread > 0 ? 'font-semibold text-primary' : 'text-on-surface-variant'}`}>
+                        {chat.time}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="truncate text-body-sm text-on-surface-variant">{chat.lastMessage}</p>
+                      {chat.unread > 0 && (
+                        <span className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-on-primary">
+                          {chat.unread}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+                  ))
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between mb-0.5">
-                  <span className="truncate text-label-md font-bold text-on-surface">{chat.name}</span>
-                  <span className={`ml-2 shrink-0 text-[11px] ${chat.unread > 0 ? 'font-semibold text-primary' : 'text-on-surface-variant'}`}>
-                    {chat.time}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="truncate text-body-sm text-on-surface-variant">{chat.lastMessage}</p>
-                  {chat.unread > 0 && (
-                    <span className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-on-primary">
-                      {chat.unread}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </button>
-              ))
-            )
+            </>
           )}
         </div>
       </div>
@@ -553,7 +869,7 @@ export function MessagesPage() {
           </button>
 
           <div className="flex-1 rounded-full border border-card-border !bg-transparent px-4 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 transition-all">
-            <input
+            <AnimatedInput
               ref={inputRef}
               type="text"
               placeholder="Type a message..."

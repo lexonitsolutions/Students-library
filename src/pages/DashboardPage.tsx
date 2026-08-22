@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Search, FileText, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -189,9 +190,9 @@ export function DashboardPage() {
         <div className="mb-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Dedicated Section Search Box on the Left */}
           <div className="relative w-full sm:w-80 md:w-96">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-outline" size={18} />
-            <input
+            <AnimatedInput
               type="search"
+              icon={<Search size={18} className="text-slate-400" />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search in ${selectedLabel.toLowerCase()}...`}

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, ClipboardList, FileQuestion, FileText, Image as ImageIcon, UploadCloud, X } from 'lucide-react';
+import { AnimatedTextarea } from '../components/ui/AnimatedInput';
 import { type DragEvent, type FormEvent, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
@@ -67,11 +68,12 @@ export function UploadPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detectedPages, setDetectedPages] = useState<number | string>('');
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const simulateUpload = (selectedList: FileList | File[]) => {
+  const simulateUpload = async (selectedList: FileList | File[]) => {
     const newFiles = Array.from(selectedList);
     setFiles((prev) => [...prev, ...newFiles]);
     setProgress(0);
@@ -84,6 +86,21 @@ export function UploadPage() {
         return value + 25;
       });
     }, 100);
+
+    // Try to auto-detect pages from the first file
+    if (newFiles.length > 0) {
+      try {
+        const { getDocumentPageCount } = await import('../lib/documentParser');
+        const count = await getDocumentPageCount(newFiles[0]);
+        if (count) {
+          setDetectedPages(count);
+        } else if (newFiles.length > 1) {
+          setDetectedPages(newFiles.length); // For multiple images
+        }
+      } catch (err) {
+        console.warn('Page count extraction failed:', err);
+      }
+    }
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
@@ -112,6 +129,8 @@ export function UploadPage() {
     const year = String(formData.get('year') ?? '').trim();
     const college = String(formData.get('college') ?? '').trim();
     const description = String(formData.get('description') ?? '').trim();
+    const pagesStr = String(formData.get('pages') ?? '').trim();
+    const pages = pagesStr ? parseInt(pagesStr, 10) : files.length > 1 ? files.length : undefined;
 
     if (files.length === 0) {
       setError('File to be uploaded is required. Please select at least one file.');
@@ -160,6 +179,7 @@ export function UploadPage() {
         branch: branch ? `${course ? `${course} - ` : ''}${branch}` : undefined,
         year: year || undefined,
         type: inferMaterialType(selectedCategory.type),
+        pages,
       });
 
       // Redirect directly to Manage Uploads in Library page
@@ -401,7 +421,7 @@ export function UploadPage() {
             <label htmlFor="description" className="text-label-md text-on-surface-variant">
               Description
             </label>
-            <textarea
+            <AnimatedTextarea
               id="description"
               name="description"
               rows={3}
@@ -414,7 +434,7 @@ export function UploadPage() {
         {/* Dynamic Metadata Form Fields */}
         {isAssignment ? (
           /* For Assignments, collect Course, Branch, and Year * (Mandatory: File, Title, Year) */
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <Select
               label="Course"
               placeholder="Select Course"
@@ -425,17 +445,21 @@ export function UploadPage() {
             />
             <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
             <Input label="Student Year *" placeholder="1st year, 2nd year ..." name="year" required />
+            <Input label="Pages (Optional)" placeholder="e.g. 5" name="pages" type="number" min={1} value={detectedPages} onChange={(e) => setDetectedPages(e.target.value)} />
           </div>
         ) : isPastPaper ? (
-          /* For Past Exam Papers, collect ONLY College / University * (All fields mandatory: File, Title, College/University) */
-          <CollegeAutocomplete
-            label="College / University *"
-            name="college"
-            placeholder="Enter your college or university name *"
-          />
+          /* For Past Exam Papers, collect College / University * and Pages */
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <CollegeAutocomplete
+              label="College / University *"
+              name="college"
+              placeholder="Enter your college or university name *"
+            />
+            <Input label="Pages (Optional)" placeholder="e.g. 5" name="pages" type="number" min={1} value={detectedPages} onChange={(e) => setDetectedPages(e.target.value)} />
+          </div>
         ) : (
           /* For Study Materials, collect Course, Branch, Subject *, and Year * (No College or Semester) */
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Select
               label="Course"
               placeholder="Select Course"
@@ -447,6 +471,7 @@ export function UploadPage() {
             <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
             <Select label="Subject *" placeholder="Select Subject *" options={subjects} name="subject" required />
             <Input label="Student Year *" placeholder="1st year, 2nd year ..." name="year" required />
+            <Input label="Pages (Optional)" placeholder="e.g. 15" name="pages" type="number" min={1} value={detectedPages} onChange={(e) => setDetectedPages(e.target.value)} />
           </div>
         )}
 

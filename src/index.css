@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Global Smooth Text-Entry Typing Transition */
+[data-typing-active="true"] {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
@@ -560,11 +565,32 @@ html.mid {
   /* Brand accent tokens */
   --color-slate: #9498A5;
   --color-soft-grey: #3A3D46;
-  --color-surface-tint: #6B84E8;
-
   /* Shadows — soft shadows */
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
   --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
 }
+
+/* Dark color-scheme hint for browser autofill & system popups */
+html, body, input, textarea, select {
+  color-scheme: dark;
+}
+
+/* Chrome / WebKit Autofill Overrides — Hide native text & white bg so only AnimatedInput overlay renders */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: transparent !important;
+  transition: background-color 50000s ease-in-out 0s !important;
+  background-color: transparent !important;
+}
+
+
 
 

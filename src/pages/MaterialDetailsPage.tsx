@@ -36,6 +36,7 @@ export function MaterialDetailsPage() {
   const [likesCount, setLikesCount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [lazyPages, setLazyPages] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     if (!id) return;
@@ -45,6 +46,7 @@ export function MaterialDetailsPage() {
     const mock = mockMaterials.find((m) => m.id === id);
     if (mock && active) {
       setMaterial(mock);
+      setLazyPages(mock.pages);
     }
 
     (async () => {
@@ -62,9 +64,28 @@ export function MaterialDetailsPage() {
         const data = await getMaterialForUI(id, savedSet || user?.id);
         if (active && data) {
           setMaterial(data);
+          setLazyPages(data.pages);
           setIsSaved(!!data.isSaved);
           setLikesCount(getLocalLikesCount(data.id));
           if (user) setIsLiked(getLocalStorageLikedIds(user.id).has(data.id));
+          
+          if (!data.pages && data.fileUrl) {
+            const target = data.filePath || data.fileUrl || '';
+            const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
+            const ext = extMatch ? extMatch[1].toLowerCase() : '';
+            if (['pdf', 'docx', 'pptx'].includes(ext)) {
+              import('../lib/documentParser').then(({ getUrlPageCount }) => {
+                getUrlPageCount(data.fileUrl, ext).then((count) => {
+                  if (active && count) {
+                    setLazyPages(count);
+                    import('../services/materialsService').then(({ updateMaterialDetails }) => {
+                      updateMaterialDetails(data.id, { pages: count } as any).catch(() => {});
+                    });
+                  }
+                });
+              });
+            }
+          }
         }
       } catch (err) {
         console.warn('Material load warning:', err);
@@ -163,7 +184,7 @@ export function MaterialDetailsPage() {
 
   const handleShare = async () => {
     try {
-      if (material) incrementLocalSharesCount(material.id);
+      if (material) incrementLocalSharesCount(material.id, user?.id);
       if (navigator.share) {
         await navigator.share({
           title: material?.title,
@@ -476,18 +497,17 @@ export function MaterialDetailsPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5">
-                <FileText size={18} className="mt-0.5 shrink-0 text-primary" />
-                <div>
-                  <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">Pages</p>
-                  <p className="font-semibold text-on-surface">
-                    {(() => {
-                      const pages = material.pages || 1;
-                      return `${pages} Page${pages === 1 ? '' : 's'}`;
-                    })()}
-                  </p>
+              {lazyPages ? (
+                <div className="flex items-start gap-2.5">
+                  <FileText size={18} className="mt-0.5 shrink-0 text-primary" />
+                  <div>
+                    <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">Pages</p>
+                    <p className="font-semibold text-on-surface">
+                      {lazyPages} Page{lazyPages === 1 ? '' : 's'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </Card>
         </motion.div>
