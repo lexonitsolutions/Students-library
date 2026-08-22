@@ -13,6 +13,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AnimatedTextarea } from '../components/ui/AnimatedInput';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -328,7 +329,7 @@ export function LibraryPage() {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-label-md text-on-surface-variant">Description</label>
-            <textarea
+            <AnimatedTextarea
               rows={3}
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}

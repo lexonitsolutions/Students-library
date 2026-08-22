@@ -1,10 +1,14 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Eye, EyeOff, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ShieldCheck, Smartphone, Sparkles, BookOpen, Award, CheckCircle2, Lock, Mail } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../hooks/useWorkspace';
+import { CursorGlowTracker } from '../components/ui/CursorGlowTracker';
+import { BackgroundVideo } from '../components/ui/BackgroundVideo';
+import { BackgroundTexture } from '../components/ui/BackgroundTexture';
+import { AnimatedInput } from '../components/ui/AnimatedInput';
 
 export function SignInPage() {
   const [email, setEmail] = useState('');
@@ -24,13 +28,12 @@ export function SignInPage() {
     setError(null);
     setIsSubmitting(true);
 
-    // Check admin eligibility by email *before* authenticating, so a denied
-    // admin attempt never establishes a session in the first place — that
-    // previously caused a visible flash into the app and back out again,
-    // since route guards react to the session the instant it appears.
+    const emailVal = email.trim();
+    const passwordVal = password;
+
     if (loginAsAdmin) {
       try {
-        const status = await checkAccountStatus(email.trim());
+        const status = await checkAccountStatus(emailVal);
         if (!status.isAdmin) {
           setIsSubmitting(false);
           setError('This email does not have admin access.');
@@ -43,15 +46,15 @@ export function SignInPage() {
       }
     }
 
-    const { error: signInError } = await signIn({ email: email.trim(), password });
+    const { error: signInError } = await signIn({ email: emailVal, password: passwordVal });
     setIsSubmitting(false);
+
     if (signInError) {
       setError(signInError);
-      return;
+    } else {
+      chooseWorkspace(loginAsAdmin ? 'admin' : 'student');
+      navigate(loginAsAdmin ? '/admin' : '/dashboard');
     }
-
-    chooseWorkspace(loginAsAdmin ? 'admin' : 'student');
-    navigate('/', { replace: true });
   };
 
   const handleGoogleSignIn = async () => {
@@ -61,64 +64,146 @@ export function SignInPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50 relative">
-      {/* Left Branding Panel */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-white dark:bg-[#141720] border-r border-gray-100 dark:border-[#252a3d] relative overflow-hidden">
-        <div className="flex items-center gap-2 z-10">
-          <div className="font-bold text-xl tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded bg-primary text-white font-bold">Q</span>
-            <span className="dark:text-white text-gray-900">QuickLearnit</span>
-          </div>
+    <div className="flex min-h-screen bg-[#0b0d14] text-slate-100 relative overflow-hidden select-none">
+      <BackgroundVideo />
+      <CursorGlowTracker />
+      {/* ── BACKGROUND GLOW ORBS ── */}
+      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[450px] h-[450px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-10 right-1/3 w-80 h-80 bg-blue-600/15 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* ── LEFT BRANDING PANEL (WITH SMOOTH SLIDE ANIMATION) ── */}
+      <motion.div
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="hidden lg:flex w-1/2 flex-col justify-between p-12 relative z-10 border-r border-slate-200 bg-slate-50 text-slate-900 overflow-hidden"
+      >
+        <BackgroundTexture isLight={true} />
+        {/* Brand Header */}
+        <div className="flex items-center gap-3 relative z-10">
+          <motion.div 
+            whileHover={{ rotate: 12, scale: 1.05 }}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white font-black text-xl shadow-lg shadow-indigo-500/25"
+          >
+            Q
+          </motion.div>
+          <span className="font-extrabold text-2xl tracking-tight !text-slate-900 text-slate-900">
+            QuickLearnit
+          </span>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center relative z-10">
-           {/* Abstract illustration placeholder based on design */}
-           <div className="w-full max-w-md aspect-video bg-gray-50 dark:bg-[#1e2230] rounded-xl border border-gray-100 dark:border-[#2a2e3f] shadow-sm mb-12 flex items-center justify-center overflow-hidden">
-              <div className="grid grid-cols-2 gap-4 p-8 w-full">
-                 <div className="h-32 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg shadow-sm border border-indigo-200/50 dark:border-indigo-500/20"></div>
-                 <div className="space-y-4">
-                   <div className="h-16 bg-blue-100 dark:bg-blue-900/40 rounded-lg shadow-sm border border-blue-200/50 dark:border-blue-500/20"></div>
-                   <div className="h-12 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg shadow-sm border border-emerald-200/50 dark:border-emerald-500/20"></div>
-                 </div>
-              </div>
-           </div>
+        {/* Center Showcase */}
+        <div className="flex-1 flex flex-col items-center justify-center py-8 relative z-10">
+          {/* Animated Hero Cards */}
+          <div className="w-full max-w-md relative mb-10">
+            {/* Top Floating Badge */}
+            <motion.div
+              animate={{ y: [-6, 6, -6] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute -top-6 -left-4 z-20 flex items-center gap-2 bg-indigo-600 text-white px-3.5 py-1.5 rounded-full shadow-lg text-xs font-semibold"
+            >
+              <Sparkles size={14} className="text-amber-300" />
+              <span>10,000+ Verified Notes</span>
+            </motion.div>
 
-          <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl font-serif text-slate-900 dark:text-white font-bold mb-4">
-              Learn. Share. Grow.
+            {/* Bottom Floating Badge */}
+            <motion.div
+              animate={{ y: [6, -6, 6] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute -bottom-4 -right-4 z-20 flex items-center gap-2 bg-emerald-600 text-white px-3.5 py-1.5 rounded-full shadow-lg text-xs font-semibold"
+            >
+              <CheckCircle2 size={14} className="text-emerald-200" />
+              <span>Verified Past Exam Papers</span>
+            </motion.div>
+
+            {/* Showcase Main Container */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                  <BookOpen size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900">Data Structures & Algorithms</h4>
+                  <p className="text-xs font-medium text-slate-500">Complete Semester Lecture Notes</p>
+                </div>
+                <span className="ml-auto text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-lg">
+                  ★ 4.9
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-indigo-50/60 border border-indigo-100/80 p-3.5 flex flex-col gap-0.5">
+                  <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Downloads</span>
+                  <span className="text-2xl font-black text-slate-900">2.4k+</span>
+                </div>
+                <div className="rounded-2xl bg-purple-50/60 border border-purple-100/80 p-3.5 flex flex-col gap-0.5">
+                  <span className="text-[11px] font-bold text-purple-600 uppercase tracking-wider">Top Rating</span>
+                  <span className="text-2xl font-black text-slate-900">99%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Typography */}
+          <div className="text-center max-w-md">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight !text-slate-900 text-slate-900 mb-3 leading-tight">
+              Learn. <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Share.</span> Grow.
             </h1>
-            <p className="text-lg text-slate-500 dark:text-slate-300 max-w-md mx-auto">
-              Your space for discovering and sharing knowledge.
+            <p className="text-base !text-slate-600 text-slate-600 font-medium leading-relaxed">
+              Your premier space for discovering, sharing, and mastering university study materials.
             </p>
           </div>
         </div>
 
-        {/* Decorative background elements */}
-        <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] rounded-full bg-blue-50/50 dark:bg-indigo-950/40 blur-3xl" />
-      </div>
+        {/* Footer Pill */}
+        <div className="flex items-center justify-center gap-6 text-xs text-slate-500 border-t border-slate-200/60 pt-6 relative z-10">
+          <span className="flex items-center gap-1.5"><Award size={14} className="text-indigo-600" /> Fast Search</span>
+          <span className="h-1 w-1 rounded-full bg-slate-300" />
+          <span>Secure PDF Viewer</span>
+          <span className="h-1 w-1 rounded-full bg-slate-300" />
+          <span>Peer to Peer Learning</span>
+        </div>
+      </motion.div>
 
-      {/* Right Login Panel */}
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 sm:px-8">
+      {/* ── RIGHT AUTHENTICATION PANEL (WITH SMOOTH SLIDE ANIMATION) ── */}
+      <motion.div
+        initial={{ opacity: 0, x: 50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="flex flex-1 flex-col items-center justify-center px-4 py-8 sm:px-8 relative z-10"
+      >
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="w-full max-w-[440px] bg-white p-6 sm:p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100"
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[440px] bg-[#121522]/90 backdrop-blur-2xl p-7 sm:p-9 rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
         >
-          <div className="mb-6">
-            <h1 className="text-3xl font-serif font-bold text-slate-900">Welcome back</h1>
-            <p className="mt-2 text-slate-500">Sign in to continue your learning journey.</p>
+          {/* Header */}
+          <div className="mb-7 text-left">
+            <h2 className="text-3xl font-extrabold text-white tracking-tight">Welcome back</h2>
+            <p className="mt-1.5 text-sm text-slate-400 font-medium">Sign in to continue your learning journey.</p>
           </div>
 
+          {/* Error Display */}
           {error && (
-            <p className="mb-3 rounded-lg bg-error-container/20 px-3 py-2 text-sm font-medium text-error">{error}</p>
+            <motion.div 
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-semibold text-red-400"
+            >
+              {error}
+            </motion.div>
           )}
 
+          {/* Social Sign-In Buttons */}
           <div className="space-y-3">
-            <button
+            <motion.button
               type="button"
+              whileHover={{ scale: 1.015, translateY: -1 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleGoogleSignIn}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-gray-50"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 transition-all hover:bg-white/10 hover:border-white/20 hover:shadow-lg cursor-pointer"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -139,29 +224,30 @@ export function SignInPage() {
                 />
               </svg>
               Continue with Google
-            </button>
+            </motion.button>
+
             {showMobileInput ? (
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    setError(null);
-                    const phone = `+91${mobileNumber}`;
-                    const { error: otpError } = await sendMobileOtp(phone);
-                    if (otpError) {
-                      setError(otpError);
-                      return;
-                    }
-                    navigate('/verify-otp', { state: { target: phone, type: 'mobile' } });
-                  }}
-                  className="flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-white p-1.5 transition-colors focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500"
-                >
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setError(null);
+                  const phone = `+91${mobileNumber}`;
+                  const { error: otpError } = await sendMobileOtp(phone);
+                  if (otpError) {
+                    setError(otpError);
+                    return;
+                  }
+                  navigate('/verify-otp', { state: { target: phone, type: 'mobile' } });
+                }}
+                className="flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5 transition-all focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/30"
+              >
                 <div className="flex items-center pl-2.5">
-                  <Smartphone className="h-5 w-5 text-slate-400" />
-                  <span className="ml-2 text-slate-500 text-sm font-medium border-r border-gray-200 pr-2">+91</span>
+                  <Smartphone className="h-5 w-5 text-indigo-400" />
+                  <span className="ml-2 text-slate-400 text-xs font-semibold border-r border-white/10 pr-2">+91</span>
                 </div>
                 <input
                   type="tel"
-                  className="flex-1 bg-transparent px-2 py-1.5 text-sm outline-none w-full"
+                  className="flex-1 bg-transparent px-2 py-1.5 text-sm text-white outline-none w-full placeholder:text-slate-500"
                   placeholder="98765 43210"
                   pattern="[0-9]{10}"
                   maxLength={10}
@@ -172,76 +258,72 @@ export function SignInPage() {
                   required
                   autoFocus
                 />
-                <button
+                <motion.button
                   type="submit"
-                  className="rounded-lg bg-[#1e1b4b] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-[#312e81]"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:shadow-indigo-500/25 cursor-pointer"
                 >
                   Verify
-                </button>
+                </motion.button>
               </form>
             ) : (
-              <button
+              <motion.button
                 type="button"
+                whileHover={{ scale: 1.015, translateY: -1 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setShowMobileInput(true)}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-gray-50"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 transition-all hover:bg-white/10 hover:border-white/20 hover:shadow-lg cursor-pointer"
               >
-                <Smartphone className="h-5 w-5 text-slate-500" />
+                <Smartphone className="h-5 w-5 text-indigo-400" />
                 Continue with Mobile Number
-              </button>
+              </motion.button>
             )}
           </div>
 
-          <div className="relative my-5">
+          {/* Divider */}
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-200" />
+              <span className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-slate-400 font-medium tracking-wider">Or</span>
+              <span className="bg-[#121522] px-3 text-slate-500 font-bold tracking-widest">OR</span>
             </div>
           </div>
 
+          {/* Email / Password Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5 text-left">
                 Email Address
               </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <input
-                  type="email"
-                  id="email"
-                  className="block w-full rounded-xl border-gray-200 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 bg-gray-50/50 border"
-                  placeholder="your@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
+              <AnimatedInput
+                type="email"
+                id="email"
+                icon={<Mail className="h-4 w-4" />}
+                className="block w-full rounded-2xl border border-white/10 bg-white/5 pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
+                placeholder="your@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-slate-300 text-left">
                   Password
                 </label>
-                <a href="#forgot" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                <a href="#forgot" className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
                   Forgot password?
                 </a>
               </div>
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <input
+                <AnimatedInput
                   type={showPassword ? 'text' : 'password'}
                   id="password"
-                  className="block w-full rounded-xl border-gray-200 pl-10 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 bg-gray-50/50 border"
+                  icon={<Lock className="h-4 w-4" />}
+                  className="block w-full rounded-2xl border border-white/10 bg-white/5 pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -249,44 +331,51 @@ export function SignInPage() {
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-500 hover:text-slate-300 cursor-pointer z-30"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <label className="flex cursor-pointer items-center gap-2.5 select-none">
+            {/* Admin checkbox option */}
+            <label className="flex cursor-pointer items-center gap-2.5 py-1 select-none group">
               <input
                 type="checkbox"
                 checked={loginAsAdmin}
                 onChange={(e) => setLoginAsAdmin(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-white/20 bg-white/5 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
               />
-              <span className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                <ShieldCheck className="h-4 w-4 text-slate-400" />
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
+                <ShieldCheck className="h-4 w-4 text-indigo-400" />
                 Login as Admin
               </span>
             </label>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e1b4b] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#312e81] focus:outline-none focus:ring-2 focus:ring-[#312e81] focus:ring-offset-2 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Signing in...' : 'Sign In'} <ArrowRight className="h-4 w-4" />
-            </button>
+            {/* ANIMATED SIGN IN BUTTON */}
+            <motion.div className="relative group pt-1" whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}>
+              <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-50 blur group-hover:opacity-100 transition duration-300 group-hover:duration-200" />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="relative flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-[length:200%_auto] px-5 py-3 text-sm font-bold text-white shadow-xl hover:bg-[position:right_center] transition-all duration-300 disabled:opacity-50 cursor-pointer"
+              >
+                <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1.5 transition-transform duration-200" />
+              </button>
+            </motion.div>
           </form>
 
-          <p className="mt-5 text-center text-sm text-slate-600">
+          {/* Footer link */}
+          <p className="mt-6 text-center text-xs text-slate-400 font-medium">
             Don't have an account?{' '}
-            <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500">
+            <Link to="/signup" className="font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
               Sign up
             </Link>
           </p>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 export type MaterialType = 'pdf' | 'doc' | 'notes' | 'slides' | 'past-paper' | 'lab-manual';
 export type MaterialStatus = 'approved' | 'pending' | 'rejected';
 export type UserRole = 'student' | 'admin';
-export type NotificationDbType = 'download' | 'approval' | 'rejection' | 'comment' | 'system' | 'save';
+export type NotificationDbType = 'download' | 'approval' | 'rejection' | 'comment' | 'system' | 'save' | 'message_request';
 export type ReportStatus = 'open' | 'reviewed' | 'dismissed';
 
 export interface ProfileRow {

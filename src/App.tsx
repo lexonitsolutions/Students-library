@@ -15,7 +15,7 @@ import { SignUpPage } from './pages/SignUpPage';
 import { MaterialDetailsPage } from './pages/MaterialDetailsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
-import { OnboardingPage } from './pages/OnboardingPage';
+import { GetStartedPage } from './pages/GetStartedPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProfileUploadsPage } from './pages/ProfileUploadsPage';
 import { ReaderPage } from './pages/ReaderPage';
@@ -34,7 +34,8 @@ function App() {
           <WorkspaceProvider>
           <Routes>
             <Route element={<PublicOnlyRoute />}>
-              <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/get-started" element={<GetStartedPage />} />
+              <Route path="/onboarding" element={<GetStartedPage />} />
               <Route path="/signin" element={<SignInPage />} />
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="/verify-otp" element={<OtpVerificationPage />} />
@@ -43,6 +44,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<AppShell />}>
                 <Route index element={<HomeGate />} />
+                <Route path="/dashboard" element={<HomeGate />} />
                 <Route path="/explore" element={<ExplorePage />} />
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />

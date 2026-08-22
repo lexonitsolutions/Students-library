@@ -162,7 +162,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const signUp = useCallback(async (params: authService.SignUpParams) => {
     const { data, error } = await authService.signUpWithPassword(params);
-    return { error: error?.message ?? null, needsEmailConfirmation: data.session === null && !error };
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+    }
+    return { error: error?.message ?? null, needsEmailConfirmation: data?.session === null && !error };
   }, []);
 
   const signIn = useCallback(async (params: authService.SignInParams) => {
@@ -178,11 +182,19 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     }
 
     const { error } = await authService.signInWithPassword(params);
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+    }
     return { error: error?.message ?? null };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
     const { error } = await authService.signInWithGoogle();
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+    }
     return { error: error?.message ?? null };
   }, []);
 
@@ -193,6 +205,10 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const verifySignupOtp = useCallback(async (email: string, token: string) => {
     const { error } = await authService.verifySignupOtp(email, token);
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+    }
     return { error: error?.message ?? null };
   }, []);
 
@@ -203,11 +219,17 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const verifyMobileOtp = useCallback(async (phone: string, token: string) => {
     const { error } = await authService.verifyMobileOtp(phone, token);
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+    }
     return { error: error?.message ?? null };
   }, []);
 
   const signOut = useCallback(async () => {
     localStorage.removeItem(DEMO_USER_KEY);
+    localStorage.removeItem(ONBOARDED_KEY);
+    setHasOnboarded(false);
     setDemoUser(null);
     sessionStorage.removeItem(WORKSPACE_KEY);
     await authService.signOut().catch(() => {});

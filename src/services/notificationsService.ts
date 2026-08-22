@@ -14,22 +14,111 @@ function toAppNotification(row: NotificationRow): AppNotification {
   };
 }
 
+export function getLocalNotificationsKey(userId: string) {
+  return `quicklearnit.notifications_${userId}`;
+}
+
+export function loadLocalNotifications(userId: string): AppNotification[] {
+  try {
+    const raw = localStorage.getItem(getLocalNotificationsKey(userId));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalNotifications(userId: string, notifications: AppNotification[]): void {
+  localStorage.setItem(getLocalNotificationsKey(userId), JSON.stringify(notifications));
+}
+
+export function addNotificationForUser(userId: string, notification: AppNotification): void {
+  if (!userId) return;
+  const local = loadLocalNotifications(userId);
+  local.unshift(notification);
+  saveLocalNotifications(userId, local);
+
+  // Also attempt Supabase insert if logged in / connected
+  (async () => {
+    try {
+      const { error } = await supabase.from('notifications').insert({
+        user_id: userId,
+        type: notification.type as any,
+        title: notification.title,
+        description: notification.description,
+        read: notification.read,
+      });
+      if (error) console.warn('Supabase notification insert notice:', error.message);
+    } catch {
+      // ignore
+    }
+  })();
+}
+
 export async function listNotifications(userId: string): Promise<AppNotification[]> {
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data as NotificationRow[]).map(toAppNotification);
+  const localItems = loadLocalNotifications(userId);
+  let dbItems: AppNotification[] = [];
+
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      dbItems = (data as NotificationRow[]).map(toAppNotification);
+    }
+  } catch (err) {
+    console.warn('DB listNotifications notice:', err);
+  }
+
+  const map = new Map<string, AppNotification>();
+  localItems.forEach((item) => map.set(item.id, item));
+  dbItems.forEach((item) => map.set(item.id, item));
+
+  return Array.from(map.values()).sort((a, b) => (a.read === b.read ? 0 : a.read ? 1 : -1));
 }
 
 export async function markAllRead(userId: string): Promise<void> {
-  const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
-  if (error) throw error;
+  const local = loadLocalNotifications(userId).map((n) => ({ ...n, read: true }));
+  saveLocalNotifications(userId, local);
+
+  try {
+    await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+  } catch {
+    // ignore
+  }
 }
 
-export async function deleteNotification(id: string): Promise<void> {
-  const { error } = await supabase.from('notifications').delete().eq('id', id);
-  if (error) throw error;
+export async function deleteNotification(id: string, userId?: string): Promise<void> {
+  if (userId) {
+    const local = loadLocalNotifications(userId).filter((n) => n.id !== id);
+    saveLocalNotifications(userId, local);
+  }
+  try {
+    await supabase.from('notifications').delete().eq('id', id);
+  } catch {
+    // ignore
+  }
+}
+
+export function removeMessageRequestNotifications(toUserId: string, fromUserQuickId: string): void {
+  if (!toUserId) return;
+  const local = loadLocalNotifications(toUserId).filter(
+    (n) => !(n.type === 'message_request' && n.description.includes(fromUserQuickId))
+  );
+  saveLocalNotifications(toUserId, local);
+
+  (async () => {
+    try {
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', toUserId)
+        .eq('type', 'message_request')
+        .ilike('description', `%${fromUserQuickId}%`);
+    } catch {
+      // ignore
+    }
+  })();
 }

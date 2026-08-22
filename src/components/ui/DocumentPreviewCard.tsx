@@ -18,6 +18,7 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
   const [likesCount, setLikesCount] = useState(0);
   const [sharesCount, setSharesCount] = useState(0);
   const [downloadsCount, setDownloadsCount] = useState(material.downloads);
+  const [lazyPages, setLazyPages] = useState<number | undefined>(material.pages);
 
   useEffect(() => {
     setLikesCount(getLocalLikesCount(material.id));
@@ -25,7 +26,32 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
     setDownloadsCount(getLocalDownloadsCount(material.id, material.downloads));
   }, [material.id, material.downloads]);
 
-  const pagesCount = material.pages || 1;
+  useEffect(() => {
+    if (!material.pages && material.fileUrl) {
+      let isMounted = true;
+      const target = material.filePath || material.fileUrl || '';
+      const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
+      const ext = extMatch ? extMatch[1].toLowerCase() : '';
+      
+      if (['pdf', 'docx', 'pptx'].includes(ext)) {
+        import('../../lib/documentParser').then(({ getUrlPageCount }) => {
+          getUrlPageCount(material.fileUrl, ext).then((count) => {
+            if (isMounted && count) {
+              setLazyPages(count);
+              // Optimistically update DB without awaiting
+              import('../../services/materialsService').then(({ updateMaterialDetails }) => {
+                updateMaterialDetails(material.id, { pages: count } as any).catch(() => {});
+              });
+            }
+          });
+        });
+      }
+      return () => { isMounted = false; };
+    } else {
+      setLazyPages(material.pages);
+    }
+  }, [material.id, material.pages, material.fileUrl, material.filePath]);
+
   const sizeMbStr = material.fileSizeMb ? material.fileSizeMb.toString() : material.fileSizeMb === 0 ? '<0.01' : '?';
   const isSaved = !!material.isSaved;
 
@@ -150,7 +176,7 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
                 </div>
                 <div className="grid grid-cols-2 gap-1 py-0.5 text-slate-700">
                   <span className="font-semibold text-slate-900">Pages & Size</span>
-                  <span className="truncate">{pagesCount} pgs ({sizeMbStr} MB)</span>
+                  <span className="truncate">{lazyPages ? `${lazyPages} pgs (${sizeMbStr} MB)` : `${sizeMbStr} MB`}</span>
                 </div>
               </div>
             </div>
@@ -179,7 +205,7 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
               </h3>
             </Link>
             <p className="mt-1 text-label-sm font-medium text-on-surface-variant">
-              {pagesCount} page{pagesCount === 1 ? '' : 's'} &bull; {fileTypeLabel} &bull; {sizeMbStr} MB
+              {lazyPages ? `${lazyPages} page${lazyPages === 1 ? '' : 's'} \u2022 ` : ''}{fileTypeLabel} &bull; {sizeMbStr} MB
             </p>
           </div>
         </div>
