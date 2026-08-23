@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, ClipboardList, FileQuestion, FileText, Image as ImageIcon, UploadCloud, X } from 'lucide-react';
-import { type DragEvent, type FormEvent, useRef, useState } from 'react';
+import { type DragEvent, type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -13,6 +13,12 @@ import { useAuth } from '../hooks/useAuth';
 import { uploadMaterial } from '../services/materialsService';
 import type { MaterialType } from '../types/database.types';
 import { cn } from '../lib/cn';
+
+const ACCEPT_PAST_PAPER =
+  '.pdf,.PDF,application/pdf,.doc,.DOC,.docx,.DOCX,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.ppt,.PPT,.pptx,.PPTX,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,.jpg,.jpeg,.png,.webp,.heic,.HEIC,image/*';
+
+const ACCEPT_STANDARD =
+  '.pdf,.PDF,application/pdf,.doc,.DOC,.docx,.DOCX,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.ppt,.PPT,.pptx,.PPTX,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,.txt,text/plain';
 
 const uploadCategories = [
   {
@@ -68,22 +74,44 @@ export function UploadPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  useEffect(() => {
+    return () => {
+      if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
+    };
+  }, []);
+
   const simulateUpload = (selectedList: FileList | File[]) => {
     const newFiles = Array.from(selectedList);
+    if (newFiles.length === 0) return;
+
+    // Validate maximum file size (50MB)
+    const oversized = newFiles.find((f) => f.size > 50 * 1024 * 1024);
+    if (oversized) {
+      setError(`File "${oversized.name}" exceeds the 50MB size limit.`);
+      return;
+    }
+
     setFiles((prev) => [...prev, ...newFiles]);
+    setError(null);
     setProgress(0);
-    const interval = setInterval(() => {
+
+    if (uploadTimerRef.current) {
+      clearInterval(uploadTimerRef.current);
+    }
+
+    uploadTimerRef.current = setInterval(() => {
       setProgress((value) => {
         if (value >= 100) {
-          clearInterval(interval);
+          if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
           return 100;
         }
         return value + 25;
       });
-    }, 100);
+    }, 50);
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
@@ -95,7 +123,13 @@ export function UploadPage() {
   };
 
   const removeFile = (indexToRemove: number) => {
-    setFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setFiles((prev) => {
+      const updated = prev.filter((_, idx) => idx !== indexToRemove);
+      if (updated.length === 0) {
+        setProgress(0);
+      }
+      return updated;
+    });
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -274,11 +308,12 @@ export function UploadPage() {
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-10 text-center transition-colors duration-150 ${
-            isDragging ? 'border-primary bg-primary-container/5' : 'border-card-border bg-surface-soft'
+          onClick={() => inputRef.current?.click()}
+          className={`group flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-10 text-center transition-all duration-150 cursor-pointer ${
+            isDragging ? 'border-primary bg-primary-container/10' : 'border-card-border bg-surface-soft hover:border-primary/60 hover:bg-surface-soft/80'
           }`}
         >
-          <div className="flex items-center gap-2 text-outline">
+          <div className="flex items-center gap-2 text-outline group-hover:text-primary transition-colors">
             <UploadCloud size={36} />
             {isPastPaper && <ImageIcon size={30} className="text-amber-500" />}
           </div>
@@ -294,18 +329,22 @@ export function UploadPage() {
             ref={inputRef}
             type="file"
             multiple
-            required
-            accept={
-              isPastPaper
-                ? '.pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.heic,image/*'
-                : '.pdf,.doc,.docx,.ppt,.pptx'
-            }
+            accept={isPastPaper ? ACCEPT_PAST_PAPER : ACCEPT_STANDARD}
             className="sr-only"
+            onClick={(event) => {
+              (event.target as HTMLInputElement).value = '';
+            }}
             onChange={(event) => {
               if (event.target.files?.length) simulateUpload(event.target.files);
             }}
           />
-          <Button type="button" variant="secondary" size="sm" className="mt-2 cursor-pointer" onClick={() => inputRef.current?.click()}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-2 cursor-pointer pointer-events-none"
+            tabIndex={-1}
+          >
             {isPastPaper ? 'Select Files / Multiple Gallery Images' : 'Browse Files *'}
           </Button>
         </motion.div>

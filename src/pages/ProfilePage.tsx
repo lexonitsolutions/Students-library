@@ -349,15 +349,21 @@ export function ProfilePage() {
             <input
               type="file"
               ref={fileInputRef}
-              accept="image/*"
+              accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.JPG,.JPEG,.PNG,.WEBP,.HEIC"
               className="hidden"
+              onClick={(e) => {
+                (e.target as HTMLInputElement).value = '';
+              }}
               onChange={handleFileChange}
             />
             <input
               type="file"
               ref={coverInputRef}
-              accept="image/*"
+              accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.JPG,.JPEG,.PNG,.WEBP,.HEIC"
               className="hidden"
+              onClick={(e) => {
+                (e.target as HTMLInputElement).value = '';
+              }}
               onChange={handleCoverChange}
             />
 
