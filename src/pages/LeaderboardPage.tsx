@@ -120,15 +120,15 @@ const mockLeaderboardStudents: LeaderboardStudent[] = [
 ];
 
 export function LeaderboardPage() {
-  const { user } = useAuth();
+  const { user, isExploring } = useAuth();
 
   // Dropdown Filter States
   const [sortBy, setSortBy] = useState<'uploads' | 'views'>('uploads');
   const [students, setStudents] = useState<LeaderboardStudent[]>(mockLeaderboardStudents);
 
   useEffect(() => {
-    // If current user has uploaded materials, merge current user into leaderboard
-    if (user) {
+    // Only merge real authenticated/registered users into leaderboard
+    if (user && user.id && !isExploring) {
       setStudents((prev) => {
         const exists = prev.some((s) => s.id === user.id);
         if (!exists) {
@@ -149,11 +149,14 @@ export function LeaderboardPage() {
         return prev;
       });
     }
-  }, [user]);
+  }, [user, isExploring]);
 
   // Sorted Leaderboard List
   const sortedStudents = useMemo(() => {
-    return [...students].sort((a, b) => {
+    const realStudents = students.filter(
+      (s) => s.id !== '' && s.id !== 'guest-user' && s.username !== 'guest' && s.name !== 'Guest User'
+    );
+    return [...realStudents].sort((a, b) => {
       if (sortBy === 'views') {
         return b.totalViews - a.totalViews;
       }

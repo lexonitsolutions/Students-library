@@ -11,6 +11,7 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { Select } from '../components/ui/Select';
 import { courses, engineeringBranches, degreeBranches, subjects } from '../data/mockData';
 import { useAuth } from '../hooks/useAuth';
+import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { uploadMaterial } from '../services/materialsService';
 import type { MaterialType } from '../types/database.types';
 import { cn } from '../lib/cn';
@@ -71,7 +72,8 @@ export function UploadPage() {
   const [detectedPages, setDetectedPages] = useState<number | string>('');
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isExploring } = useAuth();
+  const { openSignupModal } = useSignupRedirect();
 
   const simulateUpload = async (selectedList: FileList | File[]) => {
     const newFiles = Array.from(selectedList);
@@ -117,6 +119,10 @@ export function UploadPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isExploring) {
+      openSignupModal('/upload');
+      return;
+    }
     if (files.length === 0 || !user || !selectedCategory) {
       setError('Please select at least one file or image to upload.');
       return;

@@ -94,17 +94,17 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
     const leftChars = leftPart.split('');
     const rightChars = rightPart.split('');
 
-    const paddingLeft = className.includes('pl-10')
-      ? 'pl-10'
-      : className.includes('pl-12')
-      ? 'pl-12'
-      : className.includes('pl-8')
-      ? 'pl-8'
-      : className.includes('px-4') || className.includes('p-4')
-      ? 'pl-4'
-      : className.includes('px-3') || className.includes('p-3')
-      ? 'pl-3'
-      : 'pl-3';
+    let paddingLeft = 'pl-3';
+    if (className.includes('pl-12')) paddingLeft = 'pl-12';
+    else if (className.includes('pl-11')) paddingLeft = 'pl-11';
+    else if (className.includes('pl-10')) paddingLeft = 'pl-10';
+    else if (className.includes('pl-9')) paddingLeft = 'pl-9';
+    else if (className.includes('pl-8')) paddingLeft = 'pl-8';
+    else if (className.includes('pl-7')) paddingLeft = 'pl-7';
+    else if (className.includes('pl-6')) paddingLeft = 'pl-6';
+    else if (className.includes('px-4') || className.includes('p-4')) paddingLeft = 'pl-4';
+    else if (className.includes('px-3') || className.includes('p-3')) paddingLeft = 'pl-3';
+    else if (icon) paddingLeft = 'pl-10';
 
     const paddingRight = className.includes('pr-10')
       ? 'pr-10'

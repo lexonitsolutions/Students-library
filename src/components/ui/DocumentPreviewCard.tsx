@@ -5,6 +5,8 @@ import type { Material } from '../../data/types';
 import { cn } from '../../lib/cn';
 import { Avatar } from './Avatar';
 import { getLocalLikesCount, getLocalSharesCount, getLocalDownloadsCount } from '../../services/likesService';
+import { useAuth } from '../../hooks/useAuth';
+import { useSignupRedirect } from '../../hooks/useSignupRedirect';
 
 export interface DocumentPreviewCardProps {
   readonly material: Material;
@@ -15,10 +17,20 @@ export interface DocumentPreviewCardProps {
 
 export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, className }: Readonly<DocumentPreviewCardProps>) {
   const navigate = useNavigate();
+  const { isExploring } = useAuth();
+  const { openSignupModal } = useSignupRedirect();
   const [likesCount, setLikesCount] = useState(0);
   const [sharesCount, setSharesCount] = useState(0);
   const [downloadsCount, setDownloadsCount] = useState(material.downloads);
   const [lazyPages, setLazyPages] = useState<number | undefined>(material.pages);
+
+  const handleDocumentClick = (e: React.MouseEvent) => {
+    if (isExploring) {
+      e.preventDefault();
+      e.stopPropagation();
+      openSignupModal(`/materials/${material.id}`);
+    }
+  };
 
   useEffect(() => {
     setLikesCount(getLocalLikesCount(material.id));
@@ -86,8 +98,6 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
   const isPublicUrl = material.fileUrl?.startsWith('http') && !material.fileUrl.includes('localhost') && !material.fileUrl.includes('127.0.0.1');
   const actualImageSrc = material.previewUrl || (isImageFile ? material.fileUrl : null);
 
-
-
   return (
     <div
       className={cn(
@@ -98,6 +108,7 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
       {/* 1. Preview Thumbnail Area (~50% top of card - Actual Document 1st Page) */}
       <Link
         to={`/materials/${material.id}`}
+        onClick={handleDocumentClick}
         className="relative flex h-52 w-full flex-col items-center justify-center overflow-hidden border-b border-card-border bg-slate-100 dark:bg-slate-950 p-2.5 select-none cursor-pointer"
       >
         <div className="relative flex h-full w-full max-w-[98%] flex-col overflow-hidden rounded-t-lg border border-slate-300 dark:border-slate-800 bg-white shadow-xs">
@@ -199,7 +210,7 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
 
           {/* Two-line Text Block */}
           <div className="min-w-0 flex-1">
-            <Link to={`/materials/${material.id}`}>
+            <Link to={`/materials/${material.id}`} onClick={handleDocumentClick}>
               <h3 className="line-clamp-2 text-body-md font-bold leading-snug text-on-surface hover:text-primary transition-colors">
                 {material.title}
               </h3>
@@ -254,7 +265,13 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
       <div className="grid grid-cols-2 divide-x divide-card-border/60 py-1 text-label-md font-semibold">
         <button
           type="button"
-          onClick={() => navigate(`/materials/${material.id}`)}
+          onClick={(e) => {
+            if (isExploring) {
+              handleDocumentClick(e);
+            } else {
+              navigate(`/materials/${material.id}`);
+            }
+          }}
           className="flex h-10 items-center justify-center gap-1.5 text-primary hover:text-primary-container transition-colors cursor-pointer"
         >
           <Eye size={16} />
@@ -265,7 +282,11 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onToggleSave?.(material.id);
+            if (isExploring) {
+              openSignupModal(`/materials/${material.id}`);
+            } else {
+              onToggleSave?.(material.id);
+            }
           }}
           className={cn(
             'flex h-10 items-center justify-center gap-1.5 transition-colors cursor-pointer',
