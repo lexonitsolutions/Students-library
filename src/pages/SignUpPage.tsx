@@ -27,21 +27,36 @@ export function SignUpPage() {
     e.preventDefault();
     setError(null);
 
+    const emailTrimmed = email.trim();
+    const nameTrimmed = name.trim();
+
+    if (!nameTrimmed) {
+      setError('Please enter your name');
+      return;
+    }
+
+    if (!emailTrimmed) {
+      setError('Please enter your email address');
+      return;
+    }
+
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
 
     setIsSubmitting(true);
-    const { error: signUpError } = await signUp({
-      email,
+    const { error: signUpError, needsEmailConfirmation } = await signUp({
+      email: emailTrimmed,
       password,
-      name,
+      name: nameTrimmed,
     });
     setIsSubmitting(false);
 
     if (signUpError) {
       setError(signUpError);
+    } else if (needsEmailConfirmation) {
+      navigate('/verify-otp', { state: { target: emailTrimmed, type: 'email', otpKind: 'signup' } });
     } else {
       const redirectPath = getAndClearRedirectPath();
       if (redirectPath) {

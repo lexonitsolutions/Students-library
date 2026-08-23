@@ -12,11 +12,27 @@ export interface SignInParams {
 }
 
 export async function signUpWithPassword({ name, email, password }: SignUpParams) {
-  return supabase.auth.signUp({
+  const result = await supabase.auth.signUp({
     email,
     password,
     options: { data: { name } },
   });
+
+  if (result.error) return result;
+
+  // If user already exists, Supabase returns a user with empty identities and no error
+  if (
+    result.data?.user &&
+    Array.isArray(result.data.user.identities) &&
+    result.data.user.identities.length === 0
+  ) {
+    return {
+      data: result.data,
+      error: new Error('An account with this email already exists. Please sign in instead.'),
+    };
+  }
+
+  return result;
 }
 
 export async function signInWithPassword({ email, password }: SignInParams) {
@@ -39,7 +55,12 @@ export async function sendMobileOtp(phone: string) {
 }
 
 export async function verifySignupOtp(email: string, token: string) {
-  return supabase.auth.verifyOtp({ email, token, type: 'signup' });
+  const res = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
+  if (res.error) {
+    const fallbackRes = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    if (!fallbackRes.error) return fallbackRes;
+  }
+  return res;
 }
 
 export async function verifyMobileOtp(phone: string, token: string) {

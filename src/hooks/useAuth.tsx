@@ -132,12 +132,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   });
 
   const loadProfile = useCallback(async (userId: string) => {
-    const [profileRow, statsRow] = await Promise.all([
-      profileService.getProfile(userId),
-      profileService.getProfileStats(userId).catch(() => null),
-    ]);
-    setProfile(profileRow);
-    setStats(statsRow);
+    try {
+      const [profileRow, statsRow] = await Promise.all([
+        profileService.getProfile(userId),
+        profileService.getProfileStats(userId).catch(() => null),
+      ]);
+      setProfile(profileRow);
+      setStats(statsRow);
+    } catch (err) {
+      console.warn('Failed to load user profile:', err);
+    }
   }, []);
 
   const stopExploring = useCallback(() => {
