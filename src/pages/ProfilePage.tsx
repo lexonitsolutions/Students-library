@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Bookmark, BookOpen, Camera, ChevronRight, Download, Edit, Lock, School, Upload, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -32,7 +32,8 @@ const yearsList = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
 const semestersList = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6', 'Semester 7', 'Semester 8'];
 
 export function ProfilePage() {
-  const { user, updateUser } = useAuth();
+  const { user, isExploring, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAcademicModalOpen, setIsAcademicModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +59,13 @@ export function ProfilePage() {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (isExploring) {
+      navigate('/', { replace: true });
+    }
+  }, [isExploring, navigate]);
+
+  useEffect(() => {
+    if (!user || !user.id) return;
     listMyUploadsForUI(user.id).then(setUploads);
     listRecentActivity(user.id).then(setActivityItems);
   }, [user]);

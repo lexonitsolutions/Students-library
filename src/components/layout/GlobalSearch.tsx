@@ -11,7 +11,10 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatedInput } from '../ui/AnimatedInput';
 import { mockMaterials } from '../../data/mockData';
+import { useAuth } from '../../hooks/useAuth';
+import { useSignupRedirect } from '../../hooks/useSignupRedirect';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type SectionKey = 'Materials' | 'Past Papers' | 'Assignments' | 'Library' | 'Settings' | 'Profile';
@@ -126,6 +129,8 @@ function buildSuggestions(query: string): Suggestion[] {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function GlobalSearch() {
+  const { isExploring } = useAuth();
+  const { openSignupModal } = useSignupRedirect();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -145,6 +150,13 @@ export function GlobalSearch() {
   const flatSuggestions = SECTION_ORDER.flatMap((k) => grouped[k]);
 
   const handleSelect = (s: Suggestion) => {
+    if (isExploring && s.href.startsWith('/materials/')) {
+      setQuery('');
+      setOpen(false);
+      inputRef.current?.blur();
+      openSignupModal(s.href);
+      return;
+    }
     navigate(s.href);
     setQuery('');
     setOpen(false);
@@ -190,17 +202,17 @@ export function GlobalSearch() {
     <div ref={containerRef} className="relative flex-1 max-w-2xl">
       {/* Search Input Box */}
       <div
-        className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 transition-all duration-200 bg-surface-container-low
+        className={`flex items-center rounded-xl border px-1 py-1 transition-all duration-200 bg-surface-container-low
           ${open && query ? 'border-primary ring-2 ring-primary/20' : 'border-card-border hover:border-primary/40'}
         `}
       >
-        <Search size={16} className="shrink-0 text-on-surface-variant" />
-        <input
+        <AnimatedInput
           ref={inputRef}
           type="search"
+          icon={<Search size={16} className="text-on-surface-variant" />}
           placeholder="Search materials, subjects, authors..."
           aria-label="Global search"
-          className="w-full bg-transparent text-body-sm text-on-surface outline-none placeholder:text-outline [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden"
+          className="w-full bg-transparent text-body-sm text-on-surface outline-none placeholder:text-outline [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:hidden pl-10 pr-8 py-1.5"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

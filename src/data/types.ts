@@ -56,7 +56,7 @@ export interface User {
   };
 }
 
-export type NotificationType = 'download' | 'approval' | 'rejection' | 'comment' | 'system' | 'save';
+export type NotificationType = 'download' | 'approval' | 'rejection' | 'comment' | 'system' | 'save' | 'message_request';
 
 export interface AppNotification {
   readonly id: string;

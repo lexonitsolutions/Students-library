@@ -1,11 +1,20 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { SignupPromptModal } from '../ui/SignupPromptModal';
+import { useSignupRedirect } from '../../hooks/useSignupRedirect';
 
 export function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isSignupModalOpen, closeSignupModal } = useSignupRedirect();
   const isFullBleedPage = location.pathname.startsWith('/messages');
+
+  const handleSignupFromModal = () => {
+    closeSignupModal();
+    navigate('/signup');
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-surface lg:h-screen lg:overflow-hidden">
@@ -28,6 +37,12 @@ export function AppShell() {
         )}
       </div>
       <BottomNav />
+
+      <SignupPromptModal
+        isOpen={isSignupModalOpen}
+        onClose={closeSignupModal}
+        onSignup={handleSignupFromModal}
+      />
     </div>
   );
 }

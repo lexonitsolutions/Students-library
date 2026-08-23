@@ -281,6 +281,7 @@ export interface UploadMaterialParams {
   readonly branch?: string;
   readonly year?: string;
   readonly type: MaterialType;
+  readonly pages?: number;
 }
 
 export async function uploadMaterial(params: UploadMaterialParams): Promise<MaterialRow> {
@@ -315,6 +316,7 @@ export async function uploadMaterial(params: UploadMaterialParams): Promise<Mate
       file_path: path,
       file_url: fileUrl,
       file_size_mb: Math.round((file.size / (1024 * 1024)) * 100) / 100,
+      pages: metadata.pages ?? null,
     };
 
     const { data, error } = await supabase
@@ -357,7 +359,7 @@ export async function uploadMaterial(params: UploadMaterialParams): Promise<Mate
       file_path: path,
       file_url: localFileUrl,
       file_size_mb: Math.round((file.size / (1024 * 1024)) * 100) / 100,
-      pages: 10,
+      pages: metadata.pages ?? 1,
       uploader_id: effectiveUploaderId,
       status: 'pending',
       rejection_reason: null,

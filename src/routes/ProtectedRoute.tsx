@@ -2,10 +2,10 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export function ProtectedRoute() {
-  const { isAuthenticated, hasOnboarded } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    return <Navigate to={hasOnboarded ? '/signin' : '/onboarding'} replace />;
+    return <Navigate to="/get-started" replace />;
   }
 
   return <Outlet />;

@@ -14,13 +14,17 @@ const adminNavItems = [
 ];
 
 export function Sidebar() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isExploring } = useAuth();
   const { workspace, chooseWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const isAdmin = user?.role === 'admin';
   const inAdminWorkspace = isAdmin && workspace !== 'student';
+
+  const visibleNavItems = isExploring
+    ? navItems.filter((item) => ['/', '/leaderboard', '/upload', '/library'].includes(item.to))
+    : navItems;
 
   const handleSwitchWorkspace = () => {
     if (inAdminWorkspace) {
@@ -60,23 +64,23 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => navigate('/upload')}
-            className={cn(
-              'flex h-10 items-center rounded-lg bg-primary text-on-primary',
-              'transition-all duration-200 hover:bg-primary-container cursor-pointer shadow-xs',
-              expanded ? 'w-full justify-start gap-2 px-3' : 'w-10 justify-center mx-auto',
-            )}
-          >
-            <Plus size={18} className="shrink-0" />
-            <span
               className={cn(
-                'whitespace-nowrap text-body-lg font-semibold overflow-hidden transition-all duration-200',
-                expanded ? 'opacity-100 max-w-[120px]' : 'opacity-0 max-w-0',
+                'flex h-10 items-center rounded-lg bg-primary text-on-primary',
+                'transition-all duration-200 hover:bg-primary-container cursor-pointer shadow-xs',
+                expanded ? 'w-full justify-start gap-2 px-3' : 'w-10 justify-center mx-auto',
               )}
             >
-              Upload
-            </span>
-          </button>
-        </div>
+              <Plus size={18} className="shrink-0" />
+              <span
+                className={cn(
+                  'whitespace-nowrap text-body-lg font-semibold overflow-hidden transition-all duration-200',
+                  expanded ? 'opacity-100 max-w-[120px]' : 'opacity-0 max-w-0',
+                )}
+              >
+                Upload
+              </span>
+            </button>
+          </div>
 
         {/* ── Admin section ── */}
         {isAdmin && (
@@ -148,7 +152,7 @@ export function Sidebar() {
 
         {/* ── Main nav ── */}
         <nav className="flex flex-1 flex-col gap-0.5 px-2 py-1 overflow-y-auto">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.label}
               to={item.to}

@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, BellOff, CheckCheck, CloudCheck, Megaphone, Trash2, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, CloudCheck, Megaphone, MessageSquare, Trash2, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { AppNotification, NotificationType } from '../../data/types';
 import { cn } from '../../lib/cn';
 
@@ -17,6 +18,7 @@ const iconByType: Record<NotificationType, typeof CloudCheck> = {
   comment: Megaphone,
   system: Megaphone,
   save: TrendingUp,
+  message_request: MessageSquare,
 };
 
 export function NotificationList({
@@ -25,6 +27,8 @@ export function NotificationList({
   onDeleteNotification,
   compact,
 }: Readonly<NotificationListProps>) {
+  const navigate = useNavigate();
+
   if (notifications.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -65,7 +69,12 @@ export function NotificationList({
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.18 }}
-                className={cn('group flex items-start gap-3 py-3.5', compact ? 'px-1' : 'px-1 sm:px-2')}
+                onClick={() => {
+                  if (notification.type === 'message_request') {
+                    navigate('/messages');
+                  }
+                }}
+                className={cn('group flex items-start gap-3 py-3.5', compact ? 'px-1' : 'px-1 sm:px-2', notification.type === 'message_request' && 'cursor-pointer hover:bg-surface-container/50 rounded-lg transition-colors')}
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-container/10 text-primary-container">
                   <Icon size={18} />

@@ -36,6 +36,7 @@ interface AuthContextValue {
   readonly user: User | null;
   readonly session: Session | null;
   readonly isAuthenticated: boolean;
+  readonly isExploring: boolean;
   readonly hasOnboarded: boolean;
   readonly loading: boolean;
   readonly signUp: (
@@ -50,6 +51,8 @@ interface AuthContextValue {
   readonly signOut: () => Promise<void>;
   readonly checkAccountStatus: (email: string) => Promise<authService.AccountStatus>;
   readonly completeOnboarding: () => void;
+  readonly startExploring: () => void;
+  readonly stopExploring: () => void;
   readonly updateUser: (fields: Partial<User>) => Promise<void>;
   readonly refreshUser: () => Promise<void>;
   readonly deleteAccount: (password: string) => Promise<{ error: string | null }>;
@@ -59,6 +62,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const ONBOARDED_KEY = 'quicklearnit.hasOnboarded';
 export const WORKSPACE_KEY = 'lexon.workspace';
+const EXPLORING_KEY = 'quicklearnit.isExploring';
+const GUEST_USER_KEY = 'quicklearnit.guest_user';
 
 function toUserUpdate(fields: Partial<User>) {
   return {
@@ -116,6 +121,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     }
   });
 
+  const [isExploring, setIsExploring] = useState(() => localStorage.getItem(EXPLORING_KEY) === 'true');
+  const [guestUser, setGuestUser] = useState<User | null>(() => {
+    try {
+      const raw = localStorage.getItem(GUEST_USER_KEY);
+      return raw ? (JSON.parse(raw) as User) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const loadProfile = useCallback(async (userId: string) => {
     const [profileRow, statsRow] = await Promise.all([
       profileService.getProfile(userId),
@@ -123,6 +138,13 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     ]);
     setProfile(profileRow);
     setStats(statsRow);
+  }, []);
+
+  const stopExploring = useCallback(() => {
+    localStorage.removeItem(EXPLORING_KEY);
+    localStorage.removeItem(GUEST_USER_KEY);
+    setIsExploring(false);
+    setGuestUser(null);
   }, []);
 
   useEffect(() => {
@@ -141,6 +163,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       if (nextSession) {
+        stopExploring();
         // A fresh sign-in re-enters the "loading" state until the profile
         // (and its role) resolves, so route guards don't have to make a
         // routing decision based on a still-null user and flash the wrong
@@ -158,12 +181,17 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       active = false;
       subscription.subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [loadProfile, stopExploring]);
 
   const signUp = useCallback(async (params: authService.SignUpParams) => {
     const { data, error } = await authService.signUpWithPassword(params);
-    return { error: error?.message ?? null, needsEmailConfirmation: data.session === null && !error };
-  }, []);
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+      stopExploring();
+    }
+    return { error: error?.message ?? null, needsEmailConfirmation: data?.session === null && !error };
+  }, [stopExploring]);
 
   const signIn = useCallback(async (params: authService.SignInParams) => {
     const normalizedEmail = params.email.trim().toLowerCase();
@@ -174,17 +202,28 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
       setDemoUser(matchedCredential.user);
+      stopExploring();
       return { error: null };
     }
 
     const { error } = await authService.signInWithPassword(params);
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+      stopExploring();
+    }
     return { error: error?.message ?? null };
-  }, []);
+  }, [stopExploring]);
 
   const signInWithGoogle = useCallback(async () => {
     const { error } = await authService.signInWithGoogle();
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+      stopExploring();
+    }
     return { error: error?.message ?? null };
-  }, []);
+  }, [stopExploring]);
 
   const resendSignupOtp = useCallback(async (email: string) => {
     const { error } = await authService.resendSignupOtp(email);
@@ -193,8 +232,13 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const verifySignupOtp = useCallback(async (email: string, token: string) => {
     const { error } = await authService.verifySignupOtp(email, token);
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+      stopExploring();
+    }
     return { error: error?.message ?? null };
-  }, []);
+  }, [stopExploring]);
 
   const sendMobileOtp = useCallback(async (phone: string) => {
     const { error } = await authService.sendMobileOtp(phone);
@@ -203,12 +247,23 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const verifyMobileOtp = useCallback(async (phone: string, token: string) => {
     const { error } = await authService.verifyMobileOtp(phone, token);
+    if (!error) {
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      setHasOnboarded(true);
+      stopExploring();
+    }
     return { error: error?.message ?? null };
-  }, []);
+  }, [stopExploring]);
 
   const signOut = useCallback(async () => {
     localStorage.removeItem(DEMO_USER_KEY);
+    localStorage.removeItem(ONBOARDED_KEY);
+    localStorage.removeItem(EXPLORING_KEY);
+    localStorage.removeItem(GUEST_USER_KEY);
+    setHasOnboarded(false);
     setDemoUser(null);
+    setIsExploring(false);
+    setGuestUser(null);
     sessionStorage.removeItem(WORKSPACE_KEY);
     await authService.signOut().catch(() => {});
   }, []);
@@ -216,6 +271,31 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const checkAccountStatus = useCallback((email: string) => authService.checkAccountStatus(email), []);
 
   const completeOnboarding = useCallback(() => {
+    localStorage.setItem(ONBOARDED_KEY, 'true');
+    setHasOnboarded(true);
+  }, []);
+
+  const startExploring = useCallback(() => {
+    const guest: User = {
+      id: '',
+      name: 'Guest User',
+      username: 'guest',
+      email: 'guest@quicklearnit.com',
+      avatar: '',
+      university: 'Explore Mode',
+      major: 'Guest Access',
+      college: 'QuickLearnit',
+      role: 'student',
+      stats: {
+        uploads: 0,
+        downloads: 0,
+        saved: 0,
+      },
+    };
+    localStorage.setItem(EXPLORING_KEY, 'true');
+    localStorage.setItem(GUEST_USER_KEY, JSON.stringify(guest));
+    setIsExploring(true);
+    setGuestUser(guest);
     localStorage.setItem(ONBOARDED_KEY, 'true');
     setHasOnboarded(true);
   }, []);
@@ -274,16 +354,27 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           isIdPublic: isIdPublic(demoUser.id),
         };
       }
-      return profile ? toUser(profile, stats) : null;
+      if (profile) {
+        return toUser(profile, stats);
+      }
+      if (guestUser && isExploring) {
+        return {
+          ...guestUser,
+          quickId: undefined,
+          isIdPublic: false,
+        };
+      }
+      return null;
     },
-    [demoUser, profile, stats],
+    [guestUser, isExploring, demoUser, profile, stats],
   );
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       session,
-      isAuthenticated: session !== null || demoUser !== null,
+      isAuthenticated: session !== null || demoUser !== null || guestUser !== null,
+      isExploring,
       hasOnboarded,
       loading,
       signUp,
@@ -296,6 +387,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       signOut,
       checkAccountStatus,
       completeOnboarding,
+      startExploring,
+      stopExploring,
       updateUser,
       refreshUser,
       deleteAccount,
@@ -304,6 +397,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       user,
       session,
       demoUser,
+      guestUser,
+      isExploring,
       hasOnboarded,
       loading,
       signUp,
@@ -316,6 +411,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       signOut,
       checkAccountStatus,
       completeOnboarding,
+      startExploring,
+      stopExploring,
       updateUser,
       refreshUser,
       deleteAccount,

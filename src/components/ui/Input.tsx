@@ -1,5 +1,6 @@
 import { type InputHTMLAttributes, useId } from 'react';
 import { cn } from '../../lib/cn';
+import { AnimatedInput } from './AnimatedInput';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   readonly label?: string;
@@ -18,7 +19,7 @@ export function Input({ label, hint, id, className, containerClassName, ...props
           {label}
         </label>
       )}
-      <input
+      <AnimatedInput
         id={inputId}
         className={cn(
           'h-12 w-full rounded-lg bg-surface-soft px-4 text-body-md text-on-surface placeholder:text-outline',
