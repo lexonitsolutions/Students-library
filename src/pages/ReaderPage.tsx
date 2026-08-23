@@ -1,15 +1,28 @@
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, MoreVertical } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { IconButton } from '../components/ui/IconButton';
+import { SignupPromptModal } from '../components/ui/SignupPromptModal';
 import type { Material } from '../data/types';
+import { useAuth } from '../hooks/useAuth';
+import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { getMaterialForUI } from '../services/materialsService';
 
 export function ReaderPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isExploring, stopExploring } = useAuth();
+  const { setRedirectPath } = useSignupRedirect();
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [material, setMaterial] = useState<Material | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (isExploring) {
+      setShowSignupPrompt(true);
+    }
+  }, [isExploring]);
 
   useEffect(() => {
     if (!id) return;
@@ -19,6 +32,17 @@ export function ReaderPage() {
       active = false;
     };
   }, [id]);
+
+  const handleSignupRedirect = () => {
+    setRedirectPath(location.pathname);
+    stopExploring();
+    navigate('/signup');
+  };
+
+  const handleCloseSignupPrompt = () => {
+    setShowSignupPrompt(false);
+    navigate('/dashboard');
+  };
 
   const isImageFile = material
     ? !!(material.filePath || material.fileUrl).match(/\.(jpeg|jpg|png|webp|gif|heic)($|\?)/i) ||
@@ -38,35 +62,35 @@ export function ReaderPage() {
     : [];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
-      <header className="flex items-center gap-3 border-b border-card-border px-4 py-3 sm:px-6">
-        <IconButton label="Back" onClick={() => navigate(-1)}>
-          <ArrowLeft size={20} />
-        </IconButton>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-body-sm font-semibold text-on-surface">{material?.title ?? 'Loading...'}</p>
-          <p className="text-label-sm text-on-surface-variant">{material?.subject}</p>
-        </div>
-        {material && (
-          <a href={material.fileUrl} target="_blank" rel="noreferrer" download>
-            <IconButton label="Download">
-              <Download size={18} />
-            </IconButton>
-          </a>
-        )}
-        <IconButton label="More options">
-          <MoreVertical size={18} />
-        </IconButton>
-      </header>
+    <>
+      <div className="fixed inset-0 z-50 flex flex-col bg-white">
+        <header className="flex items-center gap-3 border-b border-card-border px-4 py-3 sm:px-6">
+          <IconButton label="Back" onClick={() => navigate(-1)}>
+            <ArrowLeft size={20} />
+          </IconButton>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-body-sm font-semibold text-on-surface">{material?.title ?? 'Loading...'}</p>
+            <p className="text-label-xs text-on-surface-variant">
+              {material?.subject} • {material?.type === 'past-paper' ? 'Past Paper' : material?.type === 'doc' ? 'Document' : 'Material'}
+            </p>
+          </div>
+          <IconButton label="Options">
+            <MoreVertical size={20} />
+          </IconButton>
+        </header>
 
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-surface-container-low">
-        {material ? (
-          isImageFile ? (
-            <div className="relative flex h-full w-full items-center justify-center p-6 overflow-hidden bg-surface-container-low">
+        <div className="relative flex flex-1 items-center justify-center overflow-auto bg-surface-container-lowest p-4">
+          {!material ? (
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="text-body-sm text-on-surface-variant">Loading document...</p>
+            </div>
+          ) : isImageFile ? (
+            <div className="relative flex h-full w-full max-w-4xl items-center justify-center">
               <img
                 src={imageList[currentImageIndex] || material.fileUrl}
                 alt={material.title}
-                className="max-h-full max-w-full rounded-lg object-contain shadow-lg transition-all duration-300"
+                className="max-h-full max-w-full rounded-lg object-contain shadow-xl"
               />
 
               {imageList.length > 1 && (
@@ -74,22 +98,22 @@ export function ReaderPage() {
                   <button
                     type="button"
                     onClick={() => setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageList.length - 1))}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white shadow-xl backdrop-blur-xs hover:bg-black/80 hover:scale-105 transition-all cursor-pointer z-10"
-                    aria-label="Previous Page Image"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-sm hover:bg-black/90 transition-all cursor-pointer"
+                    aria-label="Previous page"
                   >
-                    <ChevronLeft size={26} />
+                    <ChevronLeft size={24} />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setCurrentImageIndex((prev) => (prev < imageList.length - 1 ? prev + 1 : 0))}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white shadow-xl backdrop-blur-xs hover:bg-black/80 hover:scale-105 transition-all cursor-pointer z-10"
-                    aria-label="Next Page Image"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-sm hover:bg-black/90 transition-all cursor-pointer"
+                    aria-label="Next page"
                   >
-                    <ChevronRight size={26} />
+                    <ChevronRight size={24} />
                   </button>
 
-                  <span className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-4 py-1.5 text-label-md font-semibold text-white backdrop-blur-xs shadow-lg z-10">
+                  <span className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-4 py-2 text-label-sm font-semibold text-white backdrop-blur-sm shadow-md">
                     Page {currentImageIndex + 1} of {imageList.length}
                   </span>
                 </>
@@ -100,41 +124,43 @@ export function ReaderPage() {
               <iframe
                 title={material.title}
                 src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.fileUrl)}`}
-                className="h-full w-full border-0 overflow-hidden"
+                className="h-full w-full max-w-6xl rounded-lg border-0 bg-white shadow-xl"
               />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-surface-container-high">
+              <div className="flex flex-col items-center gap-4 rounded-lg bg-surface-container p-8 text-center shadow-lg max-w-md">
                 <FileText size={64} className="text-outline-variant" />
-                <div className="text-center px-6">
-                  <h3 className="text-headline-sm font-bold text-on-surface">Preview not available</h3>
-                  <p className="mt-2 text-body-md text-on-surface-variant max-w-sm mx-auto">
-                    Microsoft Office previews require a publicly accessible URL. Since this file was uploaded locally (via a mock user), you can download it to view it on your device.
+                <div>
+                  <h3 className="text-title-lg font-bold text-on-surface">Preview not available</h3>
+                  <p className="mt-2 text-body-sm text-on-surface-variant">
+                    Microsoft Office previews require a publicly accessible URL. Download the file to view it.
                   </p>
                 </div>
-                <a
-                  href={material.fileUrl}
-                  download
-                  className="mt-4 flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-label-md font-semibold text-white hover:opacity-90 transition-opacity"
+                <button
+                  type="button"
+                  onClick={() => window.open(material.fileUrl, '_blank')}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-label-lg font-semibold text-on-primary shadow-md hover:bg-primary/90 transition-colors cursor-pointer"
                 >
                   <Download size={20} />
                   Download File
-                </a>
+                </button>
               </div>
             )
           ) : (
             <iframe
               title={material.title}
-              src={`${material.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-              scrolling="no"
-              className="h-full w-full border-0 overflow-hidden"
-              style={{ overflow: 'hidden' }}
+              src={`${material.fileUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+              className="h-full w-full max-w-6xl rounded-lg border-0 bg-white shadow-xl"
             />
-          )
-        ) : (
-          <p className="text-body-sm text-on-surface-variant">Loading document...</p>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+
+      <SignupPromptModal
+        isOpen={showSignupPrompt}
+        onClose={handleCloseSignupPrompt}
+        onSignup={handleSignupRedirect}
+      />
+    </>
   );
 }
 

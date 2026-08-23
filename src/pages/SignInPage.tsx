@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../hooks/useWorkspace';
+import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { CursorGlowTracker } from '../components/ui/CursorGlowTracker';
 import { BackgroundVideo } from '../components/ui/BackgroundVideo';
 import { BackgroundTexture } from '../components/ui/BackgroundTexture';
@@ -21,6 +22,7 @@ export function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, signInWithGoogle, sendMobileOtp, checkAccountStatus } = useAuth();
   const { chooseWorkspace } = useWorkspace();
+  const { getAndClearRedirectPath } = useSignupRedirect();
   const navigate = useNavigate();
 
   const handleSubmit = async (event: FormEvent) => {
@@ -53,7 +55,12 @@ export function SignInPage() {
       setError(signInError);
     } else {
       chooseWorkspace(loginAsAdmin ? 'admin' : 'student');
-      navigate(loginAsAdmin ? '/admin' : '/dashboard');
+      const redirectPath = getAndClearRedirectPath();
+      if (redirectPath && !loginAsAdmin) {
+        navigate(redirectPath);
+      } else {
+        navigate(loginAsAdmin ? '/admin' : '/dashboard');
+      }
     }
   };
 

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, Smartphone, ArrowRight, Sparkles, CheckCircle2, BookOpen, Award, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { CursorGlowTracker } from '../components/ui/CursorGlowTracker';
 import { BackgroundVideo } from '../components/ui/BackgroundVideo';
 import { BackgroundTexture } from '../components/ui/BackgroundTexture';
@@ -10,6 +11,7 @@ import { AnimatedInput } from '../components/ui/AnimatedInput';
 export function SignUpPage() {
   const navigate = useNavigate();
   const { signUp, signInWithGoogle, sendMobileOtp } = useAuth();
+  const { getAndClearRedirectPath } = useSignupRedirect();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,7 +43,12 @@ export function SignUpPage() {
     if (signUpError) {
       setError(signUpError);
     } else {
-      navigate('/dashboard');
+      const redirectPath = getAndClearRedirectPath();
+      if (redirectPath) {
+        navigate(redirectPath);
+      } else {
+        navigate('/dashboard');
+      }
     }
   };
 

@@ -24,6 +24,7 @@ import { Modal } from '../components/ui/Modal';
 import { Tabs } from '../components/ui/Tabs';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
+import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { accentBg, materialTypeIcon } from '../lib/materialIcons';
 import { cn } from '../lib/cn';
 import { timeAgo } from '../lib/timeAgo';
@@ -38,7 +39,8 @@ import {
 const tabs = ['Saved', 'Downloaded', 'Manage Uploads', 'Recently Viewed'] as const;
 
 export function LibraryPage() {
-  const { user } = useAuth();
+  const { user, isExploring } = useAuth();
+  const { openSignupModal } = useSignupRedirect();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -87,13 +89,13 @@ export function LibraryPage() {
     setLoading(true);
     try {
       if (activeTab === 'Saved') {
-        const data = await listSavedMaterialsForUI(user.id);
+        const data = user.id ? await listSavedMaterialsForUI(user.id) : [];
         setItems(data);
       } else if (activeTab === 'Downloaded') {
-        const data = await listDownloadedMaterialsForUI(user.id);
+        const data = user.id ? await listDownloadedMaterialsForUI(user.id) : [];
         setItems(data);
       } else if (activeTab === 'Manage Uploads') {
-        const data = await listMyUploadsForUI(user.id);
+        const data = user.id ? await listMyUploadsForUI(user.id) : [];
         setItems(data);
       } else {
         setItems([]);
@@ -248,7 +250,13 @@ export function LibraryPage() {
                   <Card
                     key={item.id}
                     hoverable={false}
-                    onClick={() => navigate(`/materials/${item.id}`)}
+                    onClick={() => {
+                      if (isExploring) {
+                        openSignupModal(`/materials/${item.id}`);
+                      } else {
+                        navigate(`/materials/${item.id}`);
+                      }
+                    }}
                     className="flex flex-col justify-between p-5 cursor-pointer transition-shadow hover:shadow-md border border-card-border"
                   >
                     <div className="flex items-start gap-3">

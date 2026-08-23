@@ -13,6 +13,7 @@ import {
   Sun,
   SunMoon,
   Trash2,
+  User,
   UserCog,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -23,6 +24,7 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../hooks/useAuth';
+import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { AccountSettingsModal } from '../components/settings/AccountSettingsModal';
 import { PrivacySettingsModal } from '../components/settings/PrivacySettingsModal';
@@ -52,7 +54,8 @@ const settingsSections = [
 ];
 
 export function SettingsPage() {
-  const { user, signOut, deleteAccount } = useAuth();
+  const { user, isExploring, signOut, deleteAccount } = useAuth();
+  const { openSignupModal } = useSignupRedirect();
   const { theme, cycleTheme } = useDarkMode();
   const navigate = useNavigate();
 
@@ -86,14 +89,27 @@ export function SettingsPage() {
       <h1 className="mb-6 text-headline-lg-mobile text-on-surface sm:text-headline-lg">Settings</h1>
 
       <Card hoverable={false} className="flex items-center gap-3 relative">
-        <Avatar name={user.name} src={user.avatar} size={48} />
+        {isExploring ? (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20">
+            <User size={24} />
+          </div>
+        ) : (
+          <Avatar name={user.name} src={user.avatar} size={48} />
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-body-md font-semibold text-on-surface">{user.name}</p>
-          <p className="truncate text-label-sm text-on-surface-variant">{user.email}</p>
-          <p className="mt-1 truncate text-label-xs font-mono font-bold tracking-wider text-primary">ID: {user.quickId}</p>
+          {user.quickId && (
+            <p className="mt-1 truncate text-label-xs font-mono font-bold tracking-wider text-primary">ID: {user.quickId}</p>
+          )}
         </div>
         <button 
-          onClick={() => setShowAccountModal(true)}
+          onClick={() => {
+            if (isExploring) {
+              openSignupModal('/settings');
+            } else {
+              setShowAccountModal(true);
+            }
+          }}
           className="flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-soft hover:text-primary transition-colors cursor-pointer ml-auto shrink-0"
           aria-label="Edit Profile"
         >
@@ -115,7 +131,11 @@ export function SettingsPage() {
                   if (item.label === 'Downloads') {
                     navigate('/library?tab=downloaded');
                   } else if (item.label === 'Account') {
-                    setShowAccountModal(true);
+                    if (isExploring) {
+                      openSignupModal('/settings');
+                    } else {
+                      setShowAccountModal(true);
+                    }
                   } else if (item.label === 'Privacy') {
                     setShowPrivacyModal(true);
                   }

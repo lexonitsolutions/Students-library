@@ -7,11 +7,16 @@ import { useAuth } from '../hooks/useAuth';
 
 export function GetStartedPage() {
   const navigate = useNavigate();
-  const { completeOnboarding } = useAuth();
+  const { completeOnboarding, startExploring } = useAuth();
 
   const handleGetStarted = (destination: string) => {
     completeOnboarding();
     navigate(destination);
+  };
+
+  const handleExplore = () => {
+    startExploring();
+    navigate('/dashboard');
   };
 
   return (
@@ -103,7 +108,7 @@ export function GetStartedPage() {
             <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-60 blur group-hover:opacity-100 transition duration-300" />
             <button
               type="button"
-              onClick={() => handleGetStarted('/explore')}
+              onClick={handleExplore}
               className="relative flex w-full sm:w-auto items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 px-7 py-3 text-sm sm:text-base font-extrabold text-white shadow-2xl cursor-pointer"
             >
               <span>Explore Now</span>

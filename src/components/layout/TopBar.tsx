@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, BookMarked, Moon, Settings, Sun, SunMoon } from 'lucide-react';
+import { Bell, BookMarked, Moon, Settings, Sun, SunMoon, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useSignupRedirect } from '../../hooks/useSignupRedirect';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useIsDesktop } from '../../hooks/useMediaQuery';
 import type { AppNotification } from '../../data/types';
@@ -13,7 +14,8 @@ import { NotificationList } from './NotificationList';
 import { GlobalSearch } from './GlobalSearch';
 
 export function TopBar() {
-  const { user } = useAuth();
+  const { user, isExploring } = useAuth();
+  const { openSignupModal } = useSignupRedirect();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const { theme, cycleTheme } = useDarkMode();
@@ -22,9 +24,9 @@ export function TopBar() {
   const unreadCount = notificationsList.filter((notification) => !notification.read).length;
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isExploring) return;
     notificationsService.listNotifications(user.id).then(setNotificationsList);
-  }, [user]);
+  }, [user, isExploring]);
 
   useEffect(() => {
     if (!notificationsOpen) return;
@@ -50,7 +52,7 @@ export function TopBar() {
 
   const handleMarkAllRead = () => {
     setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
-    if (user) notificationsService.markAllRead(user.id).catch(() => {});
+    if (user && !isExploring) notificationsService.markAllRead(user.id).catch(() => {});
   };
 
   return (
@@ -149,14 +151,26 @@ export function TopBar() {
           <Settings size={20} />
         </IconButton>
 
-        <button
-          type="button"
-          onClick={() => navigate('/profile')}
-          aria-label="View profile"
-          className="ml-1 cursor-pointer"
-        >
-          <Avatar name={user?.name ?? 'User'} src={user?.avatar} size={36} />
-        </button>
+        {isExploring ? (
+          <button
+            type="button"
+            onClick={() => openSignupModal()}
+            aria-label="Guest User"
+            title="Guest Mode — Click to Sign Up"
+            className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer"
+          >
+            <User size={18} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            aria-label="View profile"
+            className="ml-1 cursor-pointer"
+          >
+            <Avatar name={user?.name ?? 'User'} src={user?.avatar} size={36} />
+          </button>
+        )}
       </div>
     </header>
   );

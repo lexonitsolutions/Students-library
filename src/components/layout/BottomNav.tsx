@@ -3,9 +3,15 @@ import { NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { cn } from '../../lib/cn';
 import { navItems } from './navConfig';
+import { useAuth } from '../../hooks/useAuth';
 
 export function BottomNav() {
+  const { isExploring } = useAuth();
   const [isScrolling, setIsScrolling] = useState(false);
+
+  const visibleNavItems = isExploring
+    ? navItems.filter((item) => ['/', '/leaderboard', '/upload', '/library'].includes(item.to))
+    : navItems;
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
@@ -39,7 +45,7 @@ export function BottomNav() {
       className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 flex-row items-center gap-1.5 rounded-full p-2 lg:hidden apple-liquid-glass"
       aria-label="Primary"
     >
-      {navItems.map((item) => (
+      {visibleNavItems.map((item) => (
         <NavLink
           key={item.label}
           to={item.to}
