@@ -1,15 +1,19 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Mail, Smartphone } from 'lucide-react';
-import { type FormEvent, useState, useRef, type KeyboardEvent } from 'react';
+import { ArrowRight, Mail, Smartphone, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { type FormEvent, useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const OTP_LENGTH = 6;
+const COOLDOWN_SECONDS = 60;
 
 export function OtpVerificationPage() {
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,6 +21,14 @@ export function OtpVerificationPage() {
   const target: string = location.state?.target || 'your email address';
   const type: 'email' | 'mobile' = location.state?.type || 'email';
   const otpKind: 'signup' | 'sms' = location.state?.otpKind || (type === 'mobile' ? 'sms' : 'signup');
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleChange = (element: HTMLInputElement, index: number) => {
     if (isNaN(Number(element.value))) return false;
@@ -43,6 +55,7 @@ export function OtpVerificationPage() {
     if (code.length !== OTP_LENGTH) return;
 
     setError(null);
+    setSuccessMsg(null);
     setIsSubmitting(true);
     const { error: verifyError } =
       otpKind === 'sms' ? await verifyMobileOtp(target, code) : await verifySignupOtp(target, code);
@@ -56,9 +69,20 @@ export function OtpVerificationPage() {
   };
 
   const handleResend = async () => {
+    if (cooldown > 0 || isResending) return;
     setError(null);
+    setSuccessMsg(null);
+    setIsResending(true);
+
     const { error: resendError } = otpKind === 'sms' ? await sendMobileOtp(target) : await resendSignupOtp(target);
-    if (resendError) setError(resendError);
+    setIsResending(false);
+
+    if (resendError) {
+      setError(resendError);
+    } else {
+      setSuccessMsg(`A new verification code has been sent to ${target}.`);
+      setCooldown(COOLDOWN_SECONDS);
+    }
   };
 
   return (
@@ -116,7 +140,7 @@ export function OtpVerificationPage() {
             <h1 className="text-3xl font-serif font-bold text-slate-900">
               {type === 'mobile' ? 'Enter OTP' : 'Check your email'}
             </h1>
-            <p className="mt-2 text-slate-500">
+            <p className="mt-2 text-slate-500 text-sm leading-relaxed">
               {type === 'mobile' 
                 ? <>Enter the OTP sent to <span className="font-medium text-slate-900">{target}</span></>
                 : <>Enter verification code sent to <span className="font-medium text-slate-900">{target}</span></>
@@ -125,7 +149,24 @@ export function OtpVerificationPage() {
           </div>
 
           {error && (
-            <p className="mb-4 rounded-lg bg-error-container/20 px-3 py-2 text-sm font-medium text-error">{error}</p>
+            <motion.div 
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 rounded-xl bg-red-50 border border-red-200 p-3 text-xs font-medium text-red-700 leading-relaxed text-left"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {successMsg && (
+            <motion.div 
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs font-semibold text-emerald-700 flex items-center gap-2 text-left"
+            >
+              <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+              <span>{successMsg}</span>
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -150,19 +191,29 @@ export function OtpVerificationPage() {
 
             <button
               type="submit"
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e1b4b] px-4 py-3.5 text-sm font-medium text-white transition-all hover:bg-[#312e81] focus:outline-none focus:ring-2 focus:ring-[#312e81] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e1b4b] px-4 py-3.5 text-sm font-medium text-white transition-all hover:bg-[#312e81] focus:outline-none focus:ring-2 focus:ring-[#312e81] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={otp.join('').length !== OTP_LENGTH || isSubmitting}
             >
               {isSubmitting ? 'Verifying...' : 'Verify Code'} <ArrowRight className="h-4 w-4" />
             </button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-slate-600">
-            Didn't receive the code?{' '}
-            <button type="button" onClick={handleResend} className="font-semibold text-indigo-600 hover:text-indigo-500">
-              Resend it
-            </button>
-          </p>
+          <div className="mt-8 text-center text-sm text-slate-600">
+            <span>Didn't receive the code? </span>
+            {cooldown > 0 ? (
+              <span className="font-semibold text-slate-400">Resend in {cooldown}s</span>
+            ) : (
+              <button 
+                type="button" 
+                onClick={handleResend} 
+                disabled={isResending}
+                className="font-semibold text-indigo-600 hover:text-indigo-500 disabled:opacity-50 cursor-pointer inline-flex items-center gap-1"
+              >
+                {isResending ? <RefreshCw size={13} className="animate-spin" /> : null}
+                <span>Resend it</span>
+              </button>
+            )}
+          </div>
         </motion.div>
       </div>
     </div>
