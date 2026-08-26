@@ -1,20 +1,19 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Smartphone, ArrowRight, Sparkles, CheckCircle2, BookOpen, Award, User as UserIcon, Eye, EyeOff } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { CursorGlowTracker } from '../components/ui/CursorGlowTracker';
 import { BackgroundVideo } from '../components/ui/BackgroundVideo';
 import { BackgroundTexture } from '../components/ui/BackgroundTexture';
 import { AnimatedInput } from '../components/ui/AnimatedInput';
 export function SignUpPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signUp, signInWithGoogle, sendMobileOtp } = useAuth();
-  const { getAndClearRedirectPath } = useSignupRedirect();
   
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(location.state?.prefillEmail ?? '');
   const [password, setPassword] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
@@ -46,7 +45,7 @@ export function SignUpPage() {
     }
 
     setIsSubmitting(true);
-    const { error: signUpError, needsEmailConfirmation } = await signUp({
+    const { error: signUpError } = await signUp({
       email: emailTrimmed,
       password,
       name: nameTrimmed,
@@ -54,16 +53,23 @@ export function SignUpPage() {
     setIsSubmitting(false);
 
     if (signUpError) {
-      setError(signUpError);
-    } else if (needsEmailConfirmation) {
-      navigate('/verify-otp', { state: { target: emailTrimmed, type: 'email', otpKind: 'signup' } });
-    } else {
-      const redirectPath = getAndClearRedirectPath();
-      if (redirectPath) {
-        navigate(redirectPath);
+      if (signUpError.toLowerCase().includes('pending')) {
+        navigate('/verify-otp', {
+          state: {
+            target: emailTrimmed,
+            type: 'email',
+          },
+        });
       } else {
-        navigate('/dashboard');
+        setError(signUpError);
       }
+    } else {
+      navigate('/verify-otp', {
+        state: {
+          target: emailTrimmed,
+          type: 'email',
+        },
+      });
     }
   };
 

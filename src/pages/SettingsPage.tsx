@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -66,8 +67,15 @@ export function SettingsPage() {
 
   const [deletePassword, setDeletePassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [isBlinking, setIsBlinking] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!user) return null;
+
+  const triggerBlink = () => {
+    setIsBlinking(true);
+    setTimeout(() => setIsBlinking(false), 1500);
+  };
 
   const handleConfirmLogout = async () => {
     await signOut();
@@ -76,9 +84,19 @@ export function SettingsPage() {
 
   const handleConfirmDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!deletePassword.trim()) {
+      setPasswordError('Password is required to confirm account deletion.');
+      triggerBlink();
+      return;
+    }
+
+    setIsDeleting(true);
     const { error } = await deleteAccount(deletePassword);
+    setIsDeleting(false);
+
     if (error) {
       setPasswordError(error);
+      triggerBlink();
       return;
     }
     navigate('/signup', { replace: true });
@@ -239,7 +257,12 @@ export function SettingsPage() {
       {/* Delete Account Modal with Password Validation */}
       <Modal
         open={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletePassword('');
+          setPasswordError('');
+          setIsBlinking(false);
+        }}
         title="Delete Account"
       >
         <div className="flex flex-col gap-4">
@@ -254,48 +277,82 @@ export function SettingsPage() {
             Please enter your password below to confirm account deletion:
           </p>
 
-          <Input
-            type="text"
-            style={{ WebkitTextSecurity: 'disc', textSecurity: 'disc' } as React.CSSProperties}
-            name="verification_code_field"
-            id="verification_code_field"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            data-1p-ignore="true"
-            data-lpignore="true"
-            data-bwignore="true"
-            data-form-type="other"
-            label="Your Password"
-            placeholder="••••••••"
-            value={deletePassword}
-            onChange={(e) => {
-              setDeletePassword(e.target.value);
-              setPasswordError('');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleConfirmDeleteAccount(e);
-              }
-            }}
-          />
+          <motion.div
+            animate={
+              isBlinking
+                ? {
+                    x: [-10, 10, -8, 8, -4, 4, 0],
+                  }
+                : {}
+            }
+            transition={{ duration: 0.5 }}
+            className={`rounded-xl transition-all duration-200 ${
+              isBlinking
+                ? 'ring-4 ring-red-500/70 border-2 border-red-500 bg-red-500/10 animate-pulse p-1'
+                : ''
+            }`}
+          >
+            <Input
+              type="text"
+              style={{ WebkitTextSecurity: 'disc', textSecurity: 'disc' } as React.CSSProperties}
+              name="verification_code_field"
+              id="verification_code_field"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-1p-ignore="true"
+              data-lpignore="true"
+              data-bwignore="true"
+              data-form-type="other"
+              label="Your Password *"
+              placeholder="••••••••"
+              value={deletePassword}
+              onChange={(e) => {
+                setDeletePassword(e.target.value);
+                setPasswordError('');
+                setIsBlinking(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleConfirmDeleteAccount(e);
+                }
+              }}
+            />
+          </motion.div>
 
           {passwordError && (
-            <p className="text-label-sm font-semibold text-error">{passwordError}</p>
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-label-sm font-semibold text-error flex items-center gap-1.5"
+            >
+              <AlertTriangle size={14} className="shrink-0" />
+              <span>{passwordError}</span>
+            </motion.p>
           )}
 
           <div className="mt-4 flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeletePassword('');
+                setPasswordError('');
+                setIsBlinking(false);
+              }}
+            >
               Cancel
             </Button>
             <Button
               type="button"
               variant="primary"
+              disabled={isDeleting}
               onClick={handleConfirmDeleteAccount}
               className="bg-error hover:bg-error/90 text-white"
             >
-              Confirm Delete
+              {isDeleting ? 'Deleting...' : 'Confirm Delete'}
             </Button>
           </div>
         </div>
