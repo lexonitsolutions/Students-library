@@ -106,6 +106,14 @@ const MOCK_CREDENTIAL_USERS: Record<string, { password: string; user: User }> = 
   },
 };
 
+function isSessionVerified(session: Session | null): boolean {
+  if (!session) return false;
+  if (session.user.app_metadata?.provider && session.user.app_metadata.provider !== 'email') {
+    return true;
+  }
+  return Boolean(session.user.email_confirmed_at);
+}
+
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -156,25 +164,31 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
-      setSession(data.session);
-      if (data.session) {
-        loadProfile(data.session.user.id).finally(() => active && setLoading(false));
+      const currentSession = data.session;
+      if (currentSession && isSessionVerified(currentSession)) {
+        setSession(currentSession);
+        loadProfile(currentSession.user.id).finally(() => active && setLoading(false));
       } else {
+        if (currentSession && !isSessionVerified(currentSession)) {
+          supabase.auth.signOut().catch(() => {});
+        }
+        setSession(null);
+        setProfile(null);
         setLoading(false);
       }
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      if (nextSession) {
+      if (nextSession && isSessionVerified(nextSession)) {
+        setSession(nextSession);
         stopExploring();
-        // A fresh sign-in re-enters the "loading" state until the profile
-        // (and its role) resolves, so route guards don't have to make a
-        // routing decision based on a still-null user and flash the wrong
-        // screen before correcting themselves.
         setLoading(true);
         loadProfile(nextSession.user.id).finally(() => setLoading(false));
       } else {
+        if (nextSession && !isSessionVerified(nextSession)) {
+          supabase.auth.signOut().catch(() => {});
+        }
+        setSession(null);
         setProfile(null);
         setStats(null);
         setLoading(false);
@@ -188,13 +202,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, [loadProfile, stopExploring]);
 
   const signUp = useCallback(async (params: authService.SignUpParams) => {
-    const { data, error } = await authService.signUpWithPassword(params);
+    const { error } = await authService.signUpWithPassword(params);
     if (!error) {
-      localStorage.setItem(ONBOARDED_KEY, 'true');
-      setHasOnboarded(true);
       stopExploring();
     }
-    return { error: error?.message ?? null, needsEmailConfirmation: data?.session === null && !error };
+    return { error: error?.message ?? null, needsEmailConfirmation: true };
   }, [stopExploring]);
 
   const signIn = useCallback(async (params: authService.SignInParams) => {
@@ -334,13 +346,15 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
       if (!session?.user.email) return { error: 'Not signed in.' };
 
-      const { error: verifyError } = await authService.signInWithPassword({
-        email: session.user.email,
-        password,
-      });
-      if (verifyError) return { error: 'Incorrect password.' };
+      if (password) {
+        const { error: verifyError } = await authService.signInWithPassword({
+          email: session.user.email,
+          password,
+        });
+        if (verifyError) return { error: 'Incorrect password.' };
+      }
 
-      const { error: deleteError } = await supabase.from('profiles').delete().eq('id', session.user.id);
+      const { error: deleteError } = await authService.deleteOwnAccount();
       if (deleteError) return { error: deleteError.message };
 
       await authService.signOut();
@@ -377,7 +391,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     () => ({
       user,
       session,
-      isAuthenticated: session !== null || demoUser !== null || guestUser !== null,
+      isAuthenticated: (isSessionVerified(session) && profile !== null) || demoUser !== null || (guestUser !== null && isExploring),
       isExploring,
       hasOnboarded,
       loading,

@@ -20,6 +20,7 @@ export function SignInPage() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [noAccountEmail, setNoAccountEmail] = useState<string | null>(null);
   const { signIn, signInWithGoogle, sendMobileOtp, checkAccountStatus } = useAuth();
   const { chooseWorkspace } = useWorkspace();
   const { getAndClearRedirectPath } = useSignupRedirect();
@@ -48,11 +49,34 @@ export function SignInPage() {
       }
     }
 
+    // Check if email exists before attempting sign-in
+    if (!loginAsAdmin) {
+      try {
+        const status = await checkAccountStatus(emailVal);
+        if (!status.hasAccount && !status.isUnconfirmed) {
+          setIsSubmitting(false);
+          setNoAccountEmail(emailVal);
+          return;
+        }
+      } catch {
+        // If status check fails, proceed with normal sign-in
+      }
+    }
+
     const { error: signInError } = await signIn({ email: emailVal, password: passwordVal });
     setIsSubmitting(false);
 
     if (signInError) {
-      setError(signInError);
+      if (signInError.toLowerCase().includes('pending')) {
+        navigate('/verify-otp', {
+          state: {
+            target: emailVal,
+            type: 'email',
+          },
+        });
+      } else {
+        setError(signInError);
+      }
     } else {
       chooseWorkspace(loginAsAdmin ? 'admin' : 'student');
       const redirectPath = getAndClearRedirectPath();
@@ -203,6 +227,26 @@ export function SignInPage() {
             </motion.div>
           )}
 
+          {noAccountEmail && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3.5 text-xs font-medium text-amber-300"
+            >
+              <p className="font-semibold text-amber-200 mb-1">No account found for this email.</p>
+              <p className="text-amber-400/80 mb-3">
+                Looks like <span className="font-bold text-amber-300">{noAccountEmail}</span> isn't registered yet. Create a new account to get started!
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/signup', { state: { prefillEmail: noAccountEmail } })}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 px-4 py-2.5 text-xs font-bold text-amber-200 transition-all cursor-pointer"
+              >
+                Create a new account →
+              </button>
+            </motion.div>
+          )}
+
           {/* Social Sign-In Buttons */}
           <div className="space-y-3">
             <motion.button
@@ -311,7 +355,7 @@ export function SignInPage() {
                 className="block w-full rounded-2xl border border-white/10 bg-white/5 pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
                 placeholder="your@gmail.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setNoAccountEmail(null); }}
                 required
               />
             </div>
