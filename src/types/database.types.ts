@@ -66,8 +66,16 @@ export interface MaterialRow {
   views_count: number;
   downloads_count: number;
   saves_count: number;
+  likes_count?: number;
+  shares_count?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface MaterialLikeRow {
+  material_id: string;
+  user_id: string;
+  created_at: string;
 }
 
 export interface BookmarkRow {

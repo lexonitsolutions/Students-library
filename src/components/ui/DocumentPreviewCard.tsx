@@ -19,9 +19,9 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
   const navigate = useNavigate();
   const { isExploring } = useAuth();
   const { openSignupModal } = useSignupRedirect();
-  const [likesCount, setLikesCount] = useState(0);
-  const [sharesCount, setSharesCount] = useState(0);
-  const [downloadsCount, setDownloadsCount] = useState(material.downloads);
+  const [likesCount, setLikesCount] = useState(material.likes ?? 0);
+  const [sharesCount, setSharesCount] = useState(material.shares ?? 0);
+  const [downloadsCount, setDownloadsCount] = useState(material.downloads ?? 0);
   const [lazyPages, setLazyPages] = useState<number | undefined>(material.pages);
 
   const handleDocumentClick = (e: React.MouseEvent) => {
@@ -33,10 +33,10 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
   };
 
   useEffect(() => {
-    setLikesCount(getLocalLikesCount(material.id));
-    setSharesCount(getLocalSharesCount(material.id));
-    setDownloadsCount(getLocalDownloadsCount(material.id, material.downloads));
-  }, [material.id, material.downloads]);
+    setLikesCount(getLocalLikesCount(material.id, material.likes ?? 0));
+    setSharesCount(getLocalSharesCount(material.id, material.shares ?? 0));
+    setDownloadsCount(getLocalDownloadsCount(material.id, material.downloads ?? 0));
+  }, [material.id, material.downloads, material.likes, material.shares]);
 
   useEffect(() => {
     if (!material.pages && material.fileUrl) {

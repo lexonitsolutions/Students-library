@@ -23,8 +23,16 @@ import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import * as bookmarksService from '../services/bookmarksService';
-import { toggleLike, getLocalLikesCount, getLocalStorageLikedIds, incrementLocalSharesCount, incrementLocalDownloadsCount } from '../services/likesService';
-import { getMaterialForUI, incrementViews, recordDownload } from '../services/materialsService';
+import {
+  toggleLike,
+  getLocalLikesCount,
+  getLocalSharesCount,
+  getLocalDownloadsCount,
+  fetchUserLikedIds,
+  incrementShare,
+  recordDownloadWithCount,
+} from '../services/likesService';
+import { getMaterialForUI, incrementViews } from '../services/materialsService';
 import { reportMaterial } from '../services/reportsService';
 
 export function MaterialDetailsPage() {
@@ -38,6 +46,8 @@ export function MaterialDetailsPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [sharesCount, setSharesCount] = useState(0);
+  const [downloadsCount, setDownloadsCount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [lazyPages, setLazyPages] = useState<number | undefined>(undefined);
@@ -66,8 +76,14 @@ export function MaterialDetailsPage() {
           setMaterial(data);
           setLazyPages(data.pages);
           setIsSaved(!!data.isSaved);
-          setLikesCount(getLocalLikesCount(data.id));
-          if (user && !isExploring) setIsLiked(getLocalStorageLikedIds(user.id).has(data.id));
+          setLikesCount(getLocalLikesCount(data.id, data.likes ?? 0));
+          setSharesCount(getLocalSharesCount(data.id, data.shares ?? 0));
+          setDownloadsCount(getLocalDownloadsCount(data.id, data.downloads ?? 0));
+          if (user && !isExploring) {
+            fetchUserLikedIds(user.id).then((likedSet) => {
+              if (active) setIsLiked(likedSet.has(data.id));
+            });
+          }
 
 
 
@@ -176,9 +192,9 @@ export function MaterialDetailsPage() {
       }
 
       // 3. Record download only after successful completion
-      const newCount = incrementLocalDownloadsCount(material.id, material.downloads);
+      const { newCount } = await recordDownloadWithCount(material.id, downloadsCount || material.downloads || 0);
+      setDownloadsCount(newCount);
       setMaterial((prev) => (prev ? { ...prev, downloads: newCount } : null));
-      await recordDownload(material.id).catch(() => {});
     } catch (err) {
       console.warn('Download error:', err);
       alert('Failed to download the file. Please try again.');
@@ -197,9 +213,10 @@ export function MaterialDetailsPage() {
       return;
     }
     try {
-      const result = await toggleLike(user.id, material.id);
+      const result = await toggleLike(user.id, material.id, likesCount);
       setIsLiked(result.isLiked);
       setLikesCount(result.likesCount);
+      setMaterial((prev) => (prev ? { ...prev, likes: result.likesCount, isLiked: result.isLiked } : null));
     } catch (err) {
       console.warn('Like toggle failed:', err);
     }
@@ -207,7 +224,11 @@ export function MaterialDetailsPage() {
 
   const handleShare = async () => {
     try {
-      if (material) incrementLocalSharesCount(material.id, user?.id);
+      if (material) {
+        const { newCount } = await incrementShare(material.id, user?.id, sharesCount || material.shares || 0);
+        setSharesCount(newCount);
+        setMaterial((prev) => (prev ? { ...prev, shares: newCount } : null));
+      }
       if (navigator.share) {
         await navigator.share({
           title: material?.title,
@@ -456,23 +477,25 @@ export function MaterialDetailsPage() {
                     variant={isLiked ? 'primary' : 'secondary'}
                     size="md"
                     onClick={handleLike}
-                    className="justify-center cursor-pointer px-0"
+                    className="justify-center cursor-pointer px-1 gap-1.5"
                     icon={<Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />}
                     title="Like"
                     aria-label="Like"
                   >
-                    {likesCount > 0 ? likesCount.toLocaleString() : null}
+                    <span className="text-label-sm font-semibold">{likesCount.toLocaleString()}</span>
                   </Button>
 
                   <Button
                     variant="secondary"
                     size="md"
                     onClick={handleShare}
-                    className="justify-center cursor-pointer px-0"
+                    className="justify-center cursor-pointer px-1 gap-1.5"
                     icon={<Share2 size={18} />}
                     title="Share"
                     aria-label="Share"
-                  />
+                  >
+                    <span className="text-label-sm font-semibold">{sharesCount.toLocaleString()}</span>
+                  </Button>
 
                   <Button
                     variant={isSaved ? 'primary' : 'secondary'}
@@ -488,12 +511,14 @@ export function MaterialDetailsPage() {
                     variant="secondary"
                     size="md"
                     onClick={handleDownload}
-                    className="justify-center cursor-pointer px-0"
+                    className="justify-center cursor-pointer px-1 gap-1.5"
                     icon={isDownloading ? <span className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Download size={18} />}
                     title="Download"
                     aria-label="Download"
                     disabled={isDownloading}
-                  />
+                  >
+                    <span className="text-label-sm font-semibold">{downloadsCount.toLocaleString()}</span>
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -514,6 +539,26 @@ export function MaterialDetailsPage() {
                   <p className="text-label-sm text-on-surface-variant">
                     Uploaded {new Date(material.uploadedAt).toLocaleDateString()}
                   </p>
+                </div>
+              </div>
+
+              {/* Stats Overview */}
+              <div className="grid grid-cols-4 gap-2 border-b border-card-border pb-4 text-center">
+                <div className="flex flex-col items-center">
+                  <span className="text-body-md font-bold text-on-surface">{material.views.toLocaleString()}</span>
+                  <span className="text-label-xs text-on-surface-variant">Views</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-body-md font-bold text-primary">{likesCount.toLocaleString()}</span>
+                  <span className="text-label-xs text-on-surface-variant">Likes</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-body-md font-bold text-on-surface">{downloadsCount.toLocaleString()}</span>
+                  <span className="text-label-xs text-on-surface-variant">Downloads</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-body-md font-bold text-on-surface">{sharesCount.toLocaleString()}</span>
+                  <span className="text-label-xs text-on-surface-variant">Shares</span>
                 </div>
               </div>
 

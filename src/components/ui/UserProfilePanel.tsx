@@ -69,7 +69,7 @@ export function UserProfilePanel({ profile, onClose }: Props) {
         let likes = 0;
         materials.forEach((m) => {
           views += m.views_count || 0;
-          likes += m.saves_count || 0;
+          likes += m.likes_count ?? m.saves_count ?? 0;
         });
         
         setTotalViews(views);

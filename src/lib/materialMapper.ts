@@ -8,7 +8,7 @@ function accentColorFor(id: string): Material['accentColor'] {
   return ACCENT_COLORS[hash % ACCENT_COLORS.length];
 }
 
-export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefined, isSaved = false): Material {
+export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefined, isSaved = false, isLiked = false): Material {
   let finalUploaderName = uploader?.name;
   let finalAvatar = uploader?.avatar_url;
   let finalUniversity = uploader?.university ?? row.university;
@@ -54,6 +54,8 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     views: row.views_count,
     downloads: row.downloads_count,
     saves: row.saves_count,
+    likes: row.likes_count ?? 0,
+    shares: row.shares_count ?? 0,
     status: row.status,
     accentColor: accentColorFor(row.id),
     fileUrl: row.file_url,
@@ -61,5 +63,6 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     pages: row.pages ?? undefined,
     fileSizeMb: row.file_size_mb ?? undefined,
     isSaved,
+    isLiked,
   };
 }
