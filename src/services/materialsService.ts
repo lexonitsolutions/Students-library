@@ -347,8 +347,8 @@ export async function deleteMaterialForUI(id: string, filePath?: string): Promis
 }
 
 export async function recordDownload(materialId: string): Promise<void> {
-  const { error } = await supabase.from('downloads').insert({ material_id: materialId });
-  if (error) throw error;
+  const { recordDownloadWithCount } = await import('./likesService');
+  await recordDownloadWithCount(materialId);
 }
 
 /** Fetch real leaderboard data from the database — users ranked by uploads/views. */

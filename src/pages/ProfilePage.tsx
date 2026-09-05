@@ -8,6 +8,7 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
+import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
 import { universities } from '../data/mockData';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
@@ -472,11 +473,11 @@ export function ProfilePage() {
       {/* Edit Academic Details Modal */}
       <Modal open={isAcademicModalOpen} onClose={() => setIsAcademicModalOpen(false)} title="Edit Academic Details">
         <form onSubmit={handleSaveAcademic} className="flex flex-col gap-4">
-          <Select
+          <CollegeAutocomplete
             label="College / University"
-            options={collegesList}
+            placeholder="Type your college or university name"
             value={editCollege}
-            onChange={(e) => setEditCollege(e.target.value)}
+            onChange={setEditCollege}
           />
 
           <Select
