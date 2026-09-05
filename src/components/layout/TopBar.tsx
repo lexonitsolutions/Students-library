@@ -25,7 +25,15 @@ export function TopBar() {
 
   useEffect(() => {
     if (!user || isExploring) return;
-    notificationsService.listNotifications(user.id).then(setNotificationsList);
+
+    const fetchNotifs = () => {
+      notificationsService.listNotifications(user.id).then(setNotificationsList);
+    };
+
+    fetchNotifs();
+
+    window.addEventListener('refresh_notifications', fetchNotifs);
+    return () => window.removeEventListener('refresh_notifications', fetchNotifs);
   }, [user, isExploring]);
 
   useEffect(() => {

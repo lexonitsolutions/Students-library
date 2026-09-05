@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { ArrowRight, Mail, Smartphone, RefreshCw, CheckCircle2, ArrowLeft, ExternalLink, Send, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Mail, Smartphone, RefreshCw, CheckCircle2, ArrowLeft, ExternalLink, Send, Check, Pencil, X } from 'lucide-react';
 import { type FormEvent, useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -13,8 +13,13 @@ export function OtpVerificationPage() {
   const location = useLocation();
   const { verifyMobileOtp, resendSignupOtp, sendMobileOtp } = useAuth();
 
-  const target: string = location.state?.target || 'your email address';
+  const initialTarget: string = location.state?.target || 'your email address';
   const type: 'email' | 'mobile' = location.state?.type || 'email';
+
+  const [target, setTarget] = useState<string>(initialTarget);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [newEmailInput, setNewEmailInput] = useState(initialTarget);
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
   const OTP_LENGTH = type === 'mobile' ? 4 : 6;
 
@@ -101,8 +106,46 @@ export function OtpVerificationPage() {
     } else {
       setSuccessMsg(
         type === 'mobile'
-          ? `A new 6-digit code has been sent to ${target}.`
+          ? `A new code has been sent to ${target}.`
           : `A new verification link has been sent to ${target}.`
+      );
+      setCooldown(COOLDOWN_SECONDS);
+    }
+  };
+
+  const handleUpdateEmail = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = newEmailInput.trim();
+    if (!trimmed) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (type === 'email' && !trimmed.includes('@')) {
+      setError('Please enter a valid email format.');
+      return;
+    }
+
+    setError(null);
+    setSuccessMsg(null);
+    setIsUpdatingEmail(true);
+
+    const { error: resendErr } = type === 'mobile' ? await sendMobileOtp(trimmed) : await resendSignupOtp(trimmed);
+    setIsUpdatingEmail(false);
+
+    if (resendErr) {
+      // If the email is not registered yet or needs full sign up, guide them
+      if (resendErr.toLowerCase().includes('user not found') || resendErr.toLowerCase().includes('not registered')) {
+        navigate('/signup', { state: { prefillEmail: trimmed } });
+        return;
+      }
+      setError(resendErr);
+    } else {
+      setTarget(trimmed);
+      setIsEditingEmail(false);
+      setSuccessMsg(
+        type === 'mobile'
+          ? `Verification code sent to ${trimmed}.`
+          : `Verification link sent to ${trimmed}.`
       );
       setCooldown(COOLDOWN_SECONDS);
     }
@@ -170,11 +213,87 @@ export function OtpVerificationPage() {
             <p className="mt-2 text-sm text-slate-400 font-medium">
               {type === 'mobile' ? 'Enter the verification code sent to' : 'We sent a verification link to'}
             </p>
-            <div className="mt-2.5 flex justify-center">
-              <span className="inline-block max-w-full font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm tracking-wide truncate shadow-sm">
-                {target}
-              </span>
-            </div>
+            
+            <AnimatePresence mode="wait">
+              {!isEditingEmail ? (
+                <motion.div
+                  key="display-target"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="mt-2.5 flex items-center justify-center gap-2"
+                >
+                  <span className="inline-block max-w-[270px] font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm tracking-wide truncate shadow-sm">
+                    {target}
+                  </span>
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setNewEmailInput(target);
+                      setIsEditingEmail(true);
+                    }}
+                    title={type === 'mobile' ? 'Change mobile number' : 'Change email address'}
+                    aria-label="Change email address"
+                    className="flex h-8 w-8 items-center justify-center text-indigo-300 hover:text-white bg-indigo-500/15 hover:bg-indigo-500/30 border border-indigo-500/30 rounded-xl transition-all cursor-pointer shadow-sm shrink-0"
+                  >
+                    <Pencil size={13} />
+                  </motion.button>
+                </motion.div>
+              ) : (
+                <motion.form
+                  key="edit-target"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  onSubmit={handleUpdateEmail}
+                  className="mt-3 flex flex-col items-center gap-2 max-w-sm mx-auto"
+                >
+                  <div className="flex w-full items-center gap-2">
+                    <input
+                      type={type === 'mobile' ? 'tel' : 'email'}
+                      value={newEmailInput}
+                      onChange={(e) => setNewEmailInput(e.target.value)}
+                      placeholder={type === 'mobile' ? 'Enter new mobile number' : 'Enter new email address'}
+                      autoFocus
+                      required
+                      className="flex-1 bg-white/5 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isUpdatingEmail}
+                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-1 cursor-pointer shrink-0 shadow-md shadow-indigo-600/20"
+                    >
+                      {isUpdatingEmail ? (
+                        <RefreshCw size={12} className="animate-spin" />
+                      ) : (
+                        <Check size={12} />
+                      )}
+                      <span>Update</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingEmail(false)}
+                      className="p-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl border border-white/10 transition-all cursor-pointer shrink-0"
+                      title="Cancel"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Entered the wrong {type === 'mobile' ? 'number' : 'Gmail'}? Update it above or{' '}
+                    <Link
+                      to="/signup"
+                      state={{ prefillEmail: newEmailInput || target }}
+                      className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                    >
+                      sign up again
+                    </Link>
+                  </p>
+                </motion.form>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Alert Messages */}
@@ -268,6 +387,20 @@ export function OtpVerificationPage() {
                     {cooldown > 0 ? `Resend link in ${cooldown}s` : 'Resend verification link'}
                   </span>
                 </motion.button>
+
+                <div className="pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewEmailInput(target);
+                      setIsEditingEmail(true);
+                    }}
+                    className="text-xs font-semibold text-slate-400 hover:text-indigo-300 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <Pencil size={12} />
+                    <span>Wrong email address? <strong className="underline decoration-indigo-500/50 underline-offset-4 text-indigo-400 hover:text-indigo-300">Change email</strong></span>
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { AlertTriangle, Check, Database, Download, Library, Server, TrendingUp, Users, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertTriangle, Check, CheckCircle, Database, Download, Library, Server, TrendingUp, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { StatTile } from '../components/ui/StatTile';
@@ -14,7 +14,13 @@ export function AdminDashboardPage() {
   const [period, setPeriod] = useState<(typeof periods)[number]>('Last 30 Days');
   const [stats, setStats] = useState<adminService.AdminStats | null>(null);
   const [queue, setQueue] = useState<adminService.ModerationItem[]>([]);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const maxValue = Math.max(...growthAnalytics);
+
+  const showToast = (text: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   useEffect(() => {
     adminService.getAdminStats().then(setStats);
@@ -26,17 +32,60 @@ export function AdminDashboardPage() {
     try {
       await updateMaterialStatus(id, status);
       adminService.getAdminStats().then(setStats);
+      if (status === 'approved') {
+        showToast('Material Accepted Successfully!', 'success');
+      } else {
+        showToast('Material Rejected', 'warning');
+      }
     } catch {
       adminService.listModerationQueue().then(setQueue);
+      showToast('An error occurred. Please try again.', 'error');
     }
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 relative">
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border ${
+              toastMessage.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+              toastMessage.type === 'error' ? 'bg-error-container border-error/30 text-error' :
+              'bg-warning-container border-warning/30 text-warning'
+            }`}
+          >
+            {toastMessage.type === 'success' && <CheckCircle size={20} />}
+            {toastMessage.type === 'error' && <X size={20} />}
+            {toastMessage.type === 'warning' && <AlertTriangle size={20} />}
+            <span className="font-semibold text-body-md">{toastMessage.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div>
         <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg">Admin Dashboard</h1>
         <p className="mt-1 text-body-sm text-on-surface-variant">Platform overview and management.</p>
       </div>
+
+      {queue.length > 0 && (
+        <div className="rounded-xl bg-warning-container/20 border border-warning/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-warning">
+            <AlertTriangle size={20} className="shrink-0" />
+            <p className="text-body-md font-semibold">
+              Notification: You have {queue.length} material(s) waiting for approval.
+            </p>
+          </div>
+          <button 
+            onClick={() => document.getElementById('moderation-queue')?.scrollIntoView({ behavior: 'smooth' })}
+            className="text-label-sm font-bold bg-warning text-on-warning px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+          >
+            Review Now
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile

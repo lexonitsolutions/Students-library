@@ -1,20 +1,24 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BookOpen,
+  Bookmark,
   CheckCircle2,
   Clock,
+  Download,
   Edit3,
+  Eye,
   FileText,
   Grid2x2,
   List,
   Trash2,
+  Upload,
   UploadCloud,
   XCircle,
   Check,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AnimatedTextarea } from '../components/ui/AnimatedInput';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -28,15 +32,15 @@ import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { accentBg, materialTypeIcon } from '../lib/materialIcons';
 import { cn } from '../lib/cn';
 import { timeAgo } from '../lib/timeAgo';
+import { listRecentActivity, type ActivityItem } from '../services/activityService';
 import {
   deleteMaterialForUI,
-  listDownloadedMaterialsForUI,
   listMyUploadsForUI,
   listSavedMaterialsForUI,
   updateMaterialDetails,
 } from '../services/materialsService';
 
-const tabs = ['Saved', 'Downloaded', 'Manage Uploads', 'Recently Viewed'] as const;
+const tabs = ['Saved', 'Manage Uploads', 'Recent Activity'] as const;
 
 export function LibraryPage() {
   const { user, isExploring } = useAuth();
@@ -47,13 +51,20 @@ export function LibraryPage() {
 
   const [activeTab, setActiveTabState] = useState<(typeof tabs)[number]>(() => {
     if (tabParam === 'uploads' || tabParam === 'manage-uploads') return 'Manage Uploads';
-    if (tabParam === 'downloaded') return 'Downloaded';
+    if (tabParam === 'activity' || tabParam === 'recent-activity') return 'Recent Activity';
     return 'Saved';
   });
 
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [items, setItems] = useState<Material[]>([]);
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'uploaded' | 'saved' | 'viewed'>('all');
   const [loading, setLoading] = useState(true);
+
+  const filteredActivities = activityItems.filter((item) => {
+    if (activityFilter === 'all') return true;
+    return item.type === activityFilter;
+  });
 
   // Edit / Delete Modals state
   const [editingItem, setEditingItem] = useState<Material | null>(null);
@@ -68,8 +79,8 @@ export function LibraryPage() {
   useEffect(() => {
     if (tabParam === 'uploads' || tabParam === 'manage-uploads') {
       setActiveTabState('Manage Uploads');
-    } else if (tabParam === 'downloaded') {
-      setActiveTabState('Downloaded');
+    } else if (tabParam === 'activity' || tabParam === 'recent-activity') {
+      setActiveTabState('Recent Activity');
     }
   }, [tabParam]);
 
@@ -77,8 +88,8 @@ export function LibraryPage() {
     setActiveTabState(tab);
     if (tab === 'Manage Uploads') {
       setSearchParams({ tab: 'uploads' }, { replace: true });
-    } else if (tab === 'Downloaded') {
-      setSearchParams({ tab: 'downloaded' }, { replace: true });
+    } else if (tab === 'Recent Activity') {
+      setSearchParams({ tab: 'activity' }, { replace: true });
     } else {
       setSearchParams({}, { replace: true });
     }
@@ -91,12 +102,12 @@ export function LibraryPage() {
       if (activeTab === 'Saved') {
         const data = user.id ? await listSavedMaterialsForUI(user.id) : [];
         setItems(data);
-      } else if (activeTab === 'Downloaded') {
-        const data = user.id ? await listDownloadedMaterialsForUI(user.id) : [];
-        setItems(data);
       } else if (activeTab === 'Manage Uploads') {
         const data = user.id ? await listMyUploadsForUI(user.id) : [];
         setItems(data);
+      } else if (activeTab === 'Recent Activity') {
+        const activities = user.id ? await listRecentActivity(user.id) : [];
+        setActivityItems(activities);
       } else {
         setItems([]);
       }
@@ -204,9 +215,96 @@ export function LibraryPage() {
 
       <Tabs tabs={tabs as unknown as string[]} active={activeTab} onChange={(tab) => setActiveTab(tab as (typeof tabs)[number])} />
 
-      <div className="mt-2">
-        <AnimatePresence mode="wait">
-          {!loading && items.length === 0 ? (
+      {activeTab === 'Recent Activity' ? (
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-headline-md text-on-surface">Recent Activity</h2>
+            <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1 border border-card-border text-label-sm">
+              {(['all', 'uploaded', 'saved', 'viewed'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => setActivityFilter(filter)}
+                  className={`capitalize px-3 py-1 rounded-md transition-colors cursor-pointer font-medium ${
+                    activityFilter === filter
+                      ? 'bg-primary text-on-primary shadow-xs'
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-soft'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Card hoverable={false} padded={false}>
+            {loading ? (
+              <div className="py-12 flex justify-center">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : filteredActivities.length > 0 ? (
+              filteredActivities.map((activity) => {
+                let Icon = Eye;
+                let iconBg = 'text-sky-600 bg-sky-500/10 dark:text-sky-400';
+                let labelStyle = 'bg-sky-500/10 text-sky-700 dark:text-sky-300';
+
+                if (activity.type === 'uploaded') {
+                  Icon = Upload;
+                  iconBg = 'text-primary bg-primary/10';
+                  labelStyle = 'bg-primary/10 text-primary';
+                } else if (activity.type === 'saved') {
+                  Icon = Bookmark;
+                  iconBg = 'text-amber-600 bg-amber-500/10 dark:text-amber-400';
+                  labelStyle = 'bg-amber-500/10 text-amber-700 dark:text-amber-300';
+                } else if (activity.type === 'downloaded') {
+                  Icon = Download;
+                  iconBg = 'text-emerald-600 bg-emerald-500/10 dark:text-emerald-400';
+                  labelStyle = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+                }
+
+                const rowContent = (
+                  <div className="flex items-start gap-3 border-b border-card-border px-4 py-3.5 last:border-b-0 hover:bg-surface-soft transition-colors cursor-pointer">
+                    <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
+                      <Icon size={14} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-body-sm text-on-surface-variant">
+                        <span className={`inline-block rounded-md px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider mr-1.5 ${labelStyle}`}>
+                          {activity.label}
+                        </span>
+                        <span className="font-medium text-on-surface hover:underline">{activity.target}</span>
+                        {activity.type === 'uploaded' && activity.status === 'pending' && (
+                          <span className="inline-block align-middle ml-2 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tracking-wider bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 whitespace-nowrap">
+                            Pending Approval
+                          </span>
+                        )}
+                      </p>
+                      <span className="mt-1 block text-label-sm text-outline">{activity.timestamp}</span>
+                    </div>
+                  </div>
+                );
+
+                if (activity.materialId) {
+                  return (
+                    <Link key={activity.id} to={`/materials/${activity.materialId}`} className="block">
+                      {rowContent}
+                    </Link>
+                  );
+                }
+                return <div key={activity.id}>{rowContent}</div>;
+              })
+            ) : (
+              <div className="py-12 text-center">
+                <Clock className="mx-auto h-8 w-8 text-outline mb-2" />
+                <p className="text-body-sm text-on-surface-variant">No recent activity found.</p>
+              </div>
+            )}
+          </Card>
+        </div>
+      ) : (
+        <div className="mt-2">
+          <AnimatePresence mode="wait">
+            {!loading && items.length === 0 ? (
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <EmptyState
                 icon={activeTab === 'Manage Uploads' ? <UploadCloud size={24} /> : <BookOpen size={24} />}
@@ -215,18 +313,14 @@ export function LibraryPage() {
                     ? 'No uploaded materials found'
                     : activeTab === 'Saved'
                       ? 'No saved materials yet'
-                      : activeTab === 'Downloaded'
-                        ? 'No downloaded materials yet'
-                        : `No ${activeTab.toLowerCase()} materials yet`
+                      : 'No materials yet'
                 }
                 description={
                   activeTab === 'Manage Uploads'
                     ? 'You have not uploaded any study materials, past papers, or assignments yet.'
                     : activeTab === 'Saved'
                       ? 'Save study materials by clicking the bookmark icon while browsing.'
-                      : activeTab === 'Downloaded'
-                        ? 'Materials you download for offline studying will appear here.'
-                        : 'Your documents and study resources will appear here.'
+                      : 'Your documents and study resources will appear here.'
                 }
                 actionLabel={activeTab === 'Manage Uploads' ? 'Upload Resource' : 'Browse Home'}
                 onAction={() => navigate(activeTab === 'Manage Uploads' ? '/upload' : '/')}
@@ -324,6 +418,7 @@ export function LibraryPage() {
           )}
         </AnimatePresence>
       </div>
+    )}
 
       {/* Edit Upload Modal */}
       <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Uploaded Material">

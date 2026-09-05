@@ -35,7 +35,7 @@ function newId() {
   return ++_msgId;
 }
 
-import { mockMaterials } from '../data/mockData';
+
 import { generateQuickId } from '../lib/idUtils';
 import { supabase } from '../lib/supabaseClient';
 import {
@@ -49,67 +49,6 @@ import {
   type MessageRequest,
 } from '../services/messageRequestService';
 
-// ─── Initial Data ─────────────────────────────────────────────────────────────
-const INITIAL_USERS = [
-  { id: 'user-sadhik-01', name: 'Sadhik', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80' },
-  { id: 'user-alex-1', name: 'Alex Johnson', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=80' },
-  { id: 'user-david-3', name: 'David Lee', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80' },
-  { id: 'user-emily-4', name: 'Emily Chen', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80' },
-];
-
-const ALL_MOCK_USERS = Array.from(
-  new Map(
-    [
-      ...mockMaterials.map((m) => ({ id: m.uploaderId, name: m.uploaderName, avatar: m.uploaderAvatar })),
-      ...INITIAL_USERS
-    ].map((u) => [
-      u.id,
-      { id: u.id, quickId: generateQuickId(u.id), name: u.name, avatar: u.avatar },
-    ])
-  ).values()
-);
-
-const INITIAL_CHATS: Chat[] = [
-  {
-    id: 1,
-    name: 'Alex Johnson',
-    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=80',
-    lastMessage: 'Did you finish the DBMS assignment?',
-    time: '10:42 AM',
-    unread: 2,
-    messages: [
-      { id: 1, text: 'Hey! How are you?', fromMe: false, time: '10:30 AM', read: true },
-      { id: 2, text: 'I am great, thanks! Working on the DBMS assignment.', fromMe: true, time: '10:31 AM', read: true },
-      { id: 3, text: 'Nice! I found some great materials on Lexon for that topic.', fromMe: true, time: '10:32 AM', read: true },
-      { id: 4, text: 'Did you finish the DBMS assignment?', fromMe: false, time: '10:42 AM', read: false },
-    ],
-  },
-  {
-    id: 3,
-    name: 'David Lee',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
-    lastMessage: 'Thanks for the help!',
-    time: 'Mon',
-    unread: 0,
-    messages: [
-      { id: 7, text: 'Can you explain the network layers again?', fromMe: false, time: 'Mon', read: true },
-      { id: 8, text: 'Sure! OSI has 7 layers...', fromMe: true, time: 'Mon', read: true },
-      { id: 9, text: 'Thanks for the help!', fromMe: false, time: 'Mon', read: true },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Emily Chen',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80',
-    lastMessage: 'Are we meeting at the library?',
-    time: 'Sun',
-    unread: 0,
-    messages: [
-      { id: 10, text: 'Are we meeting at the library?', fromMe: false, time: 'Sun', read: true },
-    ],
-  },
-];
-
 const EMOJIS = ['😊', '😂', '❤️', '👍', '🙏', '🔥', '😎', '🤔', '😅', '🥳', '📚', '✅', '🚀', '💯', '👏', '🎉'];
 
 import { useAuth } from '../hooks/useAuth';
@@ -117,8 +56,9 @@ import { useAuth } from '../hooks/useAuth';
 // ─── Component ────────────────────────────────────────────────────────────────
 export function MessagesPage() {
   const { user } = useAuth();
-  const [chats, setChats] = useState<Chat[]>(INITIAL_CHATS);
-  const [activeChatId, setActiveChatId] = useState<number>(1);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChatId, setActiveChatId] = useState<number | null>(null);
+
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -232,7 +172,8 @@ export function MessagesPage() {
   };
 
   // ── Message Request Handlers ──
-  const handleSendRequest = (targetUser: typeof ALL_MOCK_USERS[0]) => {
+  interface SearchableUser { id: string; quickId: string; name: string; avatar: string; }
+  const handleSendRequest = (targetUser: SearchableUser) => {
     if (!user) return;
 
     // Check if there's already an accepted connection or existing chat
@@ -258,6 +199,7 @@ export function MessagesPage() {
       }
       setSearch('');
       return;
+
     }
 
     // Send a message request
@@ -315,7 +257,8 @@ export function MessagesPage() {
     setPendingRequests(prev => prev.filter(r => r.id !== request.id));
   };
 
-  const handleStartChat = (targetUser: typeof ALL_MOCK_USERS[0]) => {
+  const handleStartChat = (targetUser: SearchableUser) => {
+
     const existingChat = chats.find(c => c.quickId === targetUser.quickId);
     if (existingChat) {
       openChat(existingChat.id);
@@ -395,7 +338,8 @@ export function MessagesPage() {
   const totalUnread = chats.reduce((sum, c) => sum + c.unread, 0);
 
   // ── Determine search result action ──
-  const getSearchResultAction = (targetUser: typeof ALL_MOCK_USERS[0]) => {
+  const getSearchResultAction = (targetUser: SearchableUser) => {
+
     if (!user) return { label: 'Sign in to message', disabled: true, action: () => {}, variant: 'secondary' as const };
 
     // Check if it's the same user
@@ -489,27 +433,11 @@ export function MessagesPage() {
               if (!isNineDigits) {
                 return <p className="p-8 text-center text-body-sm text-on-surface-variant">Enter a valid 9-digit ID.</p>;
               }
-              
-              // Combine ALL_MOCK_USERS, dbUsers, demoUser, and current user for search
-              const allSearchableUsersMap = new Map<string, { id: string; quickId: string; name: string; avatar: string }>();
 
-              ALL_MOCK_USERS.forEach(u => allSearchableUsersMap.set(u.id, u));
+              // Combine dbUsers (from public_profiles) and current user for search
+              const allSearchableUsersMap = new Map<string, SearchableUser>();
+
               dbUsers.forEach(u => allSearchableUsersMap.set(u.id, u));
-
-              try {
-                const rawDemo = localStorage.getItem('quicklearnit.demo_user');
-                if (rawDemo) {
-                  const demo = JSON.parse(rawDemo);
-                  if (demo?.id) {
-                    allSearchableUsersMap.set(demo.id, {
-                      id: demo.id,
-                      quickId: generateQuickId(demo.id),
-                      name: demo.name,
-                      avatar: demo.avatar || demo.coverImage || `https://i.pravatar.cc/160?u=${demo.id}`,
-                    });
-                  }
-                }
-              } catch {}
 
               if (user) {
                 allSearchableUsersMap.set(user.id, {

@@ -1,21 +1,14 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  Award,
-  Bookmark,
-  Calendar,
-  Download,
-  FileText,
-  Heart,
-  Mail,
-  Trophy,
-  University,
-  X,
-} from 'lucide-react';
-import { mockMaterials } from '../../data/mockData';
-import { getLocalDownloadsCount } from '../../services/likesService';
+import { Calendar, Eye, FileText, Heart, University, X, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { generateQuickId, isIdPublic } from '../../lib/idUtils';
+import { supabase } from '../../lib/supabaseClient';
 import { Avatar } from './Avatar';
+import type { Material } from '../../data/types';
+import { toMaterial } from '../../lib/materialMapper';
+import { timeAgo } from '../../lib/timeAgo';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface UploaderProfile {
@@ -25,6 +18,8 @@ export interface UploaderProfile {
   uploaderUniversity?: string;
   uploaderCollege?: string;
   uploaderLocation?: string;
+  uploaderUploadsCount?: number;
+  uploaderJoinedAt?: string;
 }
 
 interface Props {
@@ -32,67 +27,90 @@ interface Props {
   onClose: () => void;
 }
 
-// ── Derive mock stats from mock materials ─────────────────────────────────────
-function getProfileStats(uploaderId: string) {
-  const uploads = mockMaterials.filter((m) => m.uploaderId === uploaderId);
-  const totalDownloads = uploads.reduce((s, m) => s + getLocalDownloadsCount(m.id, m.downloads || 0), 0);
-  const totalSaves = uploads.reduce((s, m) => s + (m.saves || 0), 0);
-  const totalViews = uploads.reduce((s, m) => s + (m.views || 0), 0);
-  return { uploads, totalDownloads, totalSaves, totalViews };
-}
-
-// Derive mock leaderboard rank — rank by total downloads across all uploaders
-function getLeaderboardRank(uploaderId: string): number {
-  const uploaderTotals = new Map<string, number>();
-  for (const m of mockMaterials) {
-    uploaderTotals.set(
-      m.uploaderId,
-      (uploaderTotals.get(m.uploaderId) ?? 0) + (m.downloads || 0),
-    );
-  }
-  const sorted = [...uploaderTotals.entries()].sort((a, b) => b[1] - a[1]);
-  const idx = sorted.findIndex(([id]) => id === uploaderId);
-  return idx === -1 ? 99 : idx + 1;
-}
-
-// Mock email from name
-function mockEmail(name: string) {
-  return name.toLowerCase().replace(/\s+/g, '.') + '@quicklearnit.edu';
-}
-
-// Derive joined month/year
-function getJoinedDate(uploaderId: string) {
-  const uploads = mockMaterials.filter((m) => m.uploaderId === uploaderId);
-  if (uploads.length > 0) {
-    const dates = uploads.map((m) => new Date(m.uploadedAt).getTime());
-    const earliest = new Date(Math.min(...dates));
-    return earliest.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  }
-  return 'August 2024';
-}
-
-// Rank medal color
-function rankStyle(rank: number) {
-  if (rank === 1) return { bg: 'bg-amber-50', text: 'text-amber-600', icon: '🥇' };
-  if (rank === 2) return { bg: 'bg-slate-100', text: 'text-slate-500', icon: '🥈' };
-  if (rank === 3) return { bg: 'bg-orange-50', text: 'text-orange-600', icon: '🥉' };
-  return { bg: 'bg-primary/8', text: 'text-primary', icon: '🏅' };
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 export function UserProfilePanel({ profile, onClose }: Props) {
   const { user } = useAuth();
-  
-  if (!profile) return null;
+  const [totalViews, setTotalViews] = useState<number>(0);
+  const [totalLikes, setTotalLikes] = useState<number>(0);
+  const [totalUploads, setTotalUploads] = useState<number>(0);
+  const [recentUploads, setRecentUploads] = useState<Material[]>([]);
+  const [joinedAt, setJoinedAt] = useState<string | null>(profile?.uploaderJoinedAt || null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
-  const { uploads, totalDownloads, totalSaves } = getProfileStats(profile.uploaderId);
-  const rank = getLeaderboardRank(profile.uploaderId);
-  const { bg: rankBg, text: rankText, icon: rankIcon } = rankStyle(rank);
-  const email = mockEmail(profile.uploaderName);
-  const joinedDate = getJoinedDate(profile.uploaderId);
+  useEffect(() => {
+    if (!profile?.uploaderId) return;
+
+    let isMounted = true;
+    setIsLoadingStats(true);
+
+    const fetchStats = async () => {
+      // Fetch public profile if we don't have joinedAt yet
+      if (!joinedAt) {
+        const { data: prof } = await supabase
+          .from('public_profiles')
+          .select('joined_at')
+          .eq('id', profile.uploaderId)
+          .single();
+        if (prof?.joined_at && isMounted) setJoinedAt(prof.joined_at);
+      }
+
+      // Fetch user's approved materials to calculate total views, likes, and get recent uploads
+      const { data: materials } = await supabase
+        .from('materials')
+        .select('*')
+        .eq('uploader_id', profile.uploaderId)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (materials && isMounted) {
+        setTotalUploads(materials.length);
+        
+        let views = 0;
+        let likes = 0;
+        materials.forEach((m) => {
+          views += m.views_count || 0;
+          likes += m.saves_count || 0;
+        });
+        
+        setTotalViews(views);
+        setTotalLikes(likes);
+
+        // Map top 3 recent uploads to Material objects
+        const recent = materials.slice(0, 3).map(row => toMaterial(row, {
+          id: profile.uploaderId,
+          name: profile.uploaderName,
+          avatar_url: profile.uploaderAvatar,
+          username: null,
+          university: profile.uploaderUniversity || null,
+          college: profile.uploaderCollege || null,
+          branch: null,
+          major: null,
+        }));
+        
+        setRecentUploads(recent);
+      }
+      if (isMounted) setIsLoadingStats(false);
+    };
+
+    fetchStats();
+    return () => { isMounted = false; };
+  }, [profile]);
+
+  // Update joined_at when profile changes if it has one
+  useEffect(() => {
+    if (profile?.uploaderJoinedAt) {
+      setJoinedAt(profile.uploaderJoinedAt);
+    }
+  }, [profile]);
+
+  if (!profile) return null;
 
   const uploaderQuickId = generateQuickId(profile.uploaderId);
   const showId = user?.id === profile.uploaderId || isIdPublic(profile.uploaderId);
+
+  const formattedDate = joinedAt
+    ? new Date(joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : null;
 
   return (
     <AnimatePresence>
@@ -150,109 +168,85 @@ export function UserProfilePanel({ profile, onClose }: Props) {
                   ID: {uploaderQuickId}
                 </p>
               )}
-
-              {/* Leaderboard rank badge */}
-              <div className={`mt-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-label-sm font-bold ${rankBg} ${rankText}`}>
-                <Trophy size={13} />
-                <span>Leaderboard #{rank}</span>
-                <span>{rankIcon}</span>
-              </div>
             </div>
 
             {/* ── Info rows ── */}
             <div className="flex flex-col gap-2 px-6 py-4 border-b border-card-border">
-              <div className="flex items-center gap-3 text-body-sm text-on-surface-variant">
-                <Mail size={15} className="shrink-0 text-primary/70" />
-                <span className="truncate">{email}</span>
-              </div>
-              {profile.uploaderUniversity && (
+              {(profile.uploaderUniversity || profile.uploaderCollege) && (
                 <div className="flex items-start gap-3 text-body-sm text-on-surface-variant">
                   <University size={15} className="shrink-0 mt-0.5 text-primary/70" />
-                  <span>{profile.uploaderUniversity}</span>
+                  <span>{profile.uploaderUniversity || profile.uploaderCollege}</span>
                 </div>
               )}
-              <div className="flex items-center gap-3 text-body-sm text-on-surface-variant">
-                <Calendar size={15} className="shrink-0 text-primary/70" />
-                <span>Member since {joinedDate}</span>
-              </div>
+              {formattedDate && (
+                <div className="flex items-center gap-3 text-body-sm text-on-surface-variant">
+                  <Calendar size={15} className="shrink-0 text-primary/70" />
+                  <span>Member since {formattedDate}</span>
+                </div>
+              )}
             </div>
 
             {/* ── Stats grid ── */}
             <div className="grid grid-cols-3 gap-3 px-6 py-5 border-b border-card-border">
-              {[
-                { label: 'Uploads', value: uploads.length, icon: <FileText size={18} className="text-primary" /> },
-                { label: 'Downloads', value: totalDownloads.toLocaleString(), icon: <Download size={18} className="text-emerald-500" /> },
-                { label: 'Saved Docs', value: totalSaves.toLocaleString(), icon: <Bookmark size={18} className="text-rose-500" /> },
-              ].map(({ label, value, icon }) => (
-                <div
-                  key={label}
-                  title={label}
-                  className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-surface-container-low border border-card-border py-3.5 px-2"
-                >
-                  {icon}
-                  <span className="text-title-md font-bold text-on-surface">{value}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* ── Leaderboard detail ── */}
-            <div className="px-6 py-4 border-b border-card-border">
-              <div className="flex items-center gap-2 mb-3">
-                <Award size={16} className="text-primary" />
-                <h3 className="text-label-md font-bold text-on-surface uppercase tracking-wide">Leaderboard Standing</h3>
+              <div className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-surface-container-low border border-card-border py-3.5 px-2">
+                <FileText size={18} className="text-primary" />
+                <span className="text-title-md font-bold text-on-surface">{isLoadingStats ? '-' : totalUploads}</span>
+                <span className="text-label-xs text-on-surface-variant">Uploads</span>
               </div>
-              <div className={`flex items-center justify-between rounded-2xl border border-card-border px-4 py-3 ${rankBg}`}>
-                <div>
-                  <p className={`text-title-lg font-extrabold ${rankText}`}>#{rank}</p>
-                  <p className="text-label-sm text-on-surface-variant font-medium">Global Rank</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-title-md font-bold text-on-surface">{totalDownloads.toLocaleString()}</p>
-                  <p className="text-label-sm text-on-surface-variant font-medium">Total downloads</p>
-                </div>
-                <span className="text-4xl">{rankIcon}</span>
+              <div className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-surface-container-low border border-card-border py-3.5 px-2">
+                <Eye size={18} className="text-emerald-500" />
+                <span className="text-title-md font-bold text-on-surface">{isLoadingStats ? '-' : totalViews}</span>
+                <span className="text-label-xs text-on-surface-variant">Views</span>
+              </div>
+              <div className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-surface-container-low border border-card-border py-3.5 px-2">
+                <Heart size={18} className="text-rose-500" />
+                <span className="text-title-md font-bold text-on-surface">{isLoadingStats ? '-' : totalLikes}</span>
+                <span className="text-label-xs text-on-surface-variant">Likes</span>
               </div>
             </div>
 
-            {/* ── Recent uploads ── */}
-            {uploads.length > 0 && (
-              <div className="px-6 py-4 flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText size={16} className="text-primary" />
-                  <h3 className="text-label-md font-bold text-on-surface uppercase tracking-wide">Recent Uploads</h3>
+            {/* ── Recent Uploads ── */}
+            <div className="flex-1 px-6 py-6 bg-surface">
+              <h3 className="text-title-sm font-bold text-on-surface mb-4">Recent Uploads</h3>
+              {isLoadingStats ? (
+                <div className="flex justify-center py-8">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
-                <div className="flex flex-col gap-2">
-                  {uploads.slice(0, 4).map((m) => (
-                    <div
-                      key={m.id}
-                      className="flex items-start gap-3 rounded-xl border border-card-border bg-surface-container-low px-3 py-2.5"
+              ) : recentUploads.length > 0 ? (
+                <div className="flex flex-col gap-3 pb-6">
+                  {recentUploads.map(material => (
+                    <Link
+                      key={material.id}
+                      to={`/materials/${material.id}`}
+                      onClick={onClose}
+                      className="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-card-border hover:bg-surface-container-high transition-colors group"
                     >
-                      <div
-                        className={`flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-white text-[9px] font-bold uppercase
-                          ${m.type === 'past-paper' ? 'bg-amber-600' : m.type === 'doc' ? 'bg-blue-600' : 'bg-red-600'}
-                        `}
-                      >
-                        {m.type === 'past-paper' ? 'PAPER' : m.type === 'doc' ? 'DOC' : 'PDF'}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-body-sm font-semibold text-on-surface leading-snug">{m.title}</p>
-                        <p className="text-label-xs text-on-surface-variant mt-0.5 mb-1">{m.subject}</p>
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1 text-label-xs font-semibold text-emerald-500">
-                            <Download size={11} />
-                            {(m.downloads || 0).toLocaleString()}
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-${material.accentColor}-100 text-${material.accentColor}-700`}>
+                          <FileText size={20} />
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-body-md font-semibold text-on-surface truncate">
+                            {material.title}
                           </span>
-                          <span className="flex items-center gap-1 text-label-xs font-semibold text-rose-500">
-                            <Heart size={11} />
-                            {(m.saves || 0).toLocaleString()}
+                          <span className="text-label-sm text-on-surface-variant">
+                            {timeAgo(material.uploadedAt)}
                           </span>
                         </div>
                       </div>
-                    </div>
+                      <ChevronRight size={18} className="text-on-surface-variant group-hover:text-primary transition-colors shrink-0 ml-2" />
+                    </Link>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-center flex flex-col items-center gap-2 py-4">
+                  <FileText size={32} className="text-on-surface-variant/40" />
+                  <p className="text-body-sm text-on-surface-variant">
+                    This user hasn't uploaded any materials yet.
+                  </p>
+                </div>
+              )}
+            </div>
           </motion.aside>
         </>
       )}

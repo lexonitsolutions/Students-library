@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, ClipboardList, FileQuestion, FileText, Image as ImageIcon, UploadCloud, X } from 'lucide-react';
+import { ArrowLeft, ClipboardList, FileQuestion, FileText, Image as ImageIcon, UploadCloud, X, CheckCircle } from 'lucide-react';
 import { AnimatedTextarea } from '../components/ui/AnimatedInput';
 import { type DragEvent, type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { Card } from '../components/ui/Card';
 import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
 import { Input } from '../components/ui/Input';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { courses, engineeringBranches, degreeBranches, subjects } from '../data/mockData';
 import { useAuth } from '../hooks/useAuth';
@@ -59,13 +60,12 @@ function inferMaterialType(selectedType: MaterialType): MaterialType {
 }
 
 export function UploadPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialType = searchParams.get('type');
 
-  const [selectedCategory, setSelectedCategory] = useState<typeof uploadCategories[0] | null>(() => {
-    if (!initialType) return null;
-    return uploadCategories.find((c) => c.id === initialType || c.type === initialType) ?? null;
-  });
+  const selectedCategory = initialType
+    ? uploadCategories.find((c) => c.id === initialType || c.type === initialType) ?? null
+    : null;
 
   const [selectedCourse, setSelectedCourse] = useState<string>('Engineering');
   const activeBranches = selectedCourse === 'Degree' ? degreeBranches : engineeringBranches;
@@ -74,6 +74,7 @@ export function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedPages, setDetectedPages] = useState<number | string>('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -222,9 +223,14 @@ export function UploadPage() {
         pages,
       });
 
-      // Redirect directly to Manage Uploads in Library page
-      sessionStorage.setItem('dashboard_category', selectedCategory.id);
-      navigate('/library?tab=uploads', { replace: true });
+      // Show beautiful success modal instead of ugly native alert
+      setShowSuccessModal(true);
+
+      // Delay redirect directly to Manage Uploads in Library page so user can read the success message
+      setTimeout(() => {
+        sessionStorage.setItem('dashboard_category', selectedCategory.id);
+        navigate('/library?tab=uploads', { replace: true });
+      }, 2500);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : 'Upload failed. Please try again.');
     } finally {
@@ -259,13 +265,13 @@ export function UploadPage() {
             return (
               <motion.div
                 key={cat.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.05 }}
               >
                 <Card
                   hoverable={true}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => setSearchParams({ type: cat.id })}
                   className="flex flex-col gap-4 p-6 cursor-pointer text-left border-2 hover:border-primary transition-all h-full"
                 >
                   <span className={cn('flex h-12 w-12 items-center justify-center rounded-xl border', cat.accent)}>
@@ -303,7 +309,7 @@ export function UploadPage() {
           <button
             type="button"
             onClick={() => {
-              setSelectedCategory(null);
+              setSearchParams({});
               setFiles([]);
             }}
             className="flex items-center gap-1.5 text-label-sm font-semibold text-primary hover:underline cursor-pointer mb-1"
@@ -527,7 +533,7 @@ export function UploadPage() {
             type="button"
             variant="secondary"
             onClick={() => {
-              setSelectedCategory(null);
+              setSearchParams({});
               setFiles([]);
             }}
           >
@@ -543,6 +549,19 @@ export function UploadPage() {
           </Button>
         </div>
       </form>
+
+      {/* Success Modal */}
+      <Modal open={showSuccessModal} onClose={() => setShowSuccessModal(false)}>
+        <div className="flex flex-col items-center justify-center p-6 text-center">
+          <div className="rounded-full bg-emerald-100 p-3 mb-4">
+            <CheckCircle className="h-10 w-10 text-emerald-600" />
+          </div>
+          <h2 className="text-headline-sm font-bold text-on-surface mb-2">Approval Sent!</h2>
+          <p className="text-body-md text-on-surface-variant">
+            Your material has been submitted successfully and is now pending admin approval.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

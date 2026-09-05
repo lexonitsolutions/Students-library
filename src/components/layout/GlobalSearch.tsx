@@ -12,9 +12,9 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatedInput } from '../ui/AnimatedInput';
-import { mockMaterials } from '../../data/mockData';
 import { useAuth } from '../../hooks/useAuth';
 import { useSignupRedirect } from '../../hooks/useSignupRedirect';
+import { listApprovedMaterials } from '../../services/materialsService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type SectionKey = 'Materials' | 'Past Papers' | 'Assignments' | 'Library' | 'Settings' | 'Profile';
@@ -42,27 +42,19 @@ const SECTION_ICONS: Record<SectionKey, React.ReactNode> = {
 
 // Static suggestions for non-material sections
 const STATIC_SUGGESTIONS: Suggestion[] = [
-  // Library
   { id: 'lib-saved', label: 'Saved Materials', subtitle: 'Your bookmarked content', section: 'Library', href: '/library', icon: <BookOpen size={15} /> },
   { id: 'lib-recent', label: 'Recently Viewed', subtitle: 'Materials you opened recently', section: 'Library', href: '/library', icon: <BookOpen size={15} /> },
-  // Settings
   { id: 'set-account', label: 'Account Settings', subtitle: 'Change name, email, avatar', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
   { id: 'set-notif', label: 'Notification Settings', subtitle: 'Manage your alerts', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
   { id: 'set-theme', label: 'Theme & Appearance', subtitle: 'Light, Mid, Dark mode', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
-  // Profile
   { id: 'pro-edit', label: 'Edit Profile', subtitle: 'Update your information', section: 'Profile', href: '/profile', icon: <User size={15} /> },
   { id: 'pro-uploads', label: 'My Uploads', subtitle: 'Files you have uploaded', section: 'Profile', href: '/profile/uploads', icon: <User size={15} /> },
 ];
 
 // ─── Fuzzy Match ─────────────────────────────────────────────────────────────
-/**
- * Simple fuzzy match: checks if all characters of `query` appear in `text` in order.
- * Also handles common phonetic substitutions.
- */
 function normalize(str: string): string {
   return str
     .toLowerCase()
-    // common phonetic swaps
     .replace(/ph/g, 'f')
     .replace(/ck/g, 'k')
     .replace(/qu/g, 'k')
@@ -79,9 +71,7 @@ function fuzzyMatch(text: string, query: string): boolean {
   const t = normalize(text);
   const q = normalize(query.trim());
   if (!q) return false;
-  // substring match (highest confidence)
   if (t.includes(q)) return true;
-  // character-order fuzzy
   let ti = 0;
   for (let qi = 0; qi < q.length; qi++) {
     const found = t.indexOf(q[qi], ti);
@@ -91,42 +81,6 @@ function fuzzyMatch(text: string, query: string): boolean {
   return true;
 }
 
-// ─── Search Logic ─────────────────────────────────────────────────────────────
-function buildSuggestions(query: string): Suggestion[] {
-  if (!query.trim()) return [];
-
-  const results: Suggestion[] = [];
-
-  // Academic content from mockMaterials
-  for (const m of mockMaterials) {
-    const haystack = `${m.title} ${m.subject} ${m.uploaderName}`;
-    if (!fuzzyMatch(haystack, query)) continue;
-
-    const section: SectionKey =
-      m.type === 'past-paper' ? 'Past Papers' :
-      m.type === 'doc' ? 'Assignments' :
-      'Materials';
-
-    results.push({
-      id: m.id,
-      label: m.title,
-      subtitle: `${m.subject} · ${m.semester}`,
-      section,
-      href: `/materials/${m.id}`,
-      icon: SECTION_ICONS[section],
-    });
-  }
-
-  // Static sections
-  for (const s of STATIC_SUGGESTIONS) {
-    if (fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, query)) {
-      results.push(s);
-    }
-  }
-
-  return results;
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 export function GlobalSearch() {
   const { isExploring } = useAuth();
@@ -134,11 +88,49 @@ export function GlobalSearch() {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const suggestions = buildSuggestions(query);
+  // Debounced real DB search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const rows = await listApprovedMaterials({ search: query.trim(), limit: 20 });
+        const dbSuggestions: Suggestion[] = rows.map((m) => {
+          const section: SectionKey =
+            m.type === 'past-paper' ? 'Past Papers' :
+            m.type === 'doc' ? 'Assignments' :
+            'Materials';
+          return {
+            id: m.id,
+            label: m.title,
+            subtitle: `${m.subject}${m.semester ? ' · ' + m.semester : ''}`,
+            section,
+            href: `/materials/${m.id}`,
+            icon: SECTION_ICONS[section],
+          };
+        });
+        const staticMatches = STATIC_SUGGESTIONS.filter((s) =>
+          fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, query)
+        );
+        setSuggestions([...dbSuggestions, ...staticMatches]);
+      } catch {
+        const staticMatches = STATIC_SUGGESTIONS.filter((s) =>
+          fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, query)
+        );
+        setSuggestions(staticMatches);
+      }
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
 
   // Group by section in priority order
   const grouped = SECTION_ORDER.reduce<Record<SectionKey, Suggestion[]>>((acc, key) => {

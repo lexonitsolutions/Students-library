@@ -12,7 +12,7 @@ import { categories } from '../data/mockData';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import * as bookmarksService from '../services/bookmarksService';
-import { listApprovedMaterialsForUI, getFilteredMockMaterials } from '../services/materialsService';
+import { listApprovedMaterialsForUI } from '../services/materialsService';
 import { categoryIcon } from '../lib/materialIcons';
 import { cn } from '../lib/cn';
 
@@ -22,8 +22,10 @@ export function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedProfile, setSelectedProfile] = useState<UploaderProfile | null>(null);
 
-  // Initialize with mock materials immediately so data is always present
-  const [materials, setMaterials] = useState<Material[]>(() => getFilteredMockMaterials({}));
+  // Start with empty array; data is loaded from DB
+  const [materials, setMaterials] = useState<Material[]>([]);
+
+
 
   // Restore category from URL search params (?category=...) or sessionStorage
   const [selectedCategory, setSelectedCategoryState] = useState<string>(() => {
@@ -223,16 +225,21 @@ export function DashboardPage() {
             title={
               searchQuery
                 ? `No matches in ${selectedLabel.toLowerCase()}`
-                : `No ${selectedLabel.toLowerCase()} found`
+                : loading
+                  ? `Loading ${selectedLabel.toLowerCase()}…`
+                  : `No ${selectedLabel.toLowerCase()} available yet`
             }
             description={
               searchQuery
                 ? `No items matching "${searchQuery}" found in ${selectedLabel.toLowerCase()}.`
-                : undefined
+                : loading
+                  ? undefined
+                  : `No materials have been shared yet. Be the first to upload!`
             }
-            actionLabel="Share Material"
-            onAction={() => navigate('/upload')}
+            actionLabel={!loading && !searchQuery ? "Upload Material" : undefined}
+            onAction={!loading && !searchQuery ? () => navigate(`/upload?type=${selectedCategory}`) : undefined}
           />
+
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredMaterials.map((material) => (

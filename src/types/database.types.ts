@@ -35,6 +35,7 @@ export interface PublicProfileRow {
   college: string | null;
   branch: string | null;
   major: string | null;
+  joined_at?: string;
 }
 
 export interface ProfileStatsRow {

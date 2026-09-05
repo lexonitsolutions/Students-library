@@ -24,6 +24,7 @@ function toUser(profile: ProfileRow, stats: ProfileStatsRow | null): User {
     year: profile.year ?? undefined,
     semester: profile.semester ?? undefined,
     role: profile.role,
+    createdAt: profile.created_at,
     stats: {
       uploads: stats?.uploads_count ?? 0,
       downloads: stats?.downloads_count ?? 0,
@@ -70,6 +71,7 @@ function toUserUpdate(fields: Partial<User>) {
     ...(fields.name !== undefined && { name: fields.name }),
     ...(fields.username !== undefined && { username: fields.username }),
     ...(fields.avatar !== undefined && { avatar_url: fields.avatar }),
+    ...(fields.coverImage !== undefined && { cover_image: fields.coverImage }),
     ...(fields.university !== undefined && { university: fields.university }),
     ...(fields.major !== undefined && { major: fields.major }),
     ...(fields.college !== undefined && { college: fields.college }),
@@ -78,33 +80,6 @@ function toUserUpdate(fields: Partial<User>) {
     ...(fields.semester !== undefined && { semester: fields.semester }),
   };
 }
-
-const DEMO_USER_KEY = 'quicklearnit.demo_user';
-
-const MOCK_CREDENTIAL_USERS: Record<string, { password: string; user: User }> = {
-  'sadhik@gmail.com': {
-    password: 'sadhik',
-    user: {
-      id: 'user-sadhik-01',
-      name: 'Sadhik',
-      username: 'sadhik',
-      email: 'sadhik@gmail.com',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80',
-      university: 'Stanford University',
-      major: 'Computer Science',
-      college: 'School of Engineering',
-      branch: 'Artificial Intelligence',
-      year: '3rd Year',
-      semester: 'Semester 5',
-      role: 'student',
-      stats: {
-        uploads: 15,
-        downloads: 42,
-        saved: 18,
-      },
-    },
-  },
-};
 
 function isSessionVerified(session: Session | null): boolean {
   if (!session) return false;
@@ -120,14 +95,6 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [stats, setStats] = useState<ProfileStatsRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasOnboarded, setHasOnboarded] = useState(() => localStorage.getItem(ONBOARDED_KEY) === 'true');
-  const [demoUser, setDemoUser] = useState<User | null>(() => {
-    try {
-      const raw = localStorage.getItem(DEMO_USER_KEY);
-      return raw ? (JSON.parse(raw) as User) : null;
-    } catch {
-      return null;
-    }
-  });
 
   const [isExploring, setIsExploring] = useState(() => localStorage.getItem(EXPLORING_KEY) === 'true');
   const [guestUser, setGuestUser] = useState<User | null>(() => {
@@ -210,18 +177,6 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, [stopExploring]);
 
   const signIn = useCallback(async (params: authService.SignInParams) => {
-    const normalizedEmail = params.email.trim().toLowerCase();
-    const matchedCredential = MOCK_CREDENTIAL_USERS[normalizedEmail];
-
-    if (matchedCredential && matchedCredential.password === params.password) {
-      localStorage.setItem(DEMO_USER_KEY, JSON.stringify(matchedCredential.user));
-      localStorage.setItem(ONBOARDED_KEY, 'true');
-      setHasOnboarded(true);
-      setDemoUser(matchedCredential.user);
-      stopExploring();
-      return { error: null };
-    }
-
     const { error } = await authService.signInWithPassword(params);
     if (!error) {
       localStorage.setItem(ONBOARDED_KEY, 'true');
@@ -272,12 +227,10 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, [stopExploring]);
 
   const signOut = useCallback(async () => {
-    localStorage.removeItem(DEMO_USER_KEY);
     localStorage.removeItem(ONBOARDED_KEY);
     localStorage.removeItem(EXPLORING_KEY);
     localStorage.removeItem(GUEST_USER_KEY);
     setHasOnboarded(false);
-    setDemoUser(null);
     setIsExploring(false);
     setGuestUser(null);
     sessionStorage.removeItem(WORKSPACE_KEY);
@@ -318,17 +271,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const updateUser = useCallback(
     async (fields: Partial<User>) => {
-      if (demoUser) {
-        const updated = { ...demoUser, ...fields };
-        setDemoUser(updated);
-        localStorage.setItem(DEMO_USER_KEY, JSON.stringify(updated));
-        return;
-      }
       if (!session) return;
       const updated = await profileService.updateProfile(session.user.id, toUserUpdate(fields));
       setProfile(updated);
     },
-    [demoUser, session],
+    [session],
   );
 
   const refreshUser = useCallback(async () => {
@@ -338,12 +285,6 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const deleteAccount = useCallback(
     async (password: string) => {
-      if (demoUser) {
-        localStorage.removeItem(DEMO_USER_KEY);
-        setDemoUser(null);
-        return { error: null };
-      }
-
       if (!session?.user.email) return { error: 'Not signed in.' };
 
       if (password) {
@@ -360,18 +301,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       await authService.signOut();
       return { error: null };
     },
-    [demoUser, session],
+    [session],
   );
 
   const user = useMemo<User | null>(
     () => {
-      if (demoUser) {
-        return {
-          ...demoUser,
-          quickId: generateQuickId(demoUser.id),
-          isIdPublic: isIdPublic(demoUser.id),
-        };
-      }
       if (profile) {
         return toUser(profile, stats);
       }
@@ -384,14 +318,14 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       }
       return null;
     },
-    [guestUser, isExploring, demoUser, profile, stats],
+    [guestUser, isExploring, profile, stats],
   );
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       session,
-      isAuthenticated: (isSessionVerified(session) && profile !== null) || demoUser !== null || (guestUser !== null && isExploring),
+      isAuthenticated: (isSessionVerified(session) && profile !== null) || (guestUser !== null && isExploring),
       isExploring,
       hasOnboarded,
       loading,
@@ -414,7 +348,6 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     [
       user,
       session,
-      demoUser,
       guestUser,
       isExploring,
       hasOnboarded,

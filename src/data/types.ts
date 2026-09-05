@@ -16,6 +16,7 @@ export interface Material {
   readonly uploaderCollege?: string;
   readonly uploaderLocation?: string;
   readonly uploaderUploadsCount?: number;
+  readonly uploaderJoinedAt?: string;
   readonly uploadedAt: string;
   readonly views: number;
   readonly downloads: number;
@@ -49,6 +50,7 @@ export interface User {
   readonly year?: string;
   readonly semester?: string;
   readonly role: 'student' | 'admin';
+  readonly createdAt?: string;
   readonly stats: {
     readonly uploads: number;
     readonly downloads: number;

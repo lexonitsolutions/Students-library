@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bookmark, BookOpen, Camera, ChevronRight, Download, Edit, Lock, School, Upload, User } from 'lucide-react';
+import { Bookmark, BookOpen, Calendar, Camera, ChevronRight, Download, Edit, Eye, Lock, School, Upload, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
@@ -51,7 +51,7 @@ export function ProfilePage() {
 
   const [uploads, setUploads] = useState<Material[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
-  const [activityFilter, setActivityFilter] = useState<'all' | 'uploaded' | 'saved' | 'downloaded'>('all');
+  const [activityFilter, setActivityFilter] = useState<'all' | 'uploaded' | 'saved' | 'viewed' | 'downloaded'>('all');
 
   const filteredActivities = activityItems.filter((item) => {
     if (activityFilter === 'all') return true;
@@ -140,6 +140,16 @@ export function ProfilePage() {
     setIsAcademicModalOpen(false);
   };
 
+  const memberSince = (() => {
+    if (user?.createdAt) {
+      const d = new Date(user.createdAt);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+    }
+    return new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  })();
+
   return (
     <div className="flex flex-col gap-6">
       <Card hoverable={false} className="relative flex flex-col items-center pt-0 text-center overflow-hidden px-0">
@@ -164,17 +174,24 @@ export function ProfilePage() {
             <p className="mt-0.5 text-body-sm text-on-surface-variant">@{user.username}</p>
           )}
           <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
-              <School size={14} /> {user.college || user.university}
-            </span>
-            <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
-              {user.branch || user.major}
-            </span>
+            {(user.college || user.university) && (
+              <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
+                <School size={14} /> {user.college || user.university}
+              </span>
+            )}
+            {(user.branch || user.major) && (
+              <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
+                {user.branch || user.major}
+              </span>
+            )}
             {(user.year || user.semester) && (
               <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
                 <BookOpen size={14} /> {[user.year, user.semester].filter(Boolean).join(' • ')}
               </span>
             )}
+            <span className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface shadow-sm transition-transform hover:scale-105">
+              <Calendar size={14} className="text-primary" /> Since {memberSince}
+            </span>
           </div>
 
           <div className="mt-5 grid w-full max-w-sm grid-cols-3 gap-4 rounded-xl bg-surface-container-low px-4 py-4 text-on-surface shadow-sm">
@@ -271,7 +288,7 @@ export function ProfilePage() {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-headline-md text-on-surface">Recent Activity</h2>
               <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1 border border-card-border text-label-sm">
-                {(['all', 'uploaded', 'saved', 'downloaded'] as const).map((filter) => (
+                {(['all', 'uploaded', 'saved', 'viewed'] as const).map((filter) => (
                   <button
                     key={filter}
                     type="button"
@@ -303,6 +320,10 @@ export function ProfilePage() {
                     Icon = Bookmark;
                     iconBg = 'text-amber-600 bg-amber-500/10 dark:text-amber-400';
                     labelStyle = 'bg-amber-500/10 text-amber-700 dark:text-amber-300';
+                  } else if (activity.type === 'viewed') {
+                    Icon = Eye;
+                    iconBg = 'text-sky-600 bg-sky-500/10 dark:text-sky-400';
+                    labelStyle = 'bg-sky-500/10 text-sky-700 dark:text-sky-300';
                   }
 
                   const rowContent = (
