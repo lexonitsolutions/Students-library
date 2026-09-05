@@ -3,7 +3,7 @@ import {
   Bell,
   ChevronRight,
   CircleHelp,
-  Download,
+  Clock,
   Info,
   LogOut,
   Moon,
@@ -42,7 +42,7 @@ const settingsSections = [
     heading: 'Preferences',
     items: [
       { label: 'Notifications', icon: Bell },
-      { label: 'Downloads', icon: Download },
+      { label: 'Recent Activity', icon: Clock },
     ],
   },
   {
@@ -146,8 +146,8 @@ export function SettingsPage() {
                 key={item.label}
                 type="button"
                 onClick={() => {
-                  if (item.label === 'Downloads') {
-                    navigate('/library?tab=downloaded');
+                  if (item.label === 'Recent Activity') {
+                    navigate('/library?tab=activity');
                   } else if (item.label === 'Account') {
                     if (isExploring) {
                       openSignupModal('/settings');

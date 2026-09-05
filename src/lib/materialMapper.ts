@@ -49,6 +49,7 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     uploaderCollege: finalCollege || 'School of Academic Studies',
     uploaderLocation: finalLocation || 'Cambridge, MA',
     uploaderUploadsCount: finalUploadsCount,
+    uploaderJoinedAt: uploader?.joined_at,
     uploadedAt: row.created_at,
     views: row.views_count,
     downloads: row.downloads_count,

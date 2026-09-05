@@ -26,7 +26,6 @@ import * as bookmarksService from '../services/bookmarksService';
 import { toggleLike, getLocalLikesCount, getLocalStorageLikedIds, incrementLocalSharesCount, incrementLocalDownloadsCount } from '../services/likesService';
 import { getMaterialForUI, incrementViews, recordDownload } from '../services/materialsService';
 import { reportMaterial } from '../services/reportsService';
-import { mockMaterials } from '../data/mockData';
 
 export function MaterialDetailsPage() {
   const { id } = useParams();
@@ -53,13 +52,6 @@ export function MaterialDetailsPage() {
     if (!id) return;
     let active = true;
 
-    // Instant synchronous render from mock database
-    const mock = mockMaterials.find((m) => m.id === id);
-    if (mock && active) {
-      setMaterial(mock);
-      setLazyPages(mock.pages);
-    }
-
     (async () => {
       try {
         const savedSet = user && !isExploring ? await bookmarksService.listBookmarkedMaterialIds(user.id) : undefined;
@@ -67,9 +59,6 @@ export function MaterialDetailsPage() {
 
         if (active) {
           setIsSaved(itemIsSaved);
-          if (mock) {
-            setMaterial({ ...mock, isSaved: itemIsSaved });
-          }
         }
 
         const data = await getMaterialForUI(id, savedSet || (user && !isExploring ? user.id : undefined));
@@ -79,6 +68,8 @@ export function MaterialDetailsPage() {
           setIsSaved(!!data.isSaved);
           setLikesCount(getLocalLikesCount(data.id));
           if (user && !isExploring) setIsLiked(getLocalStorageLikedIds(user.id).has(data.id));
+
+
 
           if (!data.pages && data.fileUrl) {
             const target = data.filePath || data.fileUrl || '';
@@ -109,10 +100,19 @@ export function MaterialDetailsPage() {
   }, [id, user?.id, isExploring]);
 
   useEffect(() => {
-    if (id && !isExploring) {
-      incrementViews(id).catch(() => {});
-    }
-  }, [id, isExploring]);
+    if (!id || !material || isExploring) return;
+
+    // Do not count the uploader's own views
+    if (user?.id && material.uploaderId === user.id) return;
+
+    // Do not count multiple times in the same browser session
+    const sessionKey = `viewed_material_${id}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+
+    sessionStorage.setItem(sessionKey, '1');
+    incrementViews(id).catch(() => {});
+  }, [id, material?.uploaderId, user?.id, isExploring]);
+
 
   const toggleSave = async () => {
     if (isExploring) {
