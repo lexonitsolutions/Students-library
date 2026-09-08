@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Material } from '../../data/types';
 import { cn } from '../../lib/cn';
+import { cleanDocumentTitle } from '../../lib/materialMapper';
 import { Avatar } from './Avatar';
 import { getLocalLikesCount, getLocalSharesCount, getLocalDownloadsCount } from '../../services/likesService';
 import { useAuth } from '../../hooks/useAuth';
@@ -101,7 +102,7 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
   return (
     <div
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-[20px] border border-card-border bg-surface-container-high shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md',
+        'group relative flex flex-col overflow-hidden rounded-[20px] border border-card-border bg-surface-container shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-primary/30',
         className
       )}
     >
@@ -109,9 +110,9 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
       <Link
         to={`/materials/${material.id}`}
         onClick={handleDocumentClick}
-        className="relative flex h-52 w-full flex-col items-center justify-center overflow-hidden border-b border-card-border bg-slate-100 dark:bg-slate-950 p-2.5 select-none cursor-pointer"
+        className="relative flex h-52 w-full flex-col items-center justify-center overflow-hidden border-b border-card-border bg-surface-container-low p-2.5 select-none cursor-pointer"
       >
-        <div className="relative flex h-full w-full max-w-[98%] flex-col overflow-hidden rounded-t-lg border border-slate-300 dark:border-slate-800 bg-white shadow-xs">
+        <div className="relative flex h-full w-full max-w-[98%] flex-col overflow-hidden rounded-t-lg border border-card-border bg-surface shadow-xs">
           {actualImageSrc ? (
             <img
               src={actualImageSrc}
@@ -157,7 +158,7 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
             <div className="flex h-full w-full flex-col bg-white p-3 font-sans text-slate-900 overflow-hidden">
               <div className="border-b border-slate-300 pb-1.5 mb-2 text-center">
                 <h4 className="font-extrabold text-[12px] leading-tight text-slate-900 line-clamp-2">
-                  {material.title}
+                  {cleanDocumentTitle(material.title)}
                 </h4>
                 <p className="text-[9px] text-slate-500 font-medium line-clamp-1 mt-0.5">
                   {material.subject} &bull; {material.semester}
@@ -212,7 +213,7 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
           <div className="min-w-0 flex-1">
             <Link to={`/materials/${material.id}`} onClick={handleDocumentClick}>
               <h3 className="line-clamp-2 text-body-md font-bold leading-snug text-on-surface hover:text-primary transition-colors">
-                {material.title}
+                {cleanDocumentTitle(material.title)}
               </h3>
             </Link>
             <p className="mt-1 text-label-sm font-medium text-on-surface-variant">

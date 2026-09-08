@@ -9,6 +9,7 @@ import type { ProfileRow, ProfileStatsRow } from '../types/database.types';
 import { generateQuickId, isIdPublic } from '../lib/idUtils';
 
 function toUser(profile: ProfileRow, stats: ProfileStatsRow | null): User {
+  const localCover = typeof window !== 'undefined' ? localStorage.getItem(`quicklearnit.cover_${profile.id}`) : null;
   return {
     id: profile.id,
     quickId: generateQuickId(profile.id),
@@ -17,6 +18,7 @@ function toUser(profile: ProfileRow, stats: ProfileStatsRow | null): User {
     username: profile.username ?? undefined,
     email: profile.email ?? '',
     avatar: profile.avatar_url ?? `https://i.pravatar.cc/160?u=${profile.id}`,
+    coverImage: profile.cover_image || localCover || undefined,
     university: profile.university ?? '',
     major: profile.major ?? '',
     college: profile.college ?? undefined,
@@ -68,10 +70,10 @@ const GUEST_USER_KEY = 'quicklearnit.guest_user';
 
 function toUserUpdate(fields: Partial<User>) {
   return {
-    ...(fields.name !== undefined && { name: fields.name }),
-    ...(fields.username !== undefined && { username: fields.username }),
+    ...(fields.name !== undefined && { name: fields.name.trim() }),
+    ...(fields.username !== undefined && { username: fields.username.trim() || null }),
     ...(fields.avatar !== undefined && { avatar_url: fields.avatar }),
-    ...(fields.coverImage !== undefined && { cover_image: fields.coverImage }),
+    ...(fields.coverImage !== undefined && { cover_image: fields.coverImage || null }),
     ...(fields.university !== undefined && { university: fields.university }),
     ...(fields.major !== undefined && { major: fields.major }),
     ...(fields.college !== undefined && { college: fields.college }),
@@ -271,11 +273,32 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const updateUser = useCallback(
     async (fields: Partial<User>) => {
-      if (!session) return;
+      const activeId = session?.user?.id ?? guestUser?.id ?? 'guest';
+      if (fields.coverImage !== undefined && typeof window !== 'undefined') {
+        if (fields.coverImage) {
+          localStorage.setItem(`quicklearnit.cover_${activeId}`, fields.coverImage);
+        } else {
+          localStorage.removeItem(`quicklearnit.cover_${activeId}`);
+        }
+      }
+
+      if (!session) {
+        if (guestUser) {
+          const updatedGuest: User = {
+            ...guestUser,
+            ...fields,
+            coverImage: fields.coverImage !== undefined ? fields.coverImage : guestUser.coverImage,
+          };
+          setGuestUser(updatedGuest);
+          localStorage.setItem(GUEST_USER_KEY, JSON.stringify(updatedGuest));
+        }
+        return;
+      }
+
       const updated = await profileService.updateProfile(session.user.id, toUserUpdate(fields));
       setProfile(updated);
     },
-    [session],
+    [session, guestUser],
   );
 
   const refreshUser = useCallback(async () => {

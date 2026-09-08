@@ -15,6 +15,7 @@ import {
   UploadCloud,
   XCircle,
   Check,
+  AlertTriangle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AnimatedTextarea } from '../components/ui/AnimatedInput';
@@ -190,15 +191,15 @@ export function LibraryPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg font-bold">Your Library</h1>
-          <p className="mt-1 text-body-sm text-on-surface-variant">Manage and organize your study materials.</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">Your Library</h1>
+          <p className="mt-1 text-body-md font-medium text-on-surface-variant">Manage and organize your study materials.</p>
         </div>
         <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1">
           <IconButton
             label="Grid view"
             size={32}
             onClick={() => setView('grid')}
-            className={view === 'grid' ? 'bg-white shadow-sm' : undefined}
+            className={view === 'grid' ? 'bg-surface-container text-on-surface shadow-xs' : undefined}
           >
             <Grid2x2 size={16} />
           </IconButton>
@@ -206,7 +207,7 @@ export function LibraryPage() {
             label="List view"
             size={32}
             onClick={() => setView('list')}
-            className={view === 'list' ? 'bg-white shadow-sm' : undefined}
+            className={view === 'list' ? 'bg-surface-container text-on-surface shadow-xs' : undefined}
           >
             <List size={16} />
           </IconButton>
@@ -218,7 +219,7 @@ export function LibraryPage() {
       {activeTab === 'Recent Activity' ? (
         <div className="mt-4 flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-headline-md text-on-surface">Recent Activity</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">Recent Activity</h2>
             <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1 border border-card-border text-label-sm">
               {(['all', 'uploaded', 'saved', 'viewed'] as const).map((filter) => (
                 <button
@@ -369,46 +370,59 @@ export function LibraryPage() {
 
                     {/* Manage Uploads Specific Action Toolbar */}
                     {isUserUpload && (
-                      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-card-border pt-3">
-                        {item.status === 'pending' ? (
-                          <span className="flex items-center gap-1.5 text-label-sm font-semibold text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 px-2.5 py-1 rounded-full">
-                            <Clock size={13} />
-                            <span>Under Admin Approval</span>
-                          </span>
-                        ) : item.status === 'rejected' ? (
-                          <span className="flex items-center gap-1.5 text-label-sm font-semibold text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 px-2.5 py-1 rounded-full">
-                            <XCircle size={13} />
-                            <span>Rejected</span>
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-label-sm font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-1 rounded-full">
-                            <CheckCircle2 size={13} />
-                            <span>Approved & Published</span>
-                          </span>
-                        )}
+                      <div className="mt-4 flex flex-col gap-2.5 border-t border-card-border pt-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          {item.status === 'pending' ? (
+                            <span className="flex items-center gap-1.5 text-label-sm font-semibold text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 px-2.5 py-1 rounded-full">
+                              <Clock size={13} />
+                              <span>Under Admin Approval</span>
+                            </span>
+                          ) : item.status === 'rejected' ? (
+                            <span className="flex items-center gap-1.5 text-label-sm font-semibold text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 px-2.5 py-1 rounded-full">
+                              <XCircle size={13} />
+                              <span>Rejected</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-label-sm font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-1 rounded-full">
+                              <CheckCircle2 size={13} />
+                              <span>Approved & Published</span>
+                            </span>
+                          )}
 
-                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            icon={<Edit3 size={14} />}
-                            onClick={(e) => handleOpenEdit(item, e)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="text-error hover:bg-error/10 hover:text-error cursor-pointer"
-                            icon={<Trash2 size={14} />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeletingItem(item);
-                            }}
-                          >
-                            Delete
-                          </Button>
+                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<Edit3 size={14} />}
+                              onClick={(e) => handleOpenEdit(item, e)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="text-error hover:bg-error/10 hover:text-error cursor-pointer"
+                              icon={<Trash2 size={14} />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingItem(item);
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         </div>
+
+                        {/* Rejection Reason Feedback for Student */}
+                        {item.status === 'rejected' && (
+                          <div className="flex items-start gap-2 rounded-xl bg-rose-500/10 border border-rose-500/25 p-2.5 text-body-xs text-rose-700 dark:text-rose-300">
+                            <AlertTriangle size={15} className="shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                            <div className="min-w-0 flex-1">
+                              <span className="font-bold">Reason for rejection: </span>
+                              <span>{item.rejectionReason || 'Content did not meet our academic guidelines. Please review and edit your file to re-submit.'}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </Card>
@@ -436,7 +450,7 @@ export function LibraryPage() {
               rows={3}
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              className="w-full resize-none rounded-lg border border-transparent bg-surface-soft px-4 py-3 text-body-md text-on-surface focus:bg-white focus:border-primary-container focus:outline-none"
+              className="w-full resize-none rounded-lg border border-transparent bg-surface-soft px-4 py-3 text-body-md text-on-surface focus:bg-surface-container focus:border-primary-container focus:outline-none"
             />
           </div>
 

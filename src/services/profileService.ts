@@ -68,7 +68,32 @@ export async function getProfileStats(userId: string): Promise<ProfileStatsRow> 
 
 export async function updateProfile(userId: string, fields: ProfileUpdate): Promise<ProfileRow> {
   const { data, error } = await supabase.from('profiles').update(fields).eq('id', userId).select().single();
-  if (error) throw error;
+  if (error) {
+    // If Supabase database has not run the cover_image migration yet (PGRST204)
+    if (fields.cover_image !== undefined && (error.code === 'PGRST204' || error.message?.toLowerCase().includes('cover_image'))) {
+      const { cover_image, ...restFields } = fields;
+      if (Object.keys(restFields).length > 0) {
+        const { data: retryData, error: retryError } = await supabase
+          .from('profiles')
+          .update(restFields)
+          .eq('id', userId)
+          .select()
+          .single();
+        if (retryError) throw retryError;
+        return {
+          ...retryData,
+          cover_image: cover_image ?? null,
+        };
+      } else {
+        const existing = await getProfile(userId);
+        return {
+          ...existing,
+          cover_image: cover_image ?? null,
+        };
+      }
+    }
+    throw error;
+  }
   return data;
 }
 

@@ -1,4 +1,5 @@
-import { ArrowLeftRight, LayoutDashboard, LogOut, Plus, ShieldCheck, Users } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { GraduationCap, LayoutDashboard, Library, LogOut, Shield, Users } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -10,31 +11,22 @@ import { navItems } from './navConfig';
 
 const adminNavItems = [
   { label: 'Dashboard', to: '/admin', icon: LayoutDashboard },
+  { label: 'Documents', to: '/admin/documents', icon: Library },
+  { label: 'Students', to: '/admin/students', icon: GraduationCap },
   { label: 'Manage Admins', to: '/admin/admins', icon: Users },
 ];
 
 export function Sidebar() {
   const { user, signOut, isExploring } = useAuth();
-  const { workspace, chooseWorkspace } = useWorkspace();
+  const { chooseWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const isAdmin = user?.role === 'admin';
-  const inAdminWorkspace = isAdmin && workspace !== 'student';
 
   const visibleNavItems = isExploring
     ? navItems.filter((item) => ['/', '/leaderboard', '/upload', '/library'].includes(item.to))
     : navItems;
-
-  const handleSwitchWorkspace = () => {
-    if (inAdminWorkspace) {
-      chooseWorkspace('student');
-      navigate('/');
-    } else {
-      chooseWorkspace('admin');
-      navigate('/admin');
-    }
-  };
 
   const handleConfirmLogout = async () => {
     await signOut();
@@ -43,169 +35,200 @@ export function Sidebar() {
 
   return (
     <>
-      {/* ── Collapsed placeholder: always occupies 64px in the layout flow ── */}
-      <div className="hidden lg:block shrink-0 w-16" />
+      {/* ── Collapsed placeholder: always occupies 72px in layout flow so main content doesn't jump ── */}
+      <div className="hidden lg:block shrink-0 w-[72px]" />
 
-      {/* ── Actual sidebar: absolute so it overlays content when expanded ── */}
+      {/* ── Actual sidebar: fixed icons with smooth Instagram-style slide expansion on hover ── */}
       <aside
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
         className={cn(
-          // Base / positioning
-          'hidden lg:flex absolute left-0 top-0 z-20 h-full flex-col',
-          'border-r border-card-border medium-liquid-glass',
-          'overflow-hidden transition-[width] duration-250 ease-in-out',
-          // Width driven by expanded state
-          expanded ? 'w-64 shadow-lg' : 'w-16',
+          'hidden lg:flex absolute left-0 top-0 z-30 h-full flex-col',
+          'border-r border-card-border bg-surface-container-low/95 backdrop-blur-md',
+          'transition-[width] duration-300 ease-out select-none',
+          expanded ? 'w-64 shadow-2xl ring-1 ring-black/5' : 'w-[72px]',
         )}
       >
-        {/* ── Upload button ── */}
-        <div className="shrink-0 px-2 pt-4 pb-2">
-          <button
-            type="button"
-            onClick={() => navigate('/upload')}
-              className={cn(
-                'flex h-10 items-center rounded-lg bg-primary text-on-primary',
-                'transition-all duration-200 hover:bg-primary-container cursor-pointer shadow-xs',
-                expanded ? 'w-full justify-start gap-2 px-3' : 'w-10 justify-center mx-auto',
-              )}
-            >
-              <Plus size={18} className="shrink-0" />
-              <span
-                className={cn(
-                  'whitespace-nowrap text-body-lg font-semibold overflow-hidden transition-all duration-200',
-                  expanded ? 'opacity-100 max-w-[120px]' : 'opacity-0 max-w-0',
-                )}
-              >
-                Upload
-              </span>
-            </button>
-          </div>
-
-        {/* ── Admin section ── */}
-        {isAdmin && (
-          <div className="px-2 mb-1">
-            {expanded && (
-              <p className="px-1 py-1 text-label-xs font-bold uppercase tracking-wider text-on-surface-variant/60">
-                Admin
-              </p>
-            )}
-            <nav className="flex flex-col gap-0.5">
-              {adminNavItems.map((item) => (
-                <NavLink
-                  key={item.label}
-                  to={item.to}
-                  title={!expanded ? item.label : undefined}
-                  onClick={() => chooseWorkspace('admin')}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center rounded-lg transition-all duration-150 h-10',
-                      expanded ? 'gap-3 px-3' : 'justify-center w-10 mx-auto',
-                      isActive
-                        ? 'bg-primary/10 text-primary font-semibold'
-                        : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
-                    )
-                  }
+        {/* Navigation scrollable container */}
+        <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto px-2.5 py-3">
+          {/* Admin section */}
+          {isAdmin && (
+            <div className="mb-2">
+              {/* Section Header with fixed height - ZERO vertical shift */}
+              <div className="h-6 px-1.5 flex items-center mb-1 overflow-hidden">
+                <div
+                  className={cn(
+                    'flex items-center gap-1.5 transition-all duration-300',
+                    expanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none',
+                  )}
                 >
-                  <item.icon size={20} className="shrink-0" />
-                  <span
-                    className={cn(
-                      'whitespace-nowrap text-body-lg overflow-hidden transition-all duration-200',
-                      expanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0',
-                    )}
-                  >
-                    {item.label}
+                  <Shield size={12} className="text-primary shrink-0" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                    Admin
                   </span>
-                </NavLink>
-              ))}
-            </nav>
+                </div>
+              </div>
 
-            {/* Switch workspace */}
-            <button
-              type="button"
-              onClick={handleSwitchWorkspace}
-              title={!expanded ? (inAdminWorkspace ? 'Student View' : 'Admin Workspace') : undefined}
-              className={cn(
-                'flex items-center rounded-lg h-10 transition-colors duration-150 cursor-pointer',
-                'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
-                expanded ? 'w-full gap-3 px-3' : 'justify-center w-10 mx-auto',
-              )}
-            >
-              <ArrowLeftRight size={18} className="shrink-0" />
-              <span
-                className={cn(
-                  'whitespace-nowrap text-body-md overflow-hidden transition-all duration-200',
-                  expanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0',
-                )}
+              {/* Admin Nav Items */}
+              <nav className="flex flex-col gap-1">
+                {adminNavItems.map((item) => (
+                  <NavLink
+                    key={item.label}
+                    to={item.to}
+                    end
+                    title={!expanded ? item.label : undefined}
+                    onClick={() => chooseWorkspace('admin')}
+                    className={({ isActive }) =>
+                      cn(
+                        'group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5',
+                        isActive
+                          ? 'text-primary font-semibold'
+                          : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {/* Animated sleek active pill */}
+                        {isActive && (
+                          <motion.div
+                            layoutId="sidebarActivePill"
+                            className="absolute inset-0 rounded-xl bg-primary/[0.09] ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30"
+                            transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                          />
+                        )}
+
+                        {/* Fixed icon slot - 100% stationary */}
+                        <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+                          <item.icon
+                            size={20}
+                            strokeWidth={isActive ? 2.2 : 1.8}
+                            className={cn(
+                              'shrink-0 transition-colors',
+                              isActive ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface',
+                            )}
+                          />
+                        </div>
+
+                        {/* Text label - slides & fades smoothly */}
+                        <span
+                          className={cn(
+                            'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
+                            isActive && 'font-semibold text-primary dark:text-primary-300',
+                            expanded
+                              ? 'opacity-100 translate-x-0 max-w-[160px]'
+                              : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
+                          )}
+                        >
+                          {item.label}
+                        </span>
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </nav>
+
+              {/* Divider between Admin and Student with fixed height - ZERO vertical shift */}
+              <div className="h-6 px-1.5 flex items-center my-1 overflow-hidden">
+                <div
+                  className={cn(
+                    'flex items-center gap-1.5 transition-all duration-300',
+                    expanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none',
+                  )}
+                >
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/60">
+                    Student
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Student Nav */}
+          <nav className="flex flex-col gap-1">
+            {visibleNavItems.map((item) => (
+              <NavLink
+                key={item.label}
+                to={item.to}
+                end={item.to === '/'}
+                title={!expanded ? item.label : undefined}
+                onClick={() => isAdmin && chooseWorkspace('student')}
+                className={({ isActive }) =>
+                  cn(
+                    'group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5',
+                    isActive
+                      ? 'text-primary font-semibold'
+                      : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+                  )
+                }
               >
-                {inAdminWorkspace ? 'Student View' : 'Admin Workspace'}
-              </span>
-            </button>
-
-            {expanded && (
-              <p className="mt-1 px-1 py-1 flex items-center gap-1.5 text-label-xs font-bold uppercase tracking-wider text-on-surface-variant/60">
-                <ShieldCheck size={13} /> Student
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* ── Main nav ── */}
-        <nav className="flex flex-1 flex-col gap-0.5 px-2 py-1 overflow-y-auto">
-          {visibleNavItems.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.to}
-              end={item.to === '/'}
-              title={!expanded ? item.label : undefined}
-              onClick={() => isAdmin && chooseWorkspace('student')}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center rounded-lg transition-all duration-150 h-10',
-                  expanded ? 'gap-3 px-3' : 'justify-center w-10 mx-auto',
-                  isActive
-                    ? 'bg-primary/10 text-primary font-semibold'
-                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <item.icon
-                    size={20}
-                    className={cn('shrink-0', isActive ? 'text-primary' : '')}
-                  />
-                  <span
-                    className={cn(
-                      'whitespace-nowrap text-body-lg overflow-hidden transition-all duration-200',
-                      expanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0',
+                {({ isActive }) => (
+                  <>
+                    {/* Animated sleek active pill */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="sidebarActivePill"
+                        className="absolute inset-0 rounded-xl bg-primary/[0.09] ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30"
+                        transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                      />
                     )}
-                  >
-                    {item.label}
-                  </span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
 
-        {/* ── Log out ── */}
-        <div className="shrink-0 px-2 pb-4 pt-2 border-t border-card-border/50">
+                    {/* Fixed icon slot - 100% stationary */}
+                    <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+                      <item.icon
+                        size={20}
+                        strokeWidth={isActive ? 2.2 : 1.8}
+                        className={cn(
+                          'shrink-0 transition-colors',
+                          isActive ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface',
+                        )}
+                      />
+                    </div>
+
+                    {/* Text label - slides & fades smoothly */}
+                    <span
+                      className={cn(
+                        'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300 flex-1 flex items-center justify-between',
+                        isActive && 'font-semibold text-primary dark:text-primary-300',
+                        expanded
+                          ? 'opacity-100 translate-x-0 max-w-[160px]'
+                          : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
+                      )}
+                    >
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
+                          {item.badge}
+                        </span>
+                      )}
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+
+        {/* ── Bottom Section: Log out ── */}
+        <div className="shrink-0 px-2.5 py-3 border-t border-card-border/60 bg-surface-container-low/50">
           <button
             type="button"
             onClick={() => setShowLogoutAlert(true)}
             title={!expanded ? 'Log out' : undefined}
-            className={cn(
-              'flex items-center rounded-lg h-10 transition-colors duration-150 cursor-pointer',
-              'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
-              expanded ? 'w-full gap-3 px-3' : 'justify-center w-10 mx-auto',
-            )}
+            className="group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5 text-on-surface-variant hover:bg-error/10 hover:text-error cursor-pointer"
           >
-            <LogOut size={20} className="shrink-0" />
+            {/* Fixed icon slot - 100% stationary */}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+              <LogOut size={20} strokeWidth={1.8} className="shrink-0 transition-colors" />
+            </div>
+
+            {/* Text label - slides & fades smoothly */}
             <span
               className={cn(
-                'whitespace-nowrap text-body-lg overflow-hidden transition-all duration-200',
-                expanded ? 'opacity-100 max-w-[120px]' : 'opacity-0 max-w-0',
+                'ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
+                expanded
+                  ? 'opacity-100 translate-x-0 max-w-[160px]'
+                  : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
               )}
             >
               Log out
@@ -217,7 +240,7 @@ export function Sidebar() {
       {/* ── Logout Modal ── */}
       <Modal open={showLogoutAlert} onClose={() => setShowLogoutAlert(false)} title="Confirm Logout">
         <div className="flex flex-col items-center text-center gap-3 py-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
             <LogOut size={28} />
           </div>
           <div>

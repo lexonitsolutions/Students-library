@@ -20,6 +20,7 @@ export interface ProfileRow {
   role: UserRole;
   created_at: string;
   updated_at: string;
+  cover_image?: string | null;
 }
 
 export type ProfileUpdate = Partial<

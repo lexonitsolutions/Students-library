@@ -1,67 +1,70 @@
-import { MessageSquare, ArrowLeft, Sparkles, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { MessageSquare, ArrowLeft, BookOpen, Sparkles, Info } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
 export function MessagesPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-full w-full items-center justify-center p-4 sm:p-6 lg:p-8">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex w-full max-w-md flex-col items-center text-center rounded-3xl border border-card-border bg-surface-container-low p-8 sm:p-10 shadow-sm"
-      >
-        {/* Icon */}
-        <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <MessageSquare size={38} className="text-primary" />
-          <span className="absolute -top-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs">
-            <Sparkles size={14} />
-          </span>
+    <div className="flex h-full min-h-[70vh] flex-col items-center justify-center px-4 py-16 text-center">
+      {/* Icon & Sparkle badge */}
+      <div className="relative mb-6">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-sm ring-8 ring-primary/5">
+          <MessageSquare size={38} strokeWidth={1.8} />
         </div>
-
-        {/* Badge */}
-        <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-label-sm font-semibold text-primary">
-          Under Development
-        </span>
-
-        {/* Title */}
-        <h1 className="text-headline-md sm:text-headline-lg font-bold text-on-surface">
-          Messages is coming soon
-        </h1>
-
-        {/* Description */}
-        <p className="mt-3 text-body-md text-on-surface-variant leading-relaxed">
-          We're currently working on this feature. Soon, you'll be able to chat directly with other students, collaborate on notes, and discuss study materials.
-        </p>
-
-        {/* Actions */}
-        <div className="mt-8 flex w-full flex-col sm:flex-row items-center gap-3">
-          <Button
-            variant="primary"
-            size="md"
-            className="w-full justify-center cursor-pointer"
-            icon={<BookOpen size={18} />}
-            onClick={() => navigate('/')}
-          >
-            Browse Materials
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="md"
-            className="w-full justify-center cursor-pointer"
-            icon={<ArrowLeft size={18} />}
-            onClick={() => navigate(-1)}
-          >
-            Go Back
-          </Button>
+        <div className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs">
+          <Sparkles size={14} />
         </div>
-      </motion.div>
+      </div>
+
+      {/* Status Pill */}
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary border border-primary/20 mb-3">
+        <span>Under Development</span>
+      </div>
+
+      {/* Main Heading & Description */}
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+        Direct Messaging is Coming Soon
+      </h1>
+
+      <p className="mt-2.5 max-w-md text-sm sm:text-base text-on-surface-variant leading-relaxed">
+        We are building peer-to-peer student messaging, topic discussions, and study group collaboration.
+        This feature will be available in an upcoming update.
+      </p>
+
+      {/* Navigation Actions */}
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <Button
+          variant="primary"
+          icon={<ArrowLeft size={16} />}
+          onClick={() => navigate('/')}
+        >
+          Back to Dashboard
+        </Button>
+        <Button
+          variant="secondary"
+          icon={<BookOpen size={16} />}
+          onClick={() => navigate('/library')}
+        >
+          Explore Library
+        </Button>
+      </div>
+
+      {/* Helpful Hint Card */}
+      <div className="mt-10 rounded-2xl border border-card-border/70 bg-surface-container-low/70 p-4 max-w-sm w-full text-left flex items-start gap-3 shadow-2xs">
+        <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+          <Info size={16} />
+        </div>
+        <div className="text-xs">
+          <p className="font-semibold text-on-surface">Need study materials right now?</p>
+          <p className="text-on-surface-variant mt-0.5">
+            You can still browse, upload past papers, and view study notes across all departments in the Library.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default MessagesPage;
+

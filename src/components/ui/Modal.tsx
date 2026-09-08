@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, children }: Readonly<ModalProps>) 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-card-hover"
+            className="relative w-full max-w-md rounded-2xl bg-surface-container-low border border-card-border p-6 shadow-2xl"
           >
             <div className="mb-4 flex items-center justify-between">
               {title && <h2 className="text-headline-md text-on-surface">{title}</h2>}

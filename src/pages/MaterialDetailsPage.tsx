@@ -1,38 +1,42 @@
-import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   BookOpen,
   Bookmark,
-  ChevronLeft,
+  CheckCircle2,
   ChevronRight,
-  Database,
+  ClipboardList,
   Download,
-  Eye,
+  FileQuestion,
   FileText,
   Flag,
   Heart,
   Share2,
+  ShieldCheck,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
+import { DocumentPreviewCard } from '../components/ui/DocumentPreviewCard';
 import { SignupPromptModal } from '../components/ui/SignupPromptModal';
+import { UserProfilePanel, type UploaderProfile } from '../components/ui/UserProfilePanel';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
+import { cleanDocumentTitle } from '../lib/materialMapper';
+import { getDocumentSection } from '../services/adminService';
 import * as bookmarksService from '../services/bookmarksService';
 import {
-  toggleLike,
+  fetchUserDownloadedIds,
+  fetchUserLikedIds,
+  getLocalDownloadsCount,
   getLocalLikesCount,
   getLocalSharesCount,
-  getLocalDownloadsCount,
-  fetchUserLikedIds,
   incrementShare,
   recordDownloadWithCount,
+  toggleLike,
 } from '../services/likesService';
-import { getMaterialForUI, incrementViews } from '../services/materialsService';
+import { getMaterialForUI, incrementViews, listApprovedMaterialsForUI } from '../services/materialsService';
 import { reportMaterial } from '../services/reportsService';
 
 export function MaterialDetailsPage() {
@@ -41,6 +45,7 @@ export function MaterialDetailsPage() {
   const location = useLocation();
   const { user, isExploring, stopExploring } = useAuth();
   const { setRedirectPath } = useSignupRedirect();
+
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [material, setMaterial] = useState<Material | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -48,9 +53,9 @@ export function MaterialDetailsPage() {
   const [likesCount, setLikesCount] = useState(0);
   const [sharesCount, setSharesCount] = useState(0);
   const [downloadsCount, setDownloadsCount] = useState(0);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [lazyPages, setLazyPages] = useState<number | undefined>(undefined);
+  const [selectedProfile, setSelectedProfile] = useState<UploaderProfile | null>(null);
+  const [relatedMaterials, setRelatedMaterials] = useState<Material[]>([]);
 
   useEffect(() => {
     if (isExploring) {
@@ -74,19 +79,30 @@ export function MaterialDetailsPage() {
         const data = await getMaterialForUI(id, savedSet || (user && !isExploring ? user.id : undefined));
         if (active && data) {
           setMaterial(data);
-          setLazyPages(data.pages);
           setIsSaved(!!data.isSaved);
           setLikesCount(getLocalLikesCount(data.id, data.likes ?? 0));
           setSharesCount(getLocalSharesCount(data.id, data.shares ?? 0));
           setDownloadsCount(getLocalDownloadsCount(data.id, data.downloads ?? 0));
+
           if (user && !isExploring) {
             fetchUserLikedIds(user.id).then((likedSet) => {
               if (active) setIsLiked(likedSet.has(data.id));
             });
+            fetchUserDownloadedIds(user.id).catch(() => {});
           }
 
+          // Fetch related materials from same subject
+          if (data.subject) {
+            listApprovedMaterialsForUI({ subjects: [data.subject], limit: 4 }, savedSet)
+              .then((list) => {
+                if (active) {
+                  setRelatedMaterials(list.filter((m) => m.id !== data.id).slice(0, 3));
+                }
+              })
+              .catch(() => {});
+          }
 
-
+          // Auto-compute page count in DB if missing
           if (!data.pages && data.fileUrl) {
             const target = data.filePath || data.fileUrl || '';
             const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
@@ -95,7 +111,6 @@ export function MaterialDetailsPage() {
               import('../lib/documentParser').then(({ getUrlPageCount }) => {
                 getUrlPageCount(data.fileUrl, ext).then((count) => {
                   if (active && count) {
-                    setLazyPages(count);
                     import('../services/materialsService').then(({ updateMaterialDetails }) => {
                       updateMaterialDetails(data.id, { pages: count } as any).catch(() => {});
                     });
@@ -118,17 +133,16 @@ export function MaterialDetailsPage() {
   useEffect(() => {
     if (!id || !material || isExploring) return;
 
-    // Do not count the uploader's own views
+    // Do not count uploader's own views
     if (user?.id && material.uploaderId === user.id) return;
 
-    // Do not count multiple times in the same browser session
+    // Session cache to prevent view spam
     const sessionKey = `viewed_material_${id}`;
     if (sessionStorage.getItem(sessionKey)) return;
 
     sessionStorage.setItem(sessionKey, '1');
     incrementViews(id).catch(() => {});
   }, [id, material?.uploaderId, user?.id, isExploring]);
-
 
   const toggleSave = async () => {
     if (isExploring) {
@@ -156,7 +170,6 @@ export function MaterialDetailsPage() {
 
     setIsDownloading(true);
     try {
-      // 1. Fetch the file to memory
       const response = await fetch(material.fileUrl);
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
@@ -164,9 +177,8 @@ export function MaterialDetailsPage() {
       const target = material.filePath || material.fileUrl || '';
       const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
       const ext = extMatch ? extMatch[1] : 'pdf';
-      const fileName = `${material.title}.${ext}`;
+      const fileName = `${cleanDocumentTitle(material.title)}.${ext}`;
 
-      // 2. Prompt user for save location
       try {
         if ('showSaveFilePicker' in window) {
           const handle = await (window as any).showSaveFilePicker({
@@ -176,7 +188,6 @@ export function MaterialDetailsPage() {
           await writable.write(blob);
           await writable.close();
         } else {
-          // Fallback for Firefox/Safari
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = blobUrl;
@@ -187,12 +198,15 @@ export function MaterialDetailsPage() {
           setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
         }
       } catch (err: any) {
-        if (err.name === 'AbortError') return; // User cancelled Save As dialog
+        if (err.name === 'AbortError') return;
         throw err;
       }
 
-      // 3. Record download only after successful completion
-      const { newCount } = await recordDownloadWithCount(material.id, downloadsCount || material.downloads || 0);
+      const { newCount } = await recordDownloadWithCount(
+        material.id,
+        user?.id,
+        downloadsCount || material.downloads || 0
+      );
       setDownloadsCount(newCount);
       setMaterial((prev) => (prev ? { ...prev, downloads: newCount } : null));
     } catch (err) {
@@ -232,7 +246,7 @@ export function MaterialDetailsPage() {
       if (navigator.share) {
         await navigator.share({
           title: material?.title,
-          text: `Check out ${material?.title} on Lexon!`,
+          text: `Check out ${material?.title} on QuickLearnit!`,
           url: window.location.href,
         });
       } else {
@@ -260,21 +274,25 @@ export function MaterialDetailsPage() {
     }
   };
 
-  const handleSignupRedirect = () => {
-    setRedirectPath(location.pathname);
-    stopExploring();
-    navigate('/signup');
-  };
-
-  const handleCloseSignupPrompt = () => {
-    setShowSignupPrompt(false);
-    navigate('/dashboard');
+  const handleUploaderClick = () => {
+    if (!material) return;
+    setSelectedProfile({
+      uploaderId: material.uploaderId,
+      uploaderName: material.uploaderName || 'Anonymous Student',
+      uploaderAvatar: material.uploaderAvatar || '',
+      uploaderUniversity: material.uploaderUniversity,
+      uploaderCollege: material.uploaderCollege,
+      uploaderLocation: material.uploaderLocation,
+      uploaderUploadsCount: material.uploaderUploadsCount,
+      uploaderJoinedAt: material.uploaderJoinedAt,
+    });
   };
 
   if (!material) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <p className="text-body-md text-on-surface-variant">Loading material details...</p>
+      <div className="flex h-96 flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-body-sm font-medium text-on-surface-variant">Loading document workspace...</p>
       </div>
     );
   }
@@ -287,321 +305,375 @@ export function MaterialDetailsPage() {
   const isOfficeDocument = material ? !!(material.filePath || material.fileUrl).match(/\.(doc|docx|ppt|pptx|xls|xlsx)($|\?)/i) : false;
   const isPublicUrl = material ? material.fileUrl.startsWith('http') && !material.fileUrl.includes('localhost') && !material.fileUrl.includes('127.0.0.1') : false;
 
-  const imageList = isImageFile && material
-    ? [material.fileUrl]
-    : [];
+  const targetPath = material.filePath || material.fileUrl || '';
+  const extMatch = targetPath.match(/\.([a-z0-9]+)($|\?)/i);
+  const fileExt = (extMatch ? extMatch[1] : 'pdf').toUpperCase();
+
+  const section = getDocumentSection(material);
+  const sectionConfig = (() => {
+    if (section === 'testpapers') {
+      return {
+        label: 'Test Paper',
+        icon: FileQuestion,
+        badgeClass: 'badge-testpaper bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+      };
+    }
+    if (section === 'assignments') {
+      return {
+        label: 'Assignment',
+        icon: ClipboardList,
+        badgeClass: 'badge-assignment bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+      };
+    }
+    return {
+      label: 'Study Material',
+      icon: BookOpen,
+      badgeClass: 'badge-material bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
+    };
+  })();
+
+  const SectionIcon = sectionConfig.icon;
+  const sizeString = material.fileSizeMb ? `${material.fileSizeMb} MB` : material.fileSizeMb === 0 ? '< 0.01 MB' : 'PDF';
+  const cleanTitle = cleanDocumentTitle(material.title);
 
   return (
     <>
-      <div className="flex flex-col gap-6">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-label-sm text-on-surface-variant">
+      {/* ── DESKTOP FLOATING BACK BUTTON (Docked at top-left margin next to sidebar) ── */}
+      <div className="hidden lg:block fixed top-20 left-[88px] z-20">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          className="group inline-flex items-center gap-2 rounded-xl border border-card-border bg-surface-container-low/95 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:border-primary/40 hover:bg-surface-container hover:text-on-surface transition-all cursor-pointer shadow-xs"
+        >
+          <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-0.5 text-primary" />
+          <span>Back</span>
+        </button>
+      </div>
+
+      <div className="mx-auto max-w-7xl space-y-6 pb-12 max-[1280px]:pt-8">
+        {/* ── MOBILE BACK BUTTON (In-flow for small screens) ── */}
+        <div className="flex items-center pt-1 lg:hidden">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 font-semibold text-primary hover:underline cursor-pointer"
+            aria-label="Go back"
+            className="group inline-flex items-center gap-2 rounded-xl border border-card-border bg-surface-container-low px-3.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:border-primary/40 hover:bg-surface-container hover:text-on-surface transition-all cursor-pointer shadow-2xs"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-0.5 text-primary" />
             <span>Back</span>
           </button>
-          <ChevronRight size={14} />
-          <Link to="/" className="hover:text-primary">
-            Home
-          </Link>
-          <ChevronRight size={14} />
-          <span>{material.subject}</span>
-          <ChevronRight size={14} />
-          <span className="truncate text-on-surface font-medium">{material.title}</span>
-        </nav>
+        </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <Card padded={false} hoverable={false} className="overflow-hidden border border-card-border">
-              <div className="relative min-h-[520px] sm:min-h-[600px] w-full bg-surface-container-low flex flex-col items-center justify-center group">
+        {/* ── 2. DOCUMENT HERO BANNER ── */}
+        <div className="flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Semantic Category Badge */}
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-semibold ${sectionConfig.badgeClass}`}>
+              <SectionIcon size={12} />
+              {sectionConfig.label}
+            </span>
+
+            {/* Subject Pill */}
+            <span className="inline-flex items-center rounded-md border border-card-border bg-surface-container px-2.5 py-0.5 text-xs font-semibold text-on-surface">
+              {material.subject}
+            </span>
+
+            {/* Semester */}
+            {material.semester && (
+              <span className="inline-flex items-center rounded-md border border-card-border bg-surface-container-high px-2 py-0.5 text-xs font-medium text-on-surface-variant">
+                {material.semester}
+              </span>
+            )}
+
+            {/* Verified Badge */}
+            <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 size={13} />
+              Verified Document
+            </span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface">
+            {cleanTitle}
+          </h1>
+
+          <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed max-w-3xl">
+            {material.description?.trim() || `Course resource for ${material.subject}${material.semester ? ` (${material.semester})` : ''}. Available for online reading, reference, and offline download.`}
+          </p>
+        </div>
+
+        {/* ── 3. MAIN WORKSPACE GRID (VIEWER + INSPECTOR) ── */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+          
+          {/* ── LEFT: PROFESSIONAL DOCUMENT VIEWER STAGE (8 COLS) ── */}
+          <div className="lg:col-span-8 flex flex-col gap-4">
+            <div className="overflow-hidden rounded-2xl border border-card-border bg-surface-container-low shadow-card">
+              
+              {/* Top Chrome / Toolbar (WITHOUT PAGE 1 OF 1 & FULLSCREEN) */}
+              <div className="flex items-center justify-between gap-3 border-b border-card-border bg-surface-container px-4 py-2.5 select-none">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs">
+                    <FileText size={15} />
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] font-bold text-on-surface tracking-wider">
+                      {fileExt}
+                    </span>
+                    <span className="text-xs font-medium text-on-surface-variant truncate max-w-[280px] sm:max-w-[450px]">
+                      {cleanTitle}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Canvas Stage */}
+              <div className="relative flex min-h-[580px] sm:min-h-[660px] lg:min-h-[720px] w-full items-center justify-center bg-slate-100/60 dark:bg-slate-900/40 p-3 sm:p-6 overflow-hidden">
                 {isImageFile ? (
-                  <div className="relative flex h-[580px] w-full items-center justify-center p-4 overflow-hidden bg-surface-container-low">
+                  <div className="relative flex h-[580px] sm:h-[640px] w-full items-center justify-center">
                     <img
-                      src={imageList[currentImageIndex] || material.fileUrl}
-                      alt={`${material.title} page ${currentImageIndex + 1}`}
-                      className="max-h-full max-w-full rounded-lg object-contain shadow-md transition-all duration-300"
+                      src={material.fileUrl}
+                      alt={cleanTitle}
+                      className="max-h-full max-w-full rounded-xl object-contain shadow-md border border-card-border/70"
                     />
-
-                    {imageList.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageList.length - 1));
-                          }}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-xs hover:bg-black/80 hover:scale-105 transition-all cursor-pointer z-10"
-                          aria-label="Previous Page Image"
-                        >
-                          <ChevronLeft size={22} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentImageIndex((prev) => (prev < imageList.length - 1 ? prev + 1 : 0));
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-xs hover:bg-black/80 hover:scale-105 transition-all cursor-pointer z-10"
-                          aria-label="Next Page Image"
-                        >
-                          <ChevronRight size={22} />
-                        </button>
-
-                        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/75 px-3 py-1 text-label-sm font-semibold text-white backdrop-blur-xs shadow-md z-10">
-                          Page {currentImageIndex + 1} of {imageList.length}
-                        </span>
-                      </>
-                    )}
                   </div>
                 ) : isOfficeDocument ? (
                   isPublicUrl ? (
-                    <iframe
-                      title={material.title}
-                      src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.fileUrl)}`}
-                      className="h-[580px] w-full border-0 overflow-hidden"
-                    />
+                    <div className="h-[620px] sm:h-[680px] w-full rounded-xl bg-white shadow-md border border-card-border/80 overflow-hidden">
+                      <iframe
+                        title={cleanTitle}
+                        src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.fileUrl)}`}
+                        className="h-full w-full border-0"
+                      />
+                    </div>
                   ) : (
-                    <div className="flex h-[580px] w-full flex-col items-center justify-center gap-4 bg-surface-container-high p-6 text-center">
-                      <FileText size={48} className="text-outline-variant" />
+                    <div className="flex h-[420px] w-full flex-col items-center justify-center gap-4 rounded-xl bg-surface p-6 text-center border border-card-border">
+                      <FileText size={48} className="text-primary/60" />
                       <div>
-                        <h3 className="text-title-md font-bold text-on-surface">Preview not available</h3>
-                        <p className="mt-1 text-body-sm text-on-surface-variant max-w-sm mx-auto">
-                          Microsoft Office previews require a publicly accessible URL. Since this file was uploaded locally, you can download it to view it.
+                        <h3 className="text-base font-bold text-on-surface">Local Document Preview</h3>
+                        <p className="mt-1 text-xs sm:text-sm text-on-surface-variant max-w-md mx-auto">
+                          This file was uploaded from a local server. Download it directly or launch reader to view in full fidelity.
                         </p>
                       </div>
-                      <Button variant="primary" size="md" onClick={() => window.open(material.fileUrl, '_blank')}>
-                        Download File
+                      <Button variant="primary" size="md" onClick={handleDownload} icon={<Download size={16} />}>
+                        Download {fileExt} ({sizeString})
                       </Button>
                     </div>
                   )
                 ) : (
-                  <iframe
-                    title={material.title}
-                    src={`${material.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                    scrolling="no"
-                    className="h-[580px] w-full border-0 overflow-hidden"
-                    style={{ overflow: 'hidden' }}
-                  />
+                  /* High Quality PDF Viewport */
+                  <div className="h-[600px] sm:h-[660px] lg:h-[700px] w-full max-w-3xl rounded-xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-card-border/80 overflow-hidden">
+                    <iframe
+                      title={cleanTitle}
+                      src={`${material.fileUrl}#view=FitH&toolbar=0&navpanes=0`}
+                      className="h-full w-full border-0"
+                    />
+                  </div>
                 )}
               </div>
+            </div>
+          </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-4 py-3 bg-white text-label-sm text-on-surface-variant">
-                <span className="flex items-center gap-2">
-                  <FileText size={16} className="text-primary" />
-                  <span className="font-medium text-on-surface">
-                    {(() => {
-                      const target = material.filePath || material.fileUrl || '';
-                      const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
-                      const ext = extMatch ? extMatch[1].toLowerCase() : '';
-                      if (['pdf'].includes(ext)) return 'PDF Document';
-                      if (['doc', 'docx'].includes(ext)) return 'Word Document';
-                      if (['ppt', 'pptx'].includes(ext)) return 'PowerPoint';
-                      if (['xls', 'xlsx'].includes(ext)) return 'Excel Spreadsheet';
-                      if (['jpg', 'jpeg', 'png', 'webp', 'heic', 'gif'].includes(ext) || target.startsWith('data:image/') || target.startsWith('blob:')) return 'Image File';
-                      return 'Document';
-                    })()}
-                  </span>
-                  <span className="opacity-75">
-                    ({material.fileSizeMb ? `${material.fileSizeMb} MB` : material.fileSizeMb === 0 ? '< 0.01 MB' : 'Unknown Size'})
-                  </span>
+          {/* ── RIGHT: UNIFIED DOCUMENT INSPECTOR & ACTIONS (4 COLS) ── */}
+          <div className="lg:col-span-4 flex flex-col gap-5">
+            
+            {/* Primary Action Card */}
+            <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-surface-container-low p-5 shadow-card">
+              
+              {/* Primary Launch Reader */}
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full justify-center font-bold shadow-sm cursor-pointer"
+                icon={<BookOpen size={18} />}
+                onClick={() => navigate(`/reader/${material.id}`)}
+              >
+                {section === 'testpapers'
+                  ? 'View Past Papers'
+                  : section === 'assignments'
+                    ? 'Solve Document'
+                    : 'Open Document Reader'}
+              </Button>
+
+              {/* Secondary Direct Download */}
+              <Button
+                variant="secondary"
+                size="md"
+                className="w-full justify-center font-semibold cursor-pointer border-card-border hover:border-primary/40"
+                icon={isDownloading ? <span className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Download size={16} />}
+                onClick={handleDownload}
+                disabled={isDownloading}
+              >
+                {isDownloading ? 'Preparing Download...' : `Download Document (${sizeString})`}
+              </Button>
+
+              {/* Social Action Grid */}
+              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-card-border">
+                {/* Like button */}
+                <button
+                  type="button"
+                  onClick={handleLike}
+                  title="Like this document"
+                  className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-all cursor-pointer ${
+                    isLiked
+                      ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                      : 'bg-surface hover:bg-surface-container-high border-card-border text-on-surface'
+                  }`}
+                >
+                  <Heart size={15} className={isLiked ? 'fill-current text-rose-500' : 'text-on-surface-variant'} />
+                  <span>{likesCount.toLocaleString()}</span>
+                </button>
+
+                {/* Bookmark button */}
+                <button
+                  type="button"
+                  onClick={toggleSave}
+                  title={isSaved ? 'Remove from saved' : 'Save for later'}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-all cursor-pointer ${
+                    isSaved
+                      ? 'bg-primary/10 text-primary border-primary/20'
+                      : 'bg-surface hover:bg-surface-container-high border-card-border text-on-surface'
+                  }`}
+                >
+                  <Bookmark size={15} className={isSaved ? 'fill-current text-primary' : 'text-on-surface-variant'} />
+                  <span>{isSaved ? 'Saved' : 'Save'}</span>
+                </button>
+
+                {/* Share button */}
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  title="Share document link"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-card-border bg-surface hover:bg-surface-container-high py-2.5 text-xs font-semibold text-on-surface transition-all cursor-pointer"
+                >
+                  <Share2 size={15} className="text-on-surface-variant" />
+                  <span>Share</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Contributor Card */}
+            <div className="flex flex-col gap-3.5 rounded-2xl border border-card-border bg-surface-container-low p-5 shadow-card">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  Contributor
                 </span>
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1.5">
-                    <Eye size={14} /> {material.views.toLocaleString()} views
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Download size={14} /> {material.downloads.toLocaleString()} downloads
-                  </span>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: 0.05 }}
-            className="flex flex-col gap-6"
-          >
-            <Card hoverable={false} className="flex flex-col gap-5 border border-card-border">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <span className="inline-block rounded-md bg-primary/10 px-2.5 py-1 text-label-sm font-semibold text-primary">
-                    {material.subject}
-                  </span>
-                </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  aria-label="Report material"
+                <button
+                  type="button"
                   onClick={handleReport}
-                  title="Report material"
+                  title="Report this document"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-on-surface-variant/70 hover:text-rose-500 transition-colors cursor-pointer"
                 >
-                  <Flag size={16} />
-                </Button>
+                  <Flag size={12} />
+                  <span>Report</span>
+                </button>
               </div>
 
-              <div>
-                <h1 className="text-headline-lg font-bold text-on-surface">{material.title}</h1>
-                <p className="mt-2 text-body-sm text-on-surface-variant leading-relaxed">
-                  {material.description || 'No description provided for this paper.'}
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-2.5 border-t border-card-border pt-4">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-full justify-center cursor-pointer"
-                  icon={<Eye size={18} />}
-                  onClick={() => navigate(`/reader/${material.id}`)}
-                >
-                  {material.type === 'past-paper'
-                    ? 'View Papers'
-                    : material.type === 'doc'
-                      ? 'Solve'
-                      : 'View Material'}
-                </Button>
-
-                <div className="grid grid-cols-4 gap-2.5">
-                  <Button
-                    variant={isLiked ? 'primary' : 'secondary'}
-                    size="md"
-                    onClick={handleLike}
-                    className="justify-center cursor-pointer px-1 gap-1.5"
-                    icon={<Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />}
-                    title="Like"
-                    aria-label="Like"
-                  >
-                    <span className="text-label-sm font-semibold">{likesCount.toLocaleString()}</span>
-                  </Button>
-
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    onClick={handleShare}
-                    className="justify-center cursor-pointer px-1 gap-1.5"
-                    icon={<Share2 size={18} />}
-                    title="Share"
-                    aria-label="Share"
-                  >
-                    <span className="text-label-sm font-semibold">{sharesCount.toLocaleString()}</span>
-                  </Button>
-
-                  <Button
-                    variant={isSaved ? 'primary' : 'secondary'}
-                    size="md"
-                    onClick={toggleSave}
-                    className="justify-center cursor-pointer px-0"
-                    icon={<Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />}
-                    title={isSaved ? 'Unsave' : 'Save'}
-                    aria-label={isSaved ? 'Unsave' : 'Save'}
-                  />
-
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    onClick={handleDownload}
-                    className="justify-center cursor-pointer px-1 gap-1.5"
-                    icon={isDownloading ? <span className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" /> : <Download size={18} />}
-                    title="Download"
-                    aria-label="Download"
-                    disabled={isDownloading}
-                  >
-                    <span className="text-label-sm font-semibold">{downloadsCount.toLocaleString()}</span>
-                  </Button>
-                </div>
-              </div>
-            </Card>
-
-            <Card hoverable={false} className="flex flex-col gap-4 border border-card-border">
-              <h3 className="text-headline-md font-bold text-on-surface">Material Info</h3>
-
-              <div className="flex items-center gap-3 border-b border-card-border pb-4">
+              <div
+                onClick={handleUploaderClick}
+                className="group flex items-center gap-3.5 rounded-xl border border-card-border bg-surface p-3 transition-all hover:border-primary/40 hover:bg-surface-container cursor-pointer select-none"
+              >
                 <Avatar
-                  src={material.uploaderAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
-                  name={material.uploaderName || 'Anonymous Student'}
-                  size={44}
+                  src={material.uploaderAvatar}
+                  name={material.uploaderName || 'Student'}
+                  size={46}
+                  className="shrink-0 ring-2 ring-card-border group-hover:ring-primary/40 transition-all"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-body-md font-bold text-on-surface">
-                    {material.uploaderName || 'Anonymous Student'}
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors truncate">
+                      {material.uploaderName || 'Anonymous Student'}
+                    </p>
+                    <ShieldCheck size={14} className="text-primary shrink-0" />
+                  </div>
+                  <p className="text-xs text-on-surface-variant truncate">
+                    {material.uploaderCollege || material.uploaderUniversity || 'Verified Scholar'}
                   </p>
-                  <p className="text-label-sm text-on-surface-variant">
+                  <p className="mt-0.5 text-[11px] text-on-surface-variant/80">
                     Uploaded {new Date(material.uploadedAt).toLocaleDateString()}
                   </p>
                 </div>
-              </div>
-
-              {/* Stats Overview */}
-              <div className="grid grid-cols-4 gap-2 border-b border-card-border pb-4 text-center">
-                <div className="flex flex-col items-center">
-                  <span className="text-body-md font-bold text-on-surface">{material.views.toLocaleString()}</span>
-                  <span className="text-label-xs text-on-surface-variant">Views</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-body-md font-bold text-primary">{likesCount.toLocaleString()}</span>
-                  <span className="text-label-xs text-on-surface-variant">Likes</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-body-md font-bold text-on-surface">{downloadsCount.toLocaleString()}</span>
-                  <span className="text-label-xs text-on-surface-variant">Downloads</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-body-md font-bold text-on-surface">{sharesCount.toLocaleString()}</span>
-                  <span className="text-label-xs text-on-surface-variant">Shares</span>
+                <div className="shrink-0 text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 transition-all">
+                  <ChevronRight size={16} />
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-col gap-3 text-body-sm">
-                <div className="flex items-start gap-2.5">
-                  <BookOpen size={18} className="mt-0.5 shrink-0 text-primary" />
-                  <div>
-                    <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">Subject</p>
-                    <p className="font-semibold text-on-surface">{material.subject}</p>
-                  </div>
+            {/* Document Specifications Card (CLEANED UP - ONLY SUBJECT, TYPE, FILE SIZE) */}
+            <div className="flex flex-col gap-3 rounded-2xl border border-card-border bg-surface-container-low p-5 shadow-card text-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                Document Details
+              </span>
+
+              <div className="divide-y divide-card-border">
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-on-surface-variant">Subject</span>
+                  <span className="font-semibold text-on-surface text-right">{material.subject}</span>
                 </div>
-
-                <div className="flex items-start gap-2.5">
-                  <Database size={18} className="mt-0.5 shrink-0 text-primary" />
-                  <div>
-                    <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">File Size</p>
-                    <p className="font-semibold text-on-surface">
-                      {material.fileSizeMb ? `${material.fileSizeMb} MB` : material.fileSizeMb === 0 ? '< 0.01 MB' : 'Unknown'}
-                    </p>
-                  </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-on-surface-variant">Document Type</span>
+                  <span className="font-semibold text-on-surface text-right">{sectionConfig.label}</span>
                 </div>
-
-                {lazyPages ? (
-                  <div className="flex items-start gap-2.5">
-                    <FileText size={18} className="mt-0.5 shrink-0 text-primary" />
-                    <div>
-                      <p className="text-label-xs font-semibold text-outline uppercase tracking-wider">Pages</p>
-                      <p className="font-semibold text-on-surface">
-                        {lazyPages} Page{lazyPages === 1 ? '' : 's'}
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-on-surface-variant">File Size</span>
+                  <span className="font-semibold text-on-surface text-right">{sizeString}</span>
+                </div>
               </div>
-            </Card>
-          </motion.div>
+            </div>
+
+          </div>
         </div>
+
+        {/* ── 4. RELATED MATERIALS RECOMMENDATION ── */}
+        {relatedMaterials.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-card-border space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-on-surface">
+                  More in {material.subject}
+                </h2>
+                <p className="text-xs sm:text-sm text-on-surface-variant">
+                  Explore peer-shared materials and questions for this course
+                </p>
+              </div>
+              <Link
+                to={`/?subject=${encodeURIComponent(material.subject)}`}
+                className="text-xs sm:text-sm font-semibold text-primary hover:underline"
+              >
+                View all →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {relatedMaterials.map((item) => (
+                <DocumentPreviewCard
+                  key={item.id}
+                  material={item}
+                  onUploaderClick={(prof) => setSelectedProfile(prof)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Profile Sidebar Panel */}
+      <UserProfilePanel
+        profile={selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+      />
+
+      {/* Guest Signup Prompt */}
       <SignupPromptModal
         isOpen={showSignupPrompt}
-        onClose={handleCloseSignupPrompt}
-        onSignup={handleSignupRedirect}
+        onClose={() => {
+          setShowSignupPrompt(false);
+          navigate('/dashboard');
+        }}
+        onSignup={() => {
+          setRedirectPath(location.pathname);
+          stopExploring();
+          navigate('/signup');
+        }}
       />
     </>
   );

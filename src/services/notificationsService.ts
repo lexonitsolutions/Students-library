@@ -3,16 +3,49 @@ import { timeAgo } from '../lib/timeAgo';
 import type { AppNotification } from '../data/types';
 import type { NotificationRow } from '../types/database.types';
 
+/**
+ * Cleans up notification description text. If it contains raw REJECTED:{...json...}
+ * metadata (stored by an older trigger), extract just the human-readable reason.
+ */
+function cleanNotificationDescription(description: string | null | undefined): string {
+  if (!description) return '';
+
+  // Check if description contains the raw metadata pattern like:
+  // `"Title" was rejected. REJECTED:{"adminId":"...","reason":"Wrong subject...","..."}`
+  const rejectedMetaIndex = description.indexOf('REJECTED:{');
+  if (rejectedMetaIndex !== -1) {
+    // Extract the JSON part
+    const jsonStr = description.slice(rejectedMetaIndex + 'REJECTED:'.length);
+    try {
+      const meta = JSON.parse(jsonStr);
+      const reason = meta?.reason;
+      if (reason && typeof reason === 'string' && reason.trim()) {
+        // Build clean description: keep the part before REJECTED: tag + clean reason
+        const prefix = description.slice(0, rejectedMetaIndex).trimEnd();
+        // Strip trailing period or space from prefix
+        const cleanPrefix = prefix.replace(/[\s.]+$/, '');
+        return `${cleanPrefix}. Reason: ${reason.trim()}`;
+      }
+    } catch {
+      // JSON parse failed — fall through to strip the raw JSON
+      return description.slice(0, rejectedMetaIndex).trim();
+    }
+  }
+
+  return description;
+}
+
 function toAppNotification(row: NotificationRow): AppNotification {
   return {
     id: row.id,
     type: row.type,
     title: row.title,
-    description: row.description ?? '',
+    description: cleanNotificationDescription(row.description),
     timestamp: timeAgo(row.created_at),
     read: row.read,
   };
 }
+
 
 export function getLocalNotificationsKey(userId: string) {
   return `quicklearnit.notifications_${userId}`;
@@ -21,7 +54,9 @@ export function getLocalNotificationsKey(userId: string) {
 export function loadLocalNotifications(userId: string): AppNotification[] {
   try {
     const raw = localStorage.getItem(getLocalNotificationsKey(userId));
-    return raw ? JSON.parse(raw) : [];
+    const items: AppNotification[] = raw ? JSON.parse(raw) : [];
+    // Clean any old notifications that have raw REJECTED:{...} metadata in description
+    return items.map((n) => ({ ...n, description: cleanNotificationDescription(n.description) }));
   } catch {
     return [];
   }

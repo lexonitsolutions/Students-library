@@ -47,8 +47,8 @@ export function ProfileUploadsPage() {
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg">My Uploads</h1>
-          <p className="mt-1 text-body-sm text-on-surface-variant">Manage your contributed study materials.</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">My Uploads</h1>
+          <p className="mt-1 text-body-md font-medium text-on-surface-variant">Manage your contributed study materials.</p>
         </div>
         <Link
           to="/upload"
@@ -87,6 +87,12 @@ export function ProfileUploadsPage() {
                     </span>
                     <span>{upload.downloads.toLocaleString()} downloads</span>
                   </div>
+                  {upload.status === 'rejected' && (
+                    <div className="mt-2.5 rounded-lg bg-rose-500/10 border border-rose-500/25 p-2 text-body-xs text-rose-700 dark:text-rose-300">
+                      <span className="font-bold">Reason for rejection: </span>
+                      <span>{upload.rejectionReason || 'Content did not meet submission guidelines.'}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
                   <IconButton label="Delete upload" onClick={() => handleDelete(upload)}>

@@ -15,17 +15,17 @@ export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-primary !text-white hover:bg-primary-container/90 disabled:opacity-50 disabled:!text-white/60',
+  primary: 'bg-primary text-white hover:opacity-95 shadow-xs hover:shadow-sm disabled:opacity-50 disabled:text-white/60',
   secondary:
-    'bg-white text-on-surface border border-card-border hover:border-primary/40 hover:bg-surface-soft disabled:opacity-50',
-  ghost: 'bg-transparent text-on-surface-variant hover:bg-surface-container disabled:opacity-50',
-  danger: 'bg-error !text-white hover:bg-error/90 disabled:opacity-50 disabled:!text-white/60',
+    'bg-surface-container-low text-on-surface border border-card-border hover:bg-surface-container-high hover:border-outline/40 shadow-xs disabled:opacity-50',
+  ghost: 'bg-transparent text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface disabled:opacity-50',
+  danger: 'bg-error text-white hover:opacity-95 shadow-xs hover:shadow-sm disabled:opacity-50 disabled:text-white/60',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-9 px-3.5 text-label-sm gap-1.5',
-  md: 'h-11 px-5 text-label-md gap-2',
-  lg: 'h-13 px-6 text-body-md gap-2.5',
+  sm: 'h-8 px-3 text-label-xs font-semibold rounded-lg gap-1.5',
+  md: 'h-10 px-4 text-label-sm font-semibold rounded-xl gap-2',
+  lg: 'h-12 px-6 text-label-md font-semibold rounded-xl gap-2.5',
 };
 
 export function Button({
@@ -40,10 +40,10 @@ export function Button({
 }: Readonly<ButtonProps>) {
   return (
     <motion.button
-      transition={{ duration: 0.2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.1 }}
       className={cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-lg font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed',
-        'hover:-translate-y-[1px] hover:shadow-md active:translate-y-0 active:shadow-sm',
+        'inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-150 cursor-pointer disabled:cursor-not-allowed select-none',
         sizeClasses[size],
         variantClasses[variant],
         fullWidth && 'w-full',

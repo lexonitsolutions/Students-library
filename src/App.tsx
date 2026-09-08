@@ -6,6 +6,8 @@ import { WorkspaceProvider } from './hooks/useWorkspace';
 import { SignupRedirectProvider } from './hooks/useSignupRedirect';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminManageAdminsPage } from './pages/AdminManageAdminsPage';
+import { AdminManageMaterialsPage } from './pages/AdminManageMaterialsPage';
+import { AdminManageStudentsPage } from './pages/AdminManageStudentsPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { LibraryPage } from './pages/LibraryPage';
@@ -58,6 +60,9 @@ function App() {
                     <Route path="/notifications" element={<NotificationsPage />} />
                     <Route element={<AdminRoute />}>
                       <Route path="/admin" element={<AdminDashboardPage />} />
+                      <Route path="/admin/documents" element={<AdminManageMaterialsPage />} />
+                      <Route path="/admin/materials" element={<AdminManageMaterialsPage />} />
+                      <Route path="/admin/students" element={<AdminManageStudentsPage />} />
                       <Route path="/admin/admins" element={<AdminManageAdminsPage />} />
                     </Route>
                   </Route>

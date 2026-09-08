@@ -8,6 +8,14 @@ function accentColorFor(id: string): Material['accentColor'] {
   return ACCENT_COLORS[hash % ACCENT_COLORS.length];
 }
 
+export function cleanDocumentTitle(rawTitle?: string | null): string {
+  if (!rawTitle) return '';
+  return rawTitle
+    .replace(/\s*\(\s*(?:part\s*)?\d+\s*\/\s*\d+[^)]*\)/gi, '')
+    .replace(/^\s*\(\s*(?:part\s*)?\d+\s*\/\s*\d+[^)]*\)\s*/gi, '')
+    .trim();
+}
+
 export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefined, isSaved = false, isLiked = false): Material {
   let finalUploaderName = uploader?.name;
   let finalAvatar = uploader?.avatar_url;
@@ -37,7 +45,7 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
 
   return {
     id: row.id,
-    title: row.title,
+    title: cleanDocumentTitle(row.title),
     description: row.description ?? '',
     subject: row.subject,
     semester: row.semester ?? '',
@@ -64,5 +72,6 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     fileSizeMb: row.file_size_mb ?? undefined,
     isSaved,
     isLiked,
+    rejectionReason: row.rejection_reason,
   };
 }

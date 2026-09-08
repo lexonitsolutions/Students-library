@@ -9,6 +9,7 @@ import { Avatar } from './Avatar';
 import type { Material } from '../../data/types';
 import { toMaterial } from '../../lib/materialMapper';
 import { timeAgo } from '../../lib/timeAgo';
+import { getLocalLikesCount } from '../../services/likesService';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface UploaderProfile {
@@ -25,10 +26,11 @@ export interface UploaderProfile {
 interface Props {
   profile: UploaderProfile | null;
   onClose: () => void;
+  side?: 'left' | 'right';
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function UserProfilePanel({ profile, onClose }: Props) {
+export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
   const { user } = useAuth();
   const [totalViews, setTotalViews] = useState<number>(0);
   const [totalLikes, setTotalLikes] = useState<number>(0);
@@ -69,7 +71,8 @@ export function UserProfilePanel({ profile, onClose }: Props) {
         let likes = 0;
         materials.forEach((m) => {
           views += m.views_count || 0;
-          likes += m.likes_count ?? m.saves_count ?? 0;
+          const localLikes = getLocalLikesCount(m.id, (m as any).saves_count || 0);
+          likes += localLikes;
         });
         
         setTotalViews(views);
@@ -130,11 +133,13 @@ export function UserProfilePanel({ profile, onClose }: Props) {
           {/* Slide-in Panel */}
           <motion.aside
             key="panel"
-            initial={{ x: '100%', opacity: 0 }}
+            initial={{ x: side === 'left' ? '-100%' : '100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: '100%', opacity: 0 }}
+            exit={{ x: side === 'left' ? '-100%' : '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-            className="fixed right-0 top-0 z-50 flex h-full w-full max-w-sm flex-col bg-surface border-l border-card-border shadow-2xl overflow-y-auto"
+            className={`fixed top-0 z-50 flex h-full w-full max-w-sm flex-col bg-surface ${
+              side === 'left' ? 'left-0 border-r' : 'right-0 border-l'
+            } border-card-border shadow-2xl overflow-y-auto`}
           >
             {/* ── Header ── */}
             <div className="relative flex flex-col items-center bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pb-6 pt-12">

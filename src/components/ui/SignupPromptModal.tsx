@@ -1,7 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Lock, Sparkles, ArrowRight, X } from 'lucide-react';
+import { 
+  X, 
+  ArrowRight, 
+  Download, 
+  Bookmark, 
+  ShieldCheck, 
+  GraduationCap 
+} from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { useDarkMode } from '../../hooks/useDarkMode';
 
 export interface SignupPromptModalProps {
   readonly isOpen: boolean;
@@ -10,166 +16,134 @@ export interface SignupPromptModalProps {
 }
 
 export function SignupPromptModal({ isOpen, onClose, onSignup }: Readonly<SignupPromptModalProps>) {
-  const { theme } = useDarkMode();
-
-  const isDark = theme === 'dark';
-  const isMid = theme === 'mid';
-
-  const modalBg = isDark
-    ? 'bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#1e1035] border-slate-800 text-white shadow-2xl'
-    : isMid
-    ? 'bg-gradient-to-br from-[#1e293b] via-[#1e1b4b] to-[#2e1065] border-indigo-500/30 text-white shadow-2xl'
-    : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-white/60 text-slate-900 shadow-2xl';
-
-  const closeBtnStyle = isDark
-    ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white'
-    : isMid
-    ? 'bg-white/10 text-indigo-200 hover:bg-white/20 hover:text-white'
-    : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-900';
-
-  const titleStyle = isDark || isMid ? 'text-white' : 'text-slate-900';
-
-  const descStyle = isDark
-    ? 'text-slate-300'
-    : isMid
-    ? 'text-indigo-200/90'
-    : 'text-slate-600';
-
-  const itemBg = isDark
-    ? 'bg-slate-800/80 border border-slate-700/60 text-slate-200 shadow-sm'
-    : isMid
-    ? 'bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-sm'
-    : 'bg-white/80 border border-slate-200/80 text-slate-700 shadow-sm';
-
-  const secondaryBtnStyle = isDark
-    ? 'border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700'
-    : isMid
-    ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
-    : 'border-slate-300 bg-white/80 text-slate-700 hover:bg-white hover:border-slate-400';
-
-  const footerStyle = isDark
-    ? 'text-slate-400'
-    : isMid
-    ? 'text-indigo-300/70'
-    : 'text-slate-500';
-
   return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.18 }}
         >
-          {/* Backdrop */}
-          <button
-            aria-label="Close dialog"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
+          {/* Backdrop with frosted glass effect */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-slate-950/50 dark:bg-black/70 backdrop-blur-sm cursor-pointer"
             onClick={onClose}
           />
 
-          {/* Modal Content */}
+          {/* Modal Card */}
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="Sign up to unlock content"
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            aria-label="Sign up for Lexon"
+            initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full max-w-md rounded-3xl p-8 border ${modalBg}`}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="relative w-full max-w-[440px] rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-7 shadow-2xl shadow-slate-900/15 dark:shadow-black/60 overflow-hidden"
           >
+            {/* Subtle top ambient accent line */}
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-600" />
+
             {/* Close Button */}
             <button
               onClick={onClose}
-              className={`absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full transition-all cursor-pointer ${closeBtnStyle}`}
-              aria-label="Close"
+              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              aria-label="Close modal"
             >
-              <X size={18} />
+              <X size={17} strokeWidth={2} />
             </button>
 
-            {/* Lock Icon with Glow */}
-            <div className="mb-6 flex justify-center">
-              <div className="relative">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 blur-2xl opacity-60" />
-                <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 shadow-lg">
-                  <Lock size={36} className="text-white" />
+            {/* Header / Brand Badge */}
+            <div className="flex items-center gap-3 mb-4 pt-1">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/60 text-indigo-600 dark:text-indigo-400 shrink-0">
+                <GraduationCap size={22} strokeWidth={2.2} />
+              </div>
+              <div>
+                <span className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  Student Library
+                </span>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                  Get full access on Lexon
+                </h2>
+              </div>
+            </div>
+
+            {/* Explanatory text */}
+            <p className="text-[13.5px] leading-relaxed text-slate-600 dark:text-zinc-400 mb-5">
+              Create your free student account to read complete documents, download study resources, and organize your semester revision.
+            </p>
+
+            {/* Feature Value Props - Clean Linear style */}
+            <div className="space-y-2.5 mb-6">
+              <div className="flex items-start gap-3 p-2.5 rounded-xl bg-slate-50/80 dark:bg-zinc-800/50 border border-slate-200/60 dark:border-zinc-800">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+                  <Download size={15} strokeWidth={2.2} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[13px] font-semibold text-slate-900 dark:text-zinc-100">
+                    Full Document Downloads
+                  </div>
+                  <div className="text-[12px] text-slate-500 dark:text-zinc-400 leading-normal">
+                    Download complete PDFs, question papers & lecture slides
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-2.5 rounded-xl bg-slate-50/80 dark:bg-zinc-800/50 border border-slate-200/60 dark:border-zinc-800">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5">
+                  <Bookmark size={15} strokeWidth={2.2} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[13px] font-semibold text-slate-900 dark:text-zinc-100">
+                    Personal Saved Library
+                  </div>
+                  <div className="text-[12px] text-slate-500 dark:text-zinc-400 leading-normal">
+                    Bookmark important notes and organize revision lists
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-2.5 rounded-xl bg-slate-50/80 dark:bg-zinc-800/50 border border-slate-200/60 dark:border-zinc-800">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
+                  <ShieldCheck size={15} strokeWidth={2.2} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[13px] font-semibold text-slate-900 dark:text-zinc-100">
+                    Verified Peer Content
+                  </div>
+                  <div className="text-[12px] text-slate-500 dark:text-zinc-400 leading-normal">
+                    Contributions shared by branch peers & faculty
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Title & Message */}
-            <div className="mb-6 text-center">
-              <h2 className={`text-2xl font-extrabold tracking-tight mb-2 ${titleStyle}`}>
-                Unlock This Content
-              </h2>
-              <p className={`text-sm leading-relaxed ${descStyle}`}>
-                Sign up to access all materials, assignments, test papers, and unlock the full learning experience!
-              </p>
-            </div>
-
-            {/* Features List */}
-            <div className="mb-6 space-y-3">
+            {/* Actions */}
+            <div className="space-y-2.5">
               <button
                 type="button"
                 onClick={onSignup}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all cursor-pointer hover:opacity-90 ${itemBg}`}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium text-[14px] h-11 px-5 shadow-sm shadow-indigo-600/20 transition-all cursor-pointer"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 shrink-0">
-                  <Sparkles size={16} className="text-indigo-400" />
-                </div>
-                <span className="text-sm font-semibold">Access 10,000+ study materials</span>
+                <span>Create Free Account</span>
+                <ArrowRight size={16} strokeWidth={2} />
               </button>
-              <button
-                type="button"
-                onClick={onSignup}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all cursor-pointer hover:opacity-90 ${itemBg}`}
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/20 shrink-0">
-                  <Sparkles size={16} className="text-purple-400" />
-                </div>
-                <span className="text-sm font-semibold">Download PDFs & documents</span>
-              </button>
-              <button
-                type="button"
-                onClick={onSignup}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all cursor-pointer hover:opacity-90 ${itemBg}`}
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/20 shrink-0">
-                  <Sparkles size={16} className="text-pink-400" />
-                </div>
-                <span className="text-sm font-semibold">Save favorites & bookmark notes</span>
-              </button>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <motion.div className="relative group" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-60 blur group-hover:opacity-100 transition duration-300" />
-                <button
-                  type="button"
-                  onClick={onSignup}
-                  className="relative flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg cursor-pointer"
-                >
-                  <span>Sign Up Now</span>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              </motion.div>
 
               <button
                 type="button"
                 onClick={onClose}
-                className={`w-full rounded-2xl border px-6 py-3 text-sm font-semibold transition-all cursor-pointer ${secondaryBtnStyle}`}
+                className="w-full flex items-center justify-center rounded-xl border border-slate-200 dark:border-zinc-800 bg-transparent hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium text-[13.5px] h-10 transition-colors cursor-pointer"
               >
-                Continue Exploring
+                Continue Browsing
               </button>
             </div>
 
-            {/* Footer Note */}
-            <p className={`mt-4 text-center text-xs ${footerStyle}`}>
-              Free forever for students • No credit card required
+            {/* Footer Trust badge */}
+            <p className="mt-4 text-center text-[12px] text-slate-400 dark:text-zinc-500">
+              Free forever for students • Instant access
             </p>
           </motion.div>
         </motion.div>

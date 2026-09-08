@@ -126,7 +126,7 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
           Good morning, {user?.username || user?.name || 'Student'}
         </h1>
         <p className="mt-1 text-body-sm text-on-surface-variant sm:text-body-md">
@@ -137,11 +137,11 @@ export function DashboardPage() {
       {/* Materials Category Segmented Control Tabs */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-headline-sm text-on-surface">Categories & Materials</h2>
+          <h2 className="text-base sm:text-lg font-bold tracking-tight text-on-surface">Categories & Materials</h2>
         </div>
 
-        {/* Horizontal Segmented Pill Container with Sliding Background Animation */}
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-card-border bg-surface-container-low/60 p-1.5 backdrop-blur-xs">
+        {/* Modern Elevated Segmented Control */}
+        <div className="inline-flex w-full sm:w-auto p-1 rounded-xl bg-surface-container-high/60 border border-card-border/70 backdrop-blur-xs shadow-2xs">
           {categories.map((category) => {
             const Icon = categoryIcon[category.icon] || FileText;
             const count = getCategoryCount(category.type);
@@ -156,27 +156,36 @@ export function DashboardPage() {
                   setSearchQuery(''); // Reset section search on category change
                 }}
                 className={cn(
-                  'relative flex flex-1 min-w-[140px] items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-label-md font-semibold transition-colors duration-200 cursor-pointer select-none',
+                  'group relative flex flex-1 sm:flex-initial items-center justify-center gap-2.5 rounded-lg px-4 py-2.5 text-[13.5px] font-medium transition-all duration-200 cursor-pointer select-none',
                   isSelected
-                    ? 'text-white'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container/50'
+                    ? 'text-on-surface font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container/60'
                 )}
               >
                 {isSelected && (
                   <motion.div
                     layoutId="activeSegmentedPill"
-                    className="absolute inset-0 rounded-xl bg-primary shadow-sm"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    className="absolute inset-0 rounded-lg bg-surface-bright shadow-xs border border-card-border/80"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                   />
                 )}
                 <span className="relative z-10 flex items-center gap-2">
-                  <Icon size={18} />
+                  <Icon
+                    size={17}
+                    strokeWidth={isSelected ? 2.2 : 1.8}
+                    className={cn(
+                      'transition-colors',
+                      isSelected ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface'
+                    )}
+                  />
                   <span>{category.label}</span>
                 </span>
                 <span
                   className={cn(
-                    'relative z-10 rounded-full px-2 py-0.5 text-label-sm transition-colors duration-200',
-                    isSelected ? 'bg-white/20 text-white font-bold' : 'bg-surface-container-high text-on-surface-variant'
+                    'relative z-10 rounded-full px-2 py-0.5 text-[11.5px] font-semibold transition-colors duration-200',
+                    isSelected
+                      ? 'bg-primary/10 text-primary font-bold ring-1 ring-primary/20'
+                      : 'bg-surface-container-highest/80 text-on-surface-variant'
                   )}
                 >
                   {loading ? '...' : count}
@@ -199,7 +208,7 @@ export function DashboardPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search in ${selectedLabel.toLowerCase()}...`}
               aria-label={`Search in ${selectedLabel}`}
-              className="h-11 w-full rounded-xl border border-card-border bg-white pl-10 pr-9 text-body-md text-on-surface shadow-xs placeholder:text-outline focus:border-primary focus:bg-white focus:outline-none"
+              className="h-11 w-full rounded-xl border border-card-border bg-surface-container pl-10 pr-9 text-body-md text-on-surface shadow-xs placeholder:text-outline focus:border-primary focus:outline-none"
             />
             {searchQuery && (
               <button
@@ -251,9 +260,9 @@ export function DashboardPage() {
 
       {/* Recently Uploaded Section */}
       <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-headline-md text-on-surface">Recently Uploaded</h2>
-          <Link to="/profile/uploads" className="text-label-md font-semibold text-primary">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight text-on-surface">Recently Uploaded</h2>
+          <Link to="/profile/uploads" className="text-label-md font-semibold text-primary hover:underline">
             View all uploads
           </Link>
         </div>
