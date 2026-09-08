@@ -32,6 +32,7 @@ export interface Material {
   readonly likes?: number;
   readonly isLiked?: boolean;
   readonly shares?: number;
+  readonly rejectionReason?: string | null;
 }
 
 export interface User {

@@ -16,8 +16,8 @@ export function Card({ children, className, hoverable = true, padded = true, ...
       transition={{ duration: 0.25, ease: 'easeOut' }}
       whileHover={hoverable ? { y: -2 } : undefined}
       className={cn(
-        'rounded-xl medium-liquid-glass transition-shadow duration-200 overflow-hidden',
-        hoverable && 'hover:shadow-card-hover',
+        'rounded-xl border border-card-border bg-surface-container-low transition-all duration-200 overflow-hidden shadow-xs',
+        hoverable && 'hover:border-primary/30 hover:shadow-card-hover',
         padded && 'p-6',
         className,
       )}

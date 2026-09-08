@@ -46,7 +46,7 @@ const STATIC_SUGGESTIONS: Suggestion[] = [
   { id: 'lib-recent', label: 'Recently Viewed', subtitle: 'Materials you opened recently', section: 'Library', href: '/library', icon: <BookOpen size={15} /> },
   { id: 'set-account', label: 'Account Settings', subtitle: 'Change name, email, avatar', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
   { id: 'set-notif', label: 'Notification Settings', subtitle: 'Manage your alerts', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
-  { id: 'set-theme', label: 'Theme & Appearance', subtitle: 'Light, Mid, Dark mode', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
+  { id: 'set-theme', label: 'Theme & Appearance', subtitle: 'Light or Dark mode', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
   { id: 'pro-edit', label: 'Edit Profile', subtitle: 'Update your information', section: 'Profile', href: '/profile', icon: <User size={15} /> },
   { id: 'pro-uploads', label: 'My Uploads', subtitle: 'Files you have uploaded', section: 'Profile', href: '/profile/uploads', icon: <User size={15} /> },
 ];
@@ -233,7 +233,7 @@ export function GlobalSearch() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 right-0 top-12 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-card-border bg-white shadow-card-hover"
+            className="absolute left-0 right-0 top-12 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-card-border bg-surface-container-low shadow-2xl"
           >
             {flatSuggestions.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10 text-center">

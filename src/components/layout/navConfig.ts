@@ -4,6 +4,7 @@ export interface NavItem {
   readonly label: string;
   readonly to: string;
   readonly icon: typeof Home;
+  readonly badge?: string;
 }
 
 export const navItems: readonly NavItem[] = [

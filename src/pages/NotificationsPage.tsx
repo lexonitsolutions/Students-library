@@ -25,8 +25,8 @@ export function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-headline-lg-mobile text-on-surface sm:text-headline-lg">Notifications</h1>
-      <p className="mt-1 text-body-sm text-on-surface-variant">Stay updated with your latest academic activities.</p>
+      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">Notifications</h1>
+      <p className="mt-1 text-body-md font-medium text-on-surface-variant">Stay updated with your latest academic activities.</p>
 
       <div className="mt-6">
         <NotificationList

@@ -119,9 +119,9 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
       : 'pr-3';
 
     return (
-      <div className="relative w-full flex items-center">
+      <div className="relative w-full flex items-center text-on-surface">
         {icon && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 z-20">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 dark:text-slate-500 z-[1]">
             {icon}
           </div>
         )}
@@ -163,12 +163,12 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
             updateCaret(e.currentTarget);
             props.onSelect?.(e);
           }}
-          className={`${className} !text-transparent caret-transparent selection:bg-indigo-500/30`}
+          className={`${className} !text-transparent caret-transparent selection:bg-primary/20`}
         />
 
         {(internalValue.length > 0 || isFocused) && (
           <div
-            className={`pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center ${paddingLeft} ${paddingRight} text-sm font-medium text-inherit overflow-hidden whitespace-pre z-10 select-none`}
+            className={`pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center ${paddingLeft} ${paddingRight} text-sm font-medium text-on-surface overflow-hidden whitespace-pre z-10 select-none`}
           >
             <AnimatePresence mode="popLayout" initial={false}>
               {leftChars.map((char, index) => {
@@ -183,7 +183,7 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
                       duration: 0.22,
                       ease: [0.215, 0.61, 0.355, 1],
                     }}
-                    className="inline-block"
+                    className="inline-block text-on-surface"
                   >
                     {displayChar}
                   </motion.span>
@@ -196,7 +196,7 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
                 key="active-caret"
                 animate={{ opacity: [1, 0, 1] }}
                 transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
-                className="inline-block w-0.5 h-4 bg-indigo-400 rounded-sm shrink-0"
+                className="inline-block w-0.5 h-4 bg-primary rounded-sm shrink-0"
               />
             )}
 
@@ -213,7 +213,7 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
                       duration: 0.22,
                       ease: [0.215, 0.61, 0.355, 1],
                     }}
-                    className="inline-block"
+                    className="inline-block text-on-surface"
                   >
                     {displayChar}
                   </motion.span>

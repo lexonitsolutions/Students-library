@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { toMaterial } from '../lib/materialMapper';
 import { listBookmarkedMaterialIds, listBookmarkedMaterials } from './bookmarksService';
+import { getLocalLikesCount } from './likesService';
 import type { Material } from '../data/types';
 import type { MaterialRow, MaterialStatus, MaterialType, PublicProfileRow } from '../types/database.types';
 
@@ -346,9 +347,9 @@ export async function deleteMaterialForUI(id: string, filePath?: string): Promis
   }
 }
 
-export async function recordDownload(materialId: string): Promise<void> {
+export async function recordDownload(materialId: string, userId?: string, currentCount: number = 0): Promise<void> {
   const { recordDownloadWithCount } = await import('./likesService');
-  await recordDownloadWithCount(materialId);
+  await recordDownloadWithCount(materialId, userId, currentCount);
 }
 
 /** Fetch real leaderboard data from the database — users ranked by uploads/views. */
@@ -363,6 +364,7 @@ export interface LeaderboardEntry {
   uploadLabel?: string;
   totalViews: number;
   totalDownloads: number;
+  totalLikes: number;
 }
 
 export async function listLeaderboardForUI(currentUserId?: string): Promise<LeaderboardEntry[]> {
@@ -401,20 +403,24 @@ export async function listLeaderboardForUI(currentUserId?: string): Promise<Lead
 
     const profileMap = new Map(profilesData.map((p: { id: string; name: string; username: string | null; avatar_url: string | null; university: string | null; branch: string | null; college: string | null; major: string | null }) => [p.id, p]));
 
-    // Fetch views and types by counting materials
+    // Fetch views, likes, and types by counting materials
     const { data: materialsData } = await supabase
       .from('materials')
-      .select('uploader_id, views_count, type')
+      .select('id, uploader_id, views_count, saves_count, type')
       .in('uploader_id', userIds)
       .eq('status', 'approved');
 
     const viewsByUser = new Map<string, number>();
+    const likesByUser = new Map<string, number>();
     const typesByUser = new Map<string, string[]>();
 
     if (materialsData) {
       for (const row of materialsData) {
         viewsByUser.set(row.uploader_id, (viewsByUser.get(row.uploader_id) ?? 0) + (row.views_count ?? 0));
         
+        const local = typeof window !== 'undefined' ? getLocalLikesCount(row.id, row.saves_count ?? 0) : (row.saves_count ?? 0);
+        likesByUser.set(row.uploader_id, (likesByUser.get(row.uploader_id) ?? 0) + local);
+
         const types = typesByUser.get(row.uploader_id) ?? [];
         types.push(row.type);
         typesByUser.set(row.uploader_id, types);
@@ -460,6 +466,7 @@ export async function listLeaderboardForUI(currentUserId?: string): Promise<Lead
           uploadLabel: label,
           totalViews: viewsByUser.get(s.user_id) ?? 0,
           totalDownloads: s.downloads_count ?? 0,
+          totalLikes: likesByUser.get(s.user_id) ?? 0,
         };
       })
       .filter((e): e is LeaderboardEntry => e !== null);

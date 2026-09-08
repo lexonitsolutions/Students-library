@@ -5,9 +5,12 @@ const LOCAL_LIKES_COUNT_PREFIX = 'quicklearnit_likes_count_';
 const LOCAL_SHARED_KEY_PREFIX = 'quicklearnit_shared_ids_';
 const LOCAL_SHARES_COUNT_PREFIX = 'quicklearnit_shares_count_';
 const LOCAL_DOWNLOADS_COUNT_PREFIX = 'quicklearnit_downloads_count_';
+const LOCAL_DOWNLOADED_KEY_PREFIX = 'quicklearnit_downloaded_ids_';
 
 // In-memory set cache for current user's liked material IDs
 let cachedUserLikedIds = new Map<string, Set<string>>();
+// In-memory set cache for user's downloaded material IDs
+let cachedUserDownloadedIds = new Map<string, Set<string>>();
 
 export function getLocalStorageLikedIds(userId: string): Set<string> {
   if (cachedUserLikedIds.has(userId)) {
@@ -174,6 +177,71 @@ export function getLocalDownloadsCount(materialId: string, initialDbValue: numbe
   return initialDbValue;
 }
 
+function getGuestDownloadId(): string {
+  try {
+    let guestId = localStorage.getItem('quicklearnit_guest_download_id');
+    if (!guestId) {
+      guestId = 'guest_' + Math.random().toString(36).substring(2, 12);
+      localStorage.setItem('quicklearnit_guest_download_id', guestId);
+    }
+    return guestId;
+  } catch {
+    return 'guest_anonymous';
+  }
+}
+
+export function getLocalStorageDownloadedIds(userId: string): Set<string> {
+  if (cachedUserDownloadedIds.has(userId)) {
+    return cachedUserDownloadedIds.get(userId)!;
+  }
+  try {
+    const raw = localStorage.getItem(`${LOCAL_DOWNLOADED_KEY_PREFIX}${userId}`);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        const set = new Set<string>(arr);
+        cachedUserDownloadedIds.set(userId, set);
+        return set;
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return new Set();
+}
+
+export function saveLocalStorageDownloadedIds(userId: string, ids: Set<string>): void {
+  cachedUserDownloadedIds.set(userId, ids);
+  try {
+    localStorage.setItem(`${LOCAL_DOWNLOADED_KEY_PREFIX}${userId}`, JSON.stringify([...ids]));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+/** Fetch all material IDs downloaded by the specified user from Supabase */
+export async function fetchUserDownloadedIds(userId: string): Promise<Set<string>> {
+  try {
+    const { data, error } = await supabase
+      .from('downloads')
+      .select('material_id')
+      .eq('user_id', userId);
+
+    if (!error && data) {
+      const ids = new Set<string>(data.map((row: { material_id: string }) => row.material_id));
+      saveLocalStorageDownloadedIds(userId, ids);
+      return ids;
+    }
+  } catch {
+    // Fall back to local storage
+  }
+  return getLocalStorageDownloadedIds(userId);
+}
+
+export function hasUserDownloaded(userId: string, materialId: string): boolean {
+  return getLocalStorageDownloadedIds(userId).has(materialId);
+}
+
 export function incrementLocalDownloadsCount(materialId: string, currentTotal: number): number {
   const newCount = currentTotal + 1;
   try {
@@ -186,8 +254,54 @@ export function incrementLocalDownloadsCount(materialId: string, currentTotal: n
 
 export async function recordDownloadWithCount(
   materialId: string,
+  userIdOrCurrentTotal?: string | number,
   currentTotal: number = 0
-): Promise<{ newCount: number }> {
+): Promise<{ newCount: number; alreadyDownloaded: boolean }> {
+  let userId: string | undefined;
+  let count = 0;
+
+  if (typeof userIdOrCurrentTotal === 'string') {
+    userId = userIdOrCurrentTotal;
+    count = currentTotal;
+  } else if (typeof userIdOrCurrentTotal === 'number') {
+    count = userIdOrCurrentTotal;
+  }
+
+  const effectiveUserId = userId || getGuestDownloadId();
+  const downloadedIds = getLocalStorageDownloadedIds(effectiveUserId);
+
+  // 1. Check local cache: if this user account already downloaded it, do NOT increment
+  if (downloadedIds.has(materialId)) {
+    const current = getLocalDownloadsCount(materialId, count);
+    return { newCount: current, alreadyDownloaded: true };
+  }
+
+  // 2. If user is authenticated, query Supabase downloads table to verify account history
+  if (userId) {
+    try {
+      const { data: existing } = await supabase
+        .from('downloads')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('material_id', materialId)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        downloadedIds.add(materialId);
+        saveLocalStorageDownloadedIds(userId, downloadedIds);
+        const current = getLocalDownloadsCount(materialId, count);
+        return { newCount: current, alreadyDownloaded: true };
+      }
+    } catch (err) {
+      console.warn('Error checking download history in database:', err);
+    }
+  }
+
+  // 3. Register as downloaded for this user account immediately to prevent rapid double-clicks
+  downloadedIds.add(materialId);
+  saveLocalStorageDownloadedIds(effectiveUserId, downloadedIds);
+
+  // 4. Record new download in database
   try {
     const { data, error } = await supabase.rpc('record_material_download', {
       p_material_id: materialId,
@@ -197,7 +311,7 @@ export async function recordDownloadWithCount(
       try {
         localStorage.setItem(`${LOCAL_DOWNLOADS_COUNT_PREFIX}${materialId}`, data.toString());
       } catch {}
-      return { newCount: data };
+      return { newCount: data, alreadyDownloaded: false };
     }
   } catch (err) {
     console.warn('RPC record_material_download failed, using fallback:', err);
@@ -205,11 +319,15 @@ export async function recordDownloadWithCount(
 
   // Fallback: try raw table insert
   try {
-    await supabase.from('downloads').insert({ material_id: materialId });
+    if (userId) {
+      await supabase.from('downloads').insert({ material_id: materialId, user_id: userId });
+    } else {
+      await supabase.from('downloads').insert({ material_id: materialId });
+    }
   } catch {}
 
-  const fallback = incrementLocalDownloadsCount(materialId, currentTotal);
-  return { newCount: fallback };
+  const fallback = incrementLocalDownloadsCount(materialId, count);
+  return { newCount: fallback, alreadyDownloaded: false };
 }
 
 export async function toggleLike(

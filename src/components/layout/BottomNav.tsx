@@ -42,7 +42,7 @@ export function BottomNav() {
       }}
       transition={{ duration: 0.4, ease: 'easeInOut' }}
       style={{ pointerEvents: isScrolling ? 'none' : 'auto' }}
-      className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 flex-row items-center gap-1.5 rounded-full p-2 lg:hidden apple-liquid-glass"
+      className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 flex-row items-center gap-1 rounded-2xl border border-card-border bg-surface-container-low px-2 py-1.5 shadow-2xl lg:hidden"
       aria-label="Primary"
     >
       {visibleNavItems.map((item) => (
@@ -52,10 +52,10 @@ export function BottomNav() {
           end={item.to === '/'}
           className={({ isActive }) =>
             cn(
-              'group relative flex h-14 w-14 flex-col items-center justify-center rounded-full transition-all duration-200 cursor-pointer select-none',
+              'group relative flex h-11 w-11 flex-col items-center justify-center rounded-xl transition-all duration-150 cursor-pointer select-none',
               isActive
-                ? 'text-primary dark:text-primary font-semibold'
-                : 'text-outline hover:text-on-surface hover:bg-white/30 dark:hover:bg-white/10',
+                ? 'bg-primary/10 text-primary font-bold shadow-xs'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container',
             )
           }
         >

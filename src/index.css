@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Global Smooth Text-Entry Typing Transition */
 [data-typing-active="true"] {
   transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
@@ -8,65 +10,65 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  /* QuickLearnit Academic color system */
-  --color-surface: #F7F8FA; /* Page background */
-  --color-surface-dim: #F7F8FA;
-  --color-surface-bright: #FCFCFC; /* Card background (no pure white) */
-  --color-surface-container-lowest: #F7F8FA;
-  --color-surface-container-low: #FCFCFC;
-  --color-surface-container: #FCFCFC;
-  --color-surface-container-high: #F1F2F5; /* Inactive pill background */
-  --color-surface-container-highest: #E5E7EB; 
-  --color-surface-variant: #E5E7EB; /* Card border */
-  --color-on-surface: #111827; /* Primary text */
-  --color-on-surface-variant: #6B7280; /* Secondary text */
-  --color-inverse-surface: #111827;
-  --color-inverse-on-surface: #F7F8FA;
-  --color-outline: #9CA3AF; /* Muted text */
-  --color-outline-variant: #E5E7EB;
-  --color-surface-tint: #1E2A78;
+  /* QuickLearnit Modern Electric Indigo color system (Linear & Raycast aesthetic) */
+  --color-surface: #F8FAFC; /* Slate 50 clean background */
+  --color-surface-dim: #F1F5F9;
+  --color-surface-bright: #FFFFFF; /* Pure crisp white cards */
+  --color-surface-container-lowest: #F8FAFC;
+  --color-surface-container-low: #FFFFFF;
+  --color-surface-container: #FFFFFF;
+  --color-surface-container-high: #F1F5F9; /* Inactive pill / input background */
+  --color-surface-container-highest: #E2E8F0; 
+  --color-surface-variant: #E2E8F0; /* Hairline card border */
+  --color-on-surface: #0F172A; /* Slate 900 primary text */
+  --color-on-surface-variant: #475569; /* Slate 600 secondary text */
+  --color-inverse-surface: #0F172A;
+  --color-inverse-on-surface: #F8FAFC;
+  --color-outline: #94A3B8; /* Slate 400 muted text */
+  --color-outline-variant: #E2E8F0;
+  --color-surface-tint: #4F46E5;
 
-  --color-primary: #1E2A78; /* Primary accent */
-  --color-on-primary: #FCFCFC; /* Text on primary */
-  --color-primary-container: #E8EBFB; /* Active state background */
-  --color-on-primary-container: #1E2A78; /* Link/action text */
-  --color-inverse-primary: #1E2A78;
-  --color-primary-fixed: #E8EBFB;
-  --color-primary-fixed-dim: #1E2A78;
-  --color-on-primary-fixed: #111827;
-  --color-on-primary-fixed-variant: #1E2A78;
+  --color-primary: #4F46E5; /* Electric Indigo 600 */
+  --color-on-primary: #FFFFFF; /* Crisp white text on primary */
+  --color-primary-container: #EEF2FF; /* Indigo 50 active background */
+  --color-on-primary-container: #4338CA; /* Indigo 700 action text */
+  --color-inverse-primary: #818CF8;
+  --color-primary-fixed: #EEF2FF;
+  --color-primary-fixed-dim: #4F46E5;
+  --color-on-primary-fixed: #1E1B4B;
+  --color-on-primary-fixed-variant: #4338CA;
 
-  --color-secondary: #4B4F5A; /* Inactive pill text */
-  --color-on-secondary: #FCFCFC;
-  --color-secondary-container: #F1F2F5;
-  --color-on-secondary-container: #4B4F5A;
-  --color-secondary-fixed: #F1F2F5;
-  --color-secondary-fixed-dim: #E5E7EB;
-  --color-on-secondary-fixed: #111827;
-  --color-on-secondary-fixed-variant: #4B4F5A;
+  --color-secondary: #334155; /* Slate 700 secondary */
+  --color-on-secondary: #FFFFFF;
+  --color-secondary-container: #F1F5F9;
+  --color-on-secondary-container: #1E293B;
+  --color-secondary-fixed: #F1F5F9;
+  --color-secondary-fixed-dim: #E2E8F0;
+  --color-on-secondary-fixed: #0F172A;
+  --color-on-secondary-fixed-variant: #334155;
 
-  --color-tertiary: #4b1c00;
-  --color-on-tertiary: #FCFCFC;
-  --color-tertiary-container: #6e2c00;
-  --color-on-tertiary-container: #f39461;
-  --color-tertiary-fixed: #ffdbcb;
-  --color-tertiary-fixed-dim: #ffb691;
-  --color-on-tertiary-fixed: #341100;
-  --color-on-tertiary-fixed-variant: #773205;
+  --color-tertiary: #7C3AED; /* Violet 600 */
+  --color-on-tertiary: #FFFFFF;
+  --color-tertiary-container: #F5F3FF;
+  --color-on-tertiary-container: #6D28D9;
+  --color-tertiary-fixed: #EDE9FE;
+  --color-tertiary-fixed-dim: #8B5CF6;
+  --color-on-tertiary-fixed: #2E1065;
+  --color-on-tertiary-fixed-variant: #6D28D9;
 
-  --color-error: #E23E3E; /* PDF badge */
-  --color-on-error: #FCFCFC;
-  --color-error-container: #E23E3E;
-  --color-on-error-container: #FCFCFC;
+  --color-error: #EF4444; /* Rose/Red badge */
+  --color-on-error: #FFFFFF;
+  --color-error-container: #FEE2E2;
+  --color-on-error-container: #B91C1C;
 
-  --color-background: #F7F8FA;
-  --color-on-background: #111827;
+  --color-background: #F8FAFC;
+  --color-on-background: #0F172A;
 
-  /* Brand accent tokens per design system doc */
-  --color-slate: #9CA3AF;
-  --color-soft-grey: #F1F2F5;
-  --color-surface-soft: #F1F2F5;
-  --color-card-border: #E5E7EB;
+  /* Brand accent tokens */
+  --color-slate: #94A3B8;
+  --color-soft-grey: #F1F5F9;
+  --color-surface-soft: #F8FAFC;
+  --color-card-border: #E2E8F0;
 
   /* Spacing scale (4px base). Design-system xs/sm/md/lg/xl (4/8/16/24/48px)
      map 1:1 onto Tailwind's default numeric spacing (p-1/2/4/6/12), so no
@@ -142,7 +144,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Smooth transition for dark/mid/light mode switching — covers all color-related properties */
+  /* Smooth transition for dark/light mode switching — covers all color-related properties */
   *, *::before, *::after {
     transition:
       background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
@@ -170,13 +172,7 @@
     background-color: var(--color-surface);
     color: var(--color-on-surface);
     overflow-x: hidden;
-  }
-
-  @media (min-width: 1024px) {
-    body {
-      height: 100vh;
-      overflow: hidden;
-    }
+    min-height: 100vh;
   }
 
   :focus-visible {
@@ -186,392 +182,481 @@
 }
 
 /* ============================
-   DARK THEME â€” Requested Custom Palette
+   DARK THEME — Professional SaaS Palette (Charcoal & Soft Electric Indigo)
    ============================ */
-:is(html.dark, html.mid) {
-  /* Surface hierarchy */
-  --color-surface: #0B0D12; /* Sidebar and other surfaces */
-  --color-surface-dim: #0B0D12;
-  --color-surface-bright: #1A1D26;
-  --color-surface-container-lowest: #0B0D12;
-  --color-surface-container-low: #1A1D26; /* Card background */
-  --color-surface-container: #1A1D26;
-  --color-surface-container-high: #1E212B; /* Inactive pills / tabs background */
-  --color-surface-container-highest: #22252F; /* Thumbnail placeholder background */
-  --color-surface-variant: #2A2E3A;
-  --color-surface-soft: #171A22; /* Search Bar background */
+html.dark,
+[data-theme="dark"] {
+  /* Centralized Theme Tokens */
+  --background: #111827;
+  --surface: #1F2937;
+  --surface-container: #273244;
+  --surface-high: #374151;
 
-  /* Text */
-  --color-on-surface: #F5F6FA; /* Primary text */
-  --color-on-surface-variant: #A0A4B8; /* Secondary text */
-  --color-inverse-surface: #F5F6FA;
-  --color-inverse-on-surface: #0F1117;
+  --border: #374151;
+  --border-subtle: #2D3748;
+
+  --primary: #6366D8;
+  --primary-hover: #7477DE;
+  --primary-soft: #2B2F6B;
+
+  --text-primary: #F3F4F6;
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
+  --text-placeholder: #6B7280;
+
+  /* Tailwind Color Mappings */
+  --color-surface: #111827;
+  --color-surface-dim: #111827;
+  --color-surface-bright: #1F2937;
+  --color-surface-container-lowest: #111827;
+  --color-surface-container-low: #1F2937;
+  --color-surface-container: #273244;
+  --color-surface-container-high: #374151;
+  --color-surface-container-highest: #374151;
+  --color-surface-variant: #2D3748;
+  --color-surface-soft: #1F2937;
+
+  --color-on-surface: #F3F4F6;
+  --color-on-surface-variant: #D1D5DB;
+  --color-inverse-surface: #F3F4F6;
+  --color-inverse-on-surface: #111827;
   
-  --color-outline: #6B7080; /* Muted text / search icon */
-  --color-outline-variant: #2A2E3A; /* Border */
-  --color-card-border: #2A2E3A; /* Card border */
+  --color-outline: #9CA3AF;
+  --color-outline-variant: #2D3748;
+  --color-card-border: #374151;
 
-  /* Primary Accent */
-  --color-primary: #4C63D2;
-  --color-on-primary: #F5F6FA; /* Same as primary text for contrast on buttons */
-  --color-primary-container: #232A4D; /* Active selected background glow */
-  --color-on-primary-container: #8FA3FF; /* Action buttons / links */
-  --color-inverse-primary: #4C63D2;
-  --color-primary-fixed: #232A4D;
-  --color-primary-fixed-dim: #4C63D2;
-  --color-on-primary-fixed: #F5F6FA;
-  --color-on-primary-fixed-variant: #4C63D2;
+  --color-primary: #6366D8;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #2B2F6B;
+  --color-on-primary-container: #FFFFFF;
+  --color-inverse-primary: #6366D8;
+  --color-primary-fixed: #2B2F6B;
+  --color-primary-fixed-dim: #6366D8;
+  --color-on-primary-fixed: #F3F4F6;
+  --color-on-primary-fixed-variant: #6366D8;
 
-  /* Secondary */
-  --color-secondary: #C4C7D4; /* Inactive pill text */
-  --color-on-secondary: #0F1117;
-  --color-secondary-container: #2E323F; /* Count badge circle background */
-  --color-on-secondary-container: #F5F6FA; /* Count badge text */
-  --color-secondary-fixed: #C4C7D4;
-  --color-secondary-fixed-dim: #6B7080;
-  --color-on-secondary-fixed: #0F1117;
-  --color-on-secondary-fixed-variant: #1E212B;
+  --color-secondary: #D1D5DB;
+  --color-on-secondary: #111827;
+  --color-secondary-container: #273244;
+  --color-on-secondary-container: #F3F4F6;
 
-  /* Error / Badges */
-  --color-error: #D64545; /* PDF Badge */
-  --color-on-error: #ffffff;
-  --color-error-container: #D64545;
-  --color-on-error-container: #ffffff;
+  --color-error: #D15B5B;
+  --color-on-error: #FFFFFF;
+  --color-error-container: #351F22;
+  --color-on-error-container: #F0AAAA;
 
-  /* Background */
-  --color-background: #0F1117; /* Page/body background */
-  --color-on-background: #F5F6FA;
+  --color-background: #111827;
+  --color-on-background: #F3F4F6;
 
-  /* Brand accent tokens */
-  --color-slate: #6B7080;
-  --color-soft-grey: #171A22;
-  --color-surface-tint: #4C63D2;
+  --color-slate: #9CA3AF;
+  --color-soft-grey: #1F2937;
+  --color-surface-tint: #6366D8;
 
-  /* Shadows â€” soft shadows */
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.18);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 /* ============================
-   Dark mode â€” Component overrides
+   Dark Mode — Component Overrides
    ============================ */
 
+/* Primary and Secondary button hover states */
+html.dark .bg-primary:hover,
+[data-theme="dark"] .bg-primary:hover {
+  background-color: var(--primary-hover) !important;
+}
+
 /* Card and container backgrounds */
-:is(:is(html.dark, html.mid), html.mid) .bg-white {
-  background-color: var(--color-surface-container-low) !important;
+html.dark .bg-white,
+[data-theme="dark"] .bg-white {
+  background-color: var(--surface) !important;
+  color: var(--text-primary);
 }
 
-:is(:is(html.dark, html.mid), html.mid) .bg-white.shadow-card,
-:is(:is(html.dark, html.mid), html.mid) [class*="rounded-xl"].bg-white {
-  background: var(--color-surface-container-low) !important;
-  border-color: var(--color-card-border) !important;
+html.dark .bg-white.shadow-card,
+html.dark [class*="rounded-xl"].bg-white,
+html.dark [class*="rounded-2xl"].bg-white,
+[data-theme="dark"] .bg-white.shadow-card,
+[data-theme="dark"] [class*="rounded-xl"].bg-white,
+[data-theme="dark"] [class*="rounded-2xl"].bg-white {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
 }
 
-:is(:is(html.dark, html.mid), html.mid) .bg-gray-50\/50,
-:is(:is(html.dark, html.mid), html.mid) .bg-gray-50 {
-  background-color: var(--color-surface-soft) !important;
+html.dark .bg-gray-50\/50,
+html.dark .bg-gray-50,
+html.dark .bg-slate-50,
+[data-theme="dark"] .bg-gray-50\/50,
+[data-theme="dark"] .bg-gray-50,
+[data-theme="dark"] .bg-slate-50 {
+  background-color: var(--surface-container) !important;
 }
 
-/* Borders */
-:is(:is(html.dark, html.mid), html.mid) .border-gray-100,
-:is(:is(html.dark, html.mid), html.mid) .border-gray-200 {
-  border-color: var(--color-card-border) !important;
+/* Borders & Separators */
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-slate-200,
+html.dark .border-slate-100,
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-100 {
+  border-color: var(--border) !important;
 }
 
-/* Text colors */
-:is(:is(html.dark, html.mid), html.mid) .text-slate-900,
-:is(:is(html.dark, html.mid), html.mid) .text-slate-800,
-:is(:is(html.dark, html.mid), html.mid) .text-gray-900,
-:is(:is(html.dark, html.mid), html.mid) .text-gray-800 {
-  color: var(--color-on-surface) !important;
-}
-:is(:is(html.dark, html.mid), html.mid) .text-slate-700,
-:is(:is(html.dark, html.mid), html.mid) .text-slate-600,
-:is(:is(html.dark, html.mid), html.mid) .text-gray-700,
-:is(:is(html.dark, html.mid), html.mid) .text-gray-600 {
-  color: var(--color-on-surface-variant) !important;
-}
-:is(:is(html.dark, html.mid), html.mid) .text-slate-500,
-:is(:is(html.dark, html.mid), html.mid) .text-slate-400,
-:is(:is(html.dark, html.mid), html.mid) .text-gray-500,
-:is(:is(html.dark, html.mid), html.mid) .text-gray-400 {
-  color: var(--color-outline) !important;
+/* Text Hierarchy */
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-gray-900,
+[data-theme="dark"] .text-gray-800 {
+  color: var(--text-primary) !important;
 }
 
-/* Form inputs */
-:is(:is(html.dark, html.mid), html.mid) .bg-gray-50\/50 input,
-:is(:is(html.dark, html.mid), html.mid) input.bg-gray-50\/50 {
-  background-color: var(--color-surface-container-low) !important;
-  color: var(--color-on-surface) !important;
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-gray-700,
+html.dark .text-gray-600,
+[data-theme="dark"] .text-slate-700,
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-gray-700,
+[data-theme="dark"] .text-gray-600 {
+  color: var(--text-secondary) !important;
 }
-:is(:is(html.dark, html.mid), html.mid) input:not([class*="bg-transparent"]):not([class*="bg-none"]),
-:is(:is(html.dark, html.mid), html.mid) textarea:not([class*="bg-transparent"]):not([class*="bg-none"]),
-:is(:is(html.dark, html.mid), html.mid) select:not([class*="bg-transparent"]):not([class*="bg-none"]) {
-  background-color: var(--color-surface-container-low);
-  color: var(--color-on-surface);
-  border-color: var(--color-card-border);
+
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-gray-500,
+html.dark .text-gray-400,
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-400,
+[data-theme="dark"] .text-gray-500,
+[data-theme="dark"] .text-gray-400 {
+  color: var(--text-muted) !important;
 }
-:is(:is(html.dark, html.mid), html.mid) input.bg-transparent,
-:is(:is(html.dark, html.mid), html.mid) input[class*="bg-transparent"],
-:is(:is(html.dark, html.mid), html.mid) textarea.bg-transparent,
-:is(:is(html.dark, html.mid), html.mid) textarea[class*="bg-transparent"] {
+
+/* Form Inputs, Textareas & Selects */
+html.dark input:not([class*="bg-transparent"]):not([class*="bg-none"]),
+html.dark textarea:not([class*="bg-transparent"]):not([class*="bg-none"]),
+html.dark select:not([class*="bg-transparent"]):not([class*="bg-none"]),
+[data-theme="dark"] input:not([class*="bg-transparent"]):not([class*="bg-none"]),
+[data-theme="dark"] textarea:not([class*="bg-transparent"]):not([class*="bg-none"]),
+[data-theme="dark"] select:not([class*="bg-transparent"]):not([class*="bg-none"]) {
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder,
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-placeholder) !important;
+}
+
+html.dark input.bg-transparent,
+html.dark input[class*="bg-transparent"],
+html.dark textarea.bg-transparent,
+html.dark textarea[class*="bg-transparent"],
+[data-theme="dark"] input.bg-transparent,
+[data-theme="dark"] input[class*="bg-transparent"],
+[data-theme="dark"] textarea.bg-transparent,
+[data-theme="dark"] textarea[class*="bg-transparent"] {
   background-color: transparent !important;
 }
-:is(:is(html.dark, html.mid), html.mid) input::placeholder,
-:is(:is(html.dark, html.mid), html.mid) textarea::placeholder {
-  color: var(--color-outline);
-}
 
-/* Hide native search cancel button */
-input[type="search"]::-webkit-search-cancel-button,
-input[type="search"]::-webkit-search-decoration,
-input[type="search"]::-webkit-search-results-button,
-input[type="search"]::-webkit-search-results-decoration {
-  -webkit-appearance: none;
-  appearance: none;
-  display: none;
-}
-:is(:is(html.dark, html.mid), html.mid) input:focus:not([class*="bg-transparent"]):not([class*="bg-none"]),
-:is(:is(html.dark, html.mid), html.mid) textarea:focus:not([class*="bg-transparent"]):not([class*="bg-none"]),
-:is(:is(html.dark, html.mid), html.mid) select:focus:not([class*="bg-transparent"]):not([class*="bg-none"]) {
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent) !important;
-}
-:is(:is(html.dark, html.mid), html.mid) input.bg-transparent:focus,
-:is(:is(html.dark, html.mid), html.mid) input[class*="bg-transparent"]:focus,
-:is(:is(html.dark, html.mid), html.mid) textarea.bg-transparent:focus,
-:is(:is(html.dark, html.mid), html.mid) textarea[class*="bg-transparent"]:focus {
-  border-color: transparent !important;
-  box-shadow: none !important;
+/* Focus Ring (subtle indigo, no bright glowing neon) */
+html.dark input:focus:not([class*="bg-transparent"]):not([class*="bg-none"]),
+html.dark textarea:focus:not([class*="bg-transparent"]):not([class*="bg-none"]),
+html.dark select:focus:not([class*="bg-transparent"]):not([class*="bg-none"]),
+[data-theme="dark"] input:focus:not([class*="bg-transparent"]):not([class*="bg-none"]),
+[data-theme="dark"] textarea:focus:not([class*="bg-transparent"]):not([class*="bg-none"]),
+[data-theme="dark"] select:focus:not([class*="bg-transparent"]):not([class*="bg-none"]) {
+  border-color: var(--primary) !important;
   outline: none !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 216, 0.25) !important;
 }
 
-/* Shadow overrides */
-:is(:is(html.dark, html.mid), html.mid) .shadow-\[0_8px_30px_rgb\(0\,0\,0\,0\.04\)\] {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--color-card-border) !important;
+/* Modals & Dropdown Popovers */
+html.dark [role="dialog"],
+html.dark .modal-content,
+[data-theme="dark"] [role="dialog"],
+[data-theme="dark"] .modal-content {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28) !important;
 }
 
-/* Accent color patches */
-:is(html.dark, html.mid) .bg-indigo-50 { background-color: color-mix(in srgb, var(--color-primary) 12%, transparent) !important; }
-:is(html.dark, html.mid) .bg-indigo-100 { background-color: color-mix(in srgb, var(--color-primary) 18%, transparent) !important; }
-:is(html.dark, html.mid) .bg-blue-100 { background-color: color-mix(in srgb, var(--color-primary) 15%, transparent) !important; }
-:is(html.dark, html.mid) .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.10) !important; }
-:is(html.dark, html.mid) .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.16) !important; }
-:is(html.dark, html.mid) .bg-amber-50 { background-color: rgba(245, 158, 11, 0.10) !important; }
-:is(html.dark, html.mid) .bg-amber-100 { background-color: rgba(245, 158, 11, 0.15) !important; }
-:is(html.dark, html.mid) .bg-red-50 { background-color: rgba(239, 68, 68, 0.10) !important; }
-:is(html.dark, html.mid) .bg-red-100 { background-color: rgba(239, 68, 68, 0.15) !important; }
-:is(html.dark, html.mid) .bg-purple-50 { background-color: rgba(168, 85, 247, 0.10) !important; }
-:is(html.dark, html.mid) .bg-purple-100 { background-color: rgba(168, 85, 247, 0.15) !important; }
+/* Modal Backdrop Overlay */
+html.dark [class*="fixed"][class*="inset-0"][class*="bg-black"],
+html.dark [class*="fixed"][class*="inset-0"][class*="bg-on-surface"],
+[data-theme="dark"] [class*="fixed"][class*="inset-0"][class*="bg-black"],
+[data-theme="dark"] [class*="fixed"][class*="inset-0"][class*="bg-on-surface"] {
+  background-color: rgba(0, 0, 0, 0.60) !important;
+}
 
-:is(html.dark, html.mid) .text-indigo-600,
-:is(html.dark, html.mid) .text-indigo-700 { color: var(--color-primary) !important; }
-:is(html.dark, html.mid) .text-indigo-500,
-:is(html.dark, html.mid) .text-indigo-400 { color: var(--color-primary) !important; }
-:is(html.dark, html.mid) .text-emerald-700,
-:is(html.dark, html.mid) .text-emerald-600 { color: #6ee7b7 !important; }
-:is(html.dark, html.mid) .text-amber-600,
-:is(html.dark, html.mid) .text-amber-700 { color: #fcd34d !important; }
-:is(html.dark, html.mid) .text-red-600,
-:is(html.dark, html.mid) .text-red-700 { color: #fca5a5 !important; }
+/* Dropdown Hover State */
+html.dark [role="menuitem"]:hover,
+html.dark [role="option"]:hover,
+[data-theme="dark"] [role="menuitem"]:hover,
+[data-theme="dark"] [role="option"]:hover {
+  background-color: var(--surface-high) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Tables */
+html.dark thead,
+html.dark th,
+[data-theme="dark"] thead,
+[data-theme="dark"] th {
+  background-color: var(--surface-container) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+html.dark tbody tr,
+[data-theme="dark"] tbody tr {
+  background-color: var(--surface);
+  border-color: var(--border);
+}
+
+html.dark tbody tr:hover,
+[data-theme="dark"] tbody tr:hover {
+  background-color: var(--surface-container) !important;
+}
+
+html.dark td,
+[data-theme="dark"] td {
+  border-color: var(--border) !important;
+}
+
+/* ============================
+   Semantic Statuses & Badges (Strict Palette)
+   ============================ */
+
+/* Study Materials: Accent #60A5FA, Background #1E293B, Text #BFDBFE */
+html.dark .badge-material,
+html.dark [data-section="materials"],
+[data-theme="dark"] .badge-material,
+[data-theme="dark"] [data-section="materials"] {
+  background-color: #1E293B !important;
+  color: #BFDBFE !important;
+  border-color: rgba(96, 165, 250, 0.3) !important;
+}
+
+/* Assignments: Accent #34A77A, Background #1B332B, Text #A7D8C2 */
+html.dark .badge-assignment,
+html.dark [data-section="assignments"],
+[data-theme="dark"] .badge-assignment,
+[data-theme="dark"] [data-section="assignments"] {
+  background-color: #1B332B !important;
+  color: #A7D8C2 !important;
+  border-color: rgba(52, 167, 122, 0.3) !important;
+}
+
+/* Test Papers: Accent #D69E2E, Background #332B19, Text #F1D58A */
+html.dark .badge-testpaper,
+html.dark [data-section="testpapers"],
+[data-theme="dark"] .badge-testpaper,
+[data-theme="dark"] [data-section="testpapers"] {
+  background-color: #332B19 !important;
+  color: #F1D58A !important;
+  border-color: rgba(214, 158, 46, 0.3) !important;
+}
+
+/* Approved / Live: Accent #2F9E72, Background #193229, Text #9FD4BC */
+html.dark .badge-approved,
+[data-theme="dark"] .badge-approved {
+  background-color: #193229 !important;
+  color: #9FD4BC !important;
+  border-color: rgba(47, 158, 114, 0.3) !important;
+}
+
+/* Pending Review: Accent #C98A2E, Background #332A1A, Text #E8CC91 */
+html.dark .badge-pending,
+[data-theme="dark"] .badge-pending {
+  background-color: #332A1A !important;
+  color: #E8CC91 !important;
+  border-color: rgba(201, 138, 46, 0.3) !important;
+}
+
+/* Rejected / Delete: Accent #D15B5B, Background #351F22, Text #F0AAAA */
+html.dark .badge-rejected,
+[data-theme="dark"] .badge-rejected {
+  background-color: #351F22 !important;
+  color: #F0AAAA !important;
+  border-color: rgba(209, 91, 91, 0.3) !important;
+}
+
+/* Common Tailwind badge classes dark adaptation */
+html.dark .bg-emerald-500\/10,
+html.dark .bg-emerald-50,
+[data-theme="dark"] .bg-emerald-500\/10,
+[data-theme="dark"] .bg-emerald-50 {
+  background-color: #193229 !important;
+  color: #9FD4BC !important;
+  border-color: rgba(47, 158, 114, 0.3) !important;
+}
+
+html.dark .bg-amber-500\/10,
+html.dark .bg-amber-50,
+[data-theme="dark"] .bg-amber-500\/10,
+[data-theme="dark"] .bg-amber-50 {
+  background-color: #332A1A !important;
+  color: #E8CC91 !important;
+  border-color: rgba(201, 138, 46, 0.3) !important;
+}
+
+html.dark .bg-rose-500\/10,
+html.dark .bg-red-500\/10,
+html.dark .bg-red-50,
+[data-theme="dark"] .bg-rose-500\/10,
+[data-theme="dark"] .bg-red-500\/10,
+[data-theme="dark"] .bg-red-50 {
+  background-color: #351F22 !important;
+  color: #F0AAAA !important;
+  border-color: rgba(209, 91, 91, 0.3) !important;
+}
+
+html.dark .bg-blue-500\/10,
+html.dark .bg-blue-50,
+[data-theme="dark"] .bg-blue-500\/10,
+[data-theme="dark"] .bg-blue-50 {
+  background-color: #1E293B !important;
+  color: #BFDBFE !important;
+  border-color: rgba(96, 165, 250, 0.3) !important;
+}
+
+html.dark .text-indigo-600,
+html.dark .text-indigo-700,
+html.dark .text-indigo-500,
+html.dark .text-indigo-400,
+[data-theme="dark"] .text-indigo-600,
+[data-theme="dark"] .text-indigo-700,
+[data-theme="dark"] .text-indigo-500,
+[data-theme="dark"] .text-indigo-400 {
+  color: var(--primary) !important;
+}
+
+html.dark .text-emerald-700,
+html.dark .text-emerald-600,
+html.dark .text-emerald-500,
+[data-theme="dark"] .text-emerald-700,
+[data-theme="dark"] .text-emerald-600,
+[data-theme="dark"] .text-emerald-500 {
+  color: #9FD4BC !important;
+}
+
+html.dark .text-amber-600,
+html.dark .text-amber-700,
+html.dark .text-amber-500,
+[data-theme="dark"] .text-amber-600,
+[data-theme="dark"] .text-amber-700,
+[data-theme="dark"] .text-amber-500 {
+  color: #E8CC91 !important;
+}
+
+html.dark .text-red-600,
+html.dark .text-red-700,
+html.dark .text-rose-600,
+[data-theme="dark"] .text-red-600,
+[data-theme="dark"] .text-red-700,
+[data-theme="dark"] .text-rose-600 {
+  color: #F0AAAA !important;
+}
 
 /* Bottom navigation */
-:is(html.dark, html.mid) .bg-white\/95 {
-  background-color: color-mix(in srgb, var(--color-surface) 95%, transparent) !important;
-}
-
-/* Reader page */
-:is(html.dark, html.mid) .bg-white.shadow-card {
-  background: var(--color-surface-container-low) !important;
+html.dark .bg-white\/95,
+[data-theme="dark"] .bg-white\/95 {
+  background-color: rgba(17, 24, 39, 0.95) !important;
 }
 
 /* Scrollbar styling for dark mode */
-:is(html.dark, html.mid) ::-webkit-scrollbar {
+html.dark ::-webkit-scrollbar,
+[data-theme="dark"] ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-:is(html.dark, html.mid) ::-webkit-scrollbar-track {
+html.dark ::-webkit-scrollbar-track,
+[data-theme="dark"] ::-webkit-scrollbar-track {
   background: transparent;
 }
-:is(html.dark, html.mid) ::-webkit-scrollbar-thumb {
-  background: var(--color-outline-variant);
+html.dark ::-webkit-scrollbar-thumb,
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
   border-radius: 4px;
 }
-:is(html.dark, html.mid) ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-outline);
-}
-
-/* Additional accent hover states */
-:is(html.dark, html.mid) .hover\:bg-emerald-200:hover { background-color: rgba(16, 185, 129, 0.22) !important; }
-:is(html.dark, html.mid) .hover\:bg-indigo-100:hover { background-color: color-mix(in srgb, var(--color-primary) 22%, transparent) !important; }
-
-/* Decorative blur backgrounds */
-:is(html.dark, html.mid) .bg-blue-50\/50 { background-color: color-mix(in srgb, var(--color-primary) 8%, transparent) !important; }
-
-/* Decorative borders */
-:is(html.dark, html.mid) .border-indigo-200\/50 { border-color: color-mix(in srgb, var(--color-primary) 15%, transparent) !important; }
-:is(html.dark, html.mid) .border-blue-200\/50 { border-color: color-mix(in srgb, var(--color-primary) 15%, transparent) !important; }
-:is(html.dark, html.mid) .border-emerald-200\/50 { border-color: rgba(16, 185, 129, 0.15) !important; }
-
-/* Additional shadow patterns */
-:is(html.dark, html.mid) .shadow-\[0_8px_30px_rgb\(0\,0\,0\,0\.12\)\] {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px #3F3F46 !important;
-}
-
-/* Smooth focus ring glow for dark mode */
-:is(html.dark, html.mid) :focus-visible {
-  outline-color: rgba(79, 131, 255, 0.5);
+html.dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
 }
 
 /* ============================
-   APP BACKGROUND GRADIENT
-   Subtle radial gradients to make the glass effect visible
+   APP BACKGROUND
+   Clean, solid, distraction-free surfaces
    ============================ */
 body {
   background-color: var(--color-background);
-  background-image: 
-    radial-gradient(circle at 15% 50%, color-mix(in srgb, var(--color-primary) 8%, transparent), transparent 25%),
-    radial-gradient(circle at 85% 30%, color-mix(in srgb, var(--color-primary) 5%, transparent), transparent 25%);
-  background-attachment: fixed;
+  background-image: none;
 }
-:is(html.dark, html.mid) body {
-  background-image: 
-    radial-gradient(circle at 15% 50%, color-mix(in srgb, var(--color-primary) 5%, transparent), transparent 25%),
-    radial-gradient(circle at 85% 30%, color-mix(in srgb, var(--color-primary) 3%, transparent), transparent 25%);
+html.dark body {
+  background-color: var(--color-background);
+  background-image: none;
 }
 
 /* ============================
-   MEDIUM LIQUID GLASS
-   Medium blur and translucency for global app use
+   SURFACE CONTAINERS & BORDERS
+   Solid, clean, professional SaaS aesthetic (no AI glassmorphism)
    ============================ */
 .medium-liquid-glass {
-  background: rgba(255, 255, 255, 0.65) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
-  box-shadow: 
-    0 8px 32px 0 rgba(31, 38, 135, 0.05),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.8) !important;
+  background-color: var(--color-surface-container) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--color-card-border) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
 }
 
-:is(html.dark, html.mid) .medium-liquid-glass {
-  background: color-mix(in srgb, var(--color-surface) 85%, transparent) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-  border: 1px solid #2A2E3A !important;
-  box-shadow: 
-    0 8px 32px 0 rgba(0, 0, 0, 0.3),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.02) !important;
+html.dark .medium-liquid-glass {
+  background-color: var(--color-surface-container-low) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--color-card-border) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25) !important;
 }
 
-/* ============================
-   APPLE LIQUID GLASS STYLING
-   ============================ */
 .apple-liquid-glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(245, 247, 250, 0.52) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 
-    0 16px 36px -8px rgba(0, 0, 0, 0.12),
-    0 4px 16px 0 rgba(0, 0, 0, 0.04),
-    inset 0 1px 2px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04);
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  background-color: var(--color-surface-container-low) !important;
+  border: 1px solid var(--color-card-border) !important;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-:is(html.dark, html.mid) .apple-liquid-glass {
-  background: color-mix(in srgb, var(--color-surface-container-low) 85%, transparent) !important;
-  border: 1px solid #2A2E3A !important;
-  box-shadow: 
-    0 16px 40px -8px rgba(0, 0, 0, 0.5),
-    0 4px 16px 0 rgba(0, 0, 0, 0.2),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(24px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
+html.dark .apple-liquid-glass {
+  background-color: var(--color-surface-container-low) !important;
+  border: 1px solid var(--color-card-border) !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .apple-liquid-pill-active {
-  background: linear-gradient(135deg, rgba(0, 35, 111, 0.12) 0%, rgba(30, 58, 138, 0.08) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 
-    0 4px 14px -2px rgba(0, 35, 111, 0.12),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.9);
-}
-
-:is(html.dark, html.mid) .apple-liquid-pill-active {
-  background: var(--color-primary-container) !important;
+  background-color: var(--color-primary-container) !important;
   border: 1px solid var(--color-primary) !important;
-  box-shadow: 
-    0 4px 18px -2px color-mix(in srgb, var(--color-primary) 20%, transparent),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.1) !important;
 }
-/* ============================
-   MID THEME — Medium Brightness / Dim
-   ============================ */
-html.mid {
-  /* Surface hierarchy */
-  --color-surface: #33353D; 
-  --color-surface-dim: #33353D;
-  --color-surface-bright: #42454F;
-  --color-surface-container-lowest: #33353D;
-  --color-surface-container-low: #42454F; 
-  --color-surface-container: #42454F;
-  --color-surface-container-high: #4A4D57; 
-  --color-surface-container-highest: #4A4D57; 
-  --color-surface-variant: #52555F;
-  --color-surface-soft: #3A3D46;
-
-  /* Text */
-  --color-on-surface: #F0F1F5; 
-  --color-on-surface-variant: #C2C4CE; 
-  --color-inverse-surface: #F0F1F5;
-  --color-inverse-on-surface: #33353D;
-  
-  --color-outline: #9498A5; 
-  --color-outline-variant: #52555F; 
-  --color-card-border: #52555F; 
-
-  /* Primary Accent */
-  --color-primary: #6B84E8;
-  --color-on-primary: #F0F1F5; 
-  --color-primary-container: #4C5680; 
-  --color-on-primary-container: #9FB0F5; 
-  --color-inverse-primary: #6B84E8;
-  --color-primary-fixed: #4C5680;
-  --color-primary-fixed-dim: #6B84E8;
-  --color-on-primary-fixed: #F0F1F5;
-  --color-on-primary-fixed-variant: #6B84E8;
-
-  /* Secondary */
-  --color-secondary: #D5D7E0; 
-  --color-on-secondary: #33353D;
-  --color-secondary-container: #4A4D57; 
-  --color-on-secondary-container: #F0F1F5; 
-  --color-secondary-fixed: #D5D7E0;
-  --color-secondary-fixed-dim: #9498A5;
-  --color-on-secondary-fixed: #33353D;
-  --color-on-secondary-fixed-variant: #4A4D57;
-
-  /* Error / Badges */
-  --color-error: #E2604D; 
-  --color-on-error: #ffffff;
-  --color-error-container: #E2604D;
-  --color-on-error-container: #ffffff;
-
-  /* Background */
-  --color-background: #3A3D46; 
-  --color-on-background: #F0F1F5;
-
-  /* Brand accent tokens */
-  --color-slate: #9498A5;
-  --color-soft-grey: #3A3D46;
-  /* Shadows — soft shadows */
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
-  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-}
-
-/* Dark color-scheme hint for browser autofill & system popups */
+/* Color scheme hint for browser autofill & system popups */
 html, body, input, textarea, select {
+  color-scheme: light;
+}
+html.dark,
+html.dark body,
+html.dark input,
+html.dark textarea,
+html.dark select {
   color-scheme: dark;
 }
 

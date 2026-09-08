@@ -63,7 +63,7 @@ export function ReaderPage() {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex flex-col bg-white">
+      <div className="fixed inset-0 z-50 flex flex-col bg-surface-container-lowest text-on-surface">
         <header className="flex items-center gap-3 border-b border-card-border px-4 py-3 sm:px-6">
           <IconButton label="Back" onClick={() => navigate(-1)}>
             <ArrowLeft size={20} />

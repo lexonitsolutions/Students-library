@@ -11,7 +11,6 @@ import {
   Pencil,
   Shield,
   Sun,
-  SunMoon,
   Trash2,
   User,
   UserCog,
@@ -104,7 +103,7 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="mb-6 text-headline-lg-mobile text-on-surface sm:text-headline-lg">Settings</h1>
+      <h1 className="mb-6 text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">Settings</h1>
 
       <Card hoverable={false} className="flex items-center gap-3 relative">
         {isExploring ? (
@@ -181,22 +180,20 @@ export function SettingsPage() {
                 <button
                   type="button"
                   onClick={cycleTheme}
-                  aria-label="Cycle theme"
-                  className="flex h-8 w-16 items-center rounded-full border border-card-border bg-surface-container-low p-1 transition-all duration-300 hover:border-primary/50 cursor-pointer relative"
+                  aria-label="Toggle theme"
+                  className="flex h-8 w-14 items-center rounded-full border border-card-border bg-surface-container-low p-0.5 transition-all duration-200 hover:border-primary/50 cursor-pointer relative"
                 >
                   <span
-                    className="flex h-6 w-6 items-center justify-center rounded-full shadow-sm transition-all duration-300 absolute left-1"
+                    className="flex h-6.5 w-6.5 items-center justify-center rounded-full shadow-xs transition-all duration-200 absolute left-0.5"
                     style={{
-                      transform: theme === 'dark' ? 'translateX(30px)' : theme === 'mid' ? 'translateX(15px)' : 'translateX(0)',
-                      backgroundColor: theme === 'dark' ? '#818cf8' : theme === 'mid' ? '#6B84E8' : '#1e3a8a',
+                      transform: theme === 'dark' ? 'translateX(24px)' : 'translateX(0)',
+                      backgroundColor: theme === 'dark' ? '#6366F1' : '#F1F5F9',
                     }}
                   >
                     {theme === 'dark' ? (
-                      <Moon size={12} className="text-white" />
-                    ) : theme === 'mid' ? (
-                      <SunMoon size={12} className="text-white" />
+                      <Moon size={13} className="text-white" />
                     ) : (
-                      <Sun size={12} className="text-white" />
+                      <Sun size={13} className="text-amber-500" />
                     )}
                   </span>
                 </button>
@@ -211,7 +208,7 @@ export function SettingsPage() {
         <button
           type="button"
           onClick={() => setShowLogoutAlert(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-card-border bg-white py-3 text-label-md font-semibold text-on-surface transition-colors hover:bg-surface-soft cursor-pointer"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-card-border bg-surface-container py-3 text-label-md font-semibold text-on-surface transition-colors hover:bg-surface-container-high cursor-pointer shadow-xs"
         >
           <LogOut size={18} className="text-on-surface-variant" />
           Log Out
@@ -234,7 +231,7 @@ export function SettingsPage() {
       {/* Designed Logout Alert Modal */}
       <Modal open={showLogoutAlert} onClose={() => setShowLogoutAlert(false)} title="Confirm Logout">
         <div className="flex flex-col items-center text-center gap-3 py-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <LogOut size={28} />
           </div>
           <div>
