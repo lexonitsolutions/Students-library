@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { GraduationCap, LayoutDashboard, Library, LogOut, Shield, Users } from 'lucide-react';
+import { GraduationCap, Headphones, LayoutDashboard, Library, LogOut, Shield, Users } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -7,6 +7,8 @@ import { useWorkspace } from '../../hooks/useWorkspace';
 import { cn } from '../../lib/cn';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { Avatar } from '../ui/Avatar';
+import { useUnreadMessages } from '../../hooks/useUnreadMessages';
 import { navItems } from './navConfig';
 
 const adminNavItems = [
@@ -18,15 +20,18 @@ const adminNavItems = [
 
 export function Sidebar() {
   const { user, signOut, isExploring } = useAuth();
+  const { unreadCount, hasUnread } = useUnreadMessages();
   const { chooseWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const isAdmin = user?.role === 'admin';
 
-  const visibleNavItems = isExploring
-    ? navItems.filter((item) => ['/', '/leaderboard', '/upload', '/library'].includes(item.to))
-    : navItems;
+  const visibleNavItems = (
+    isExploring
+      ? navItems.filter((item) => ['/', '/leaderboard', '/upload', '/library'].includes(item.to))
+      : navItems
+  ).filter((item) => item.to !== '/profile');
 
   const handleConfirmLogout = async () => {
     await signOut();
@@ -183,6 +188,13 @@ export function Sidebar() {
                           isActive ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface',
                         )}
                       />
+                      {/* Red indicator dot for messages */}
+                      {item.to === '/messages' && hasUnread && (
+                        <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-surface" />
+                        </span>
+                      )}
                     </div>
 
                     {/* Text label - slides & fades smoothly */}
@@ -196,10 +208,16 @@ export function Sidebar() {
                       )}
                     >
                       <span>{item.label}</span>
-                      {item.badge && (
-                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
-                          {item.badge}
+                      {item.to === '/messages' && unreadCount > 0 ? (
+                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-2xs">
+                          {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
+                      ) : (
+                        item.badge && (
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
+                            {item.badge}
+                          </span>
+                        )
                       )}
                     </span>
                   </>
@@ -209,8 +227,108 @@ export function Sidebar() {
           </nav>
         </div>
 
-        {/* ── Bottom Section: Log out ── */}
-        <div className="shrink-0 px-2.5 py-3 border-t border-card-border/60 bg-surface-container-low/50">
+        {/* ── Bottom Section: Support, Profile & Log out ── */}
+        <div className="shrink-0 px-2.5 py-2.5 border-t border-card-border/60 bg-surface-container-low/50 flex flex-col gap-1">
+          {/* Customer Support Link */}
+          <NavLink
+            to="/support"
+            title={!expanded ? 'Customer Support' : undefined}
+            className={({ isActive }) =>
+              cn(
+                'group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5',
+                isActive
+                  ? 'text-primary font-semibold'
+                  : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+              )
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebarActivePill"
+                    className="absolute inset-0 rounded-xl bg-primary/[0.09] ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                  />
+                )}
+
+                <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+                  <Headphones size={20} strokeWidth={1.8} className="shrink-0 transition-colors" />
+                </div>
+
+                <span
+                  className={cn(
+                    'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
+                    isActive && 'font-semibold text-primary dark:text-primary-300',
+                    expanded
+                      ? 'opacity-100 translate-x-0 max-w-[160px]'
+                      : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
+                  )}
+                >
+                  Customer Support
+                </span>
+              </>
+            )}
+          </NavLink>
+
+          {/* Profile Item */}
+          {!isExploring && (
+            <NavLink
+              to="/profile"
+              title={!expanded ? 'Profile' : undefined}
+              className={({ isActive }) =>
+                cn(
+                  'group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5',
+                  isActive
+                    ? 'text-primary font-semibold'
+                    : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {/* Animated sleek active pill */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebarActivePill"
+                      className="absolute inset-0 rounded-xl bg-primary/[0.09] ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30"
+                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                    />
+                  )}
+
+                  {/* Fixed user avatar slot in icon's place */}
+                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+                    <Avatar
+                      name={user?.name || 'User'}
+                      src={user?.avatar}
+                      size={26}
+                      className={cn(
+                        'ring-2 transition-all',
+                        isActive
+                          ? 'ring-primary ring-offset-1 ring-offset-surface'
+                          : 'ring-card-border group-hover:ring-primary/40',
+                      )}
+                    />
+                  </div>
+
+                  {/* Text label - slides & fades smoothly */}
+                  <span
+                    className={cn(
+                      'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
+                      isActive && 'font-semibold text-primary dark:text-primary-300',
+                      expanded
+                        ? 'opacity-100 translate-x-0 max-w-[160px]'
+                        : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
+                    )}
+                  >
+                    Profile
+                  </span>
+                </>
+              )}
+            </NavLink>
+          )}
+
+          {/* Log out Button */}
           <button
             type="button"
             onClick={() => setShowLogoutAlert(true)}

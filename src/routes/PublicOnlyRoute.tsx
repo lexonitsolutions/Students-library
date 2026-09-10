@@ -5,11 +5,11 @@ import { useWorkspace } from '../hooks/useWorkspace';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
 
 export function PublicOnlyRoute() {
-  const { isAuthenticated, isExploring, user, loading } = useAuth();
+  const { isAuthenticated, isExploring, user, loading, session } = useAuth();
   const { workspace } = useWorkspace();
   const { getAndClearRedirectPath } = useSignupRedirect();
 
-  if (isAuthenticated && loading) {
+  if (loading || (session && !isExploring && !user)) {
     return <RouteLoader />;
   }
 
@@ -19,7 +19,7 @@ export function PublicOnlyRoute() {
     if (redirectPath) {
       return <Navigate to={redirectPath} replace />;
     }
-    const target = user?.role === 'admin' && workspace === 'admin' ? '/admin' : '/';
+    const target = user?.role === 'admin' && workspace === 'admin' ? '/admin' : '/dashboard';
     return <Navigate to={target} replace />;
   }
 

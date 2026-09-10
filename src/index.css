@@ -660,7 +660,7 @@ html.dark select {
   color-scheme: dark;
 }
 
-/* Chrome / WebKit Autofill Overrides — Hide native text & white bg so only AnimatedInput overlay renders */
+/* Chrome / WebKit Autofill Styling */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -670,10 +670,17 @@ textarea:-webkit-autofill:hover,
 textarea:-webkit-autofill:focus,
 textarea:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: inherit !important;
+  transition: background-color 50000s ease-in-out 0s !important;
+}
+
+/* For AnimatedInput specifically where custom overlay renders: */
+input.caret-transparent:-webkit-autofill,
+input.caret-transparent:-webkit-autofill:hover,
+input.caret-transparent:-webkit-autofill:focus,
+input.caret-transparent:-webkit-autofill:active {
   -webkit-text-fill-color: transparent !important;
   caret-color: transparent !important;
-  transition: background-color 50000s ease-in-out 0s !important;
-  background-color: transparent !important;
 }
 
 

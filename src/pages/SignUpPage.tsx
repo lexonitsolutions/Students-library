@@ -84,9 +84,9 @@ export function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white dark:bg-surface-container-lowest text-on-surface">
+    <div className="flex min-h-screen bg-white text-on-surface">
       {/* ── LEFT SIDE: BRANDING SHOWCASE PANEL (Desktop only) ── */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-slate-200/90 dark:border-card-border bg-gradient-to-br from-slate-100 via-[#EDF2F9] to-slate-100 dark:from-surface-container-low dark:to-surface-container relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-slate-200/90 bg-gradient-to-br from-slate-100 via-[#EDF2F9] to-slate-100 relative overflow-hidden">
         {/* Subtle tinted grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(99,102,241,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.07)_1px,transparent_1px)] bg-[size:2.5rem_2.5rem] pointer-events-none" />
         <div className="absolute -top-28 -right-28 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
@@ -113,7 +113,7 @@ export function SignUpPage() {
           className="relative z-10 max-w-md mx-auto my-auto py-12"
         >
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 mb-6">
             <Sparkles size={13} />
             <span>Join 50,000+ Students</span>
           </div>
@@ -126,10 +126,10 @@ export function SignUpPage() {
           </p>
 
           {/* Academic Showcase Card */}
-          <div className="rounded-2xl border border-slate-200 dark:border-card-border bg-white dark:bg-surface-container p-5 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold">
                   <BookOpen size={20} />
                 </div>
                 <div>
@@ -142,12 +142,12 @@ export function SignUpPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-card-border/60">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-surface-container-high border border-slate-200/80 dark:border-card-border">
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider block">Colleges</span>
                 <span className="text-2xl font-bold text-on-surface">120+</span>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-surface-container-high border border-slate-200/80 dark:border-card-border">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider block">Documents</span>
                 <span className="text-2xl font-bold text-on-surface">15,000+</span>
               </div>
@@ -167,7 +167,7 @@ export function SignUpPage() {
       </div>
 
       {/* ── RIGHT SIDE: SIGN UP INTERFACE ── */}
-      <div className="flex flex-1 flex-col justify-between p-6 sm:p-12 bg-white dark:bg-surface-container-lowest">
+      <div className="flex flex-1 flex-col justify-between p-6 sm:p-12 bg-white">
         {/* Mobile-only brand link */}
         <div className="flex items-center justify-between lg:hidden mb-6">
           <Link to="/" className="flex items-center gap-2">
@@ -196,7 +196,7 @@ export function SignUpPage() {
 
           {/* Error Display */}
           {error && (
-            <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-semibold text-red-600 dark:text-red-400">
+            <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-semibold text-red-600">
               {error}
             </div>
           )}
@@ -206,7 +206,7 @@ export function SignUpPage() {
             <button
               type="button"
               onClick={handleGoogleSignUp}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-card-border bg-white hover:bg-slate-50 dark:bg-surface-container dark:hover:bg-surface-container-high px-4 py-2.5 text-sm font-medium text-slate-800 dark:text-on-surface transition-all cursor-pointer shadow-xs"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -242,11 +242,11 @@ export function SignUpPage() {
                   }
                   navigate('/verify-otp', { state: { target: phone, type: 'mobile', otpKind: 'sms' } });
                 }}
-                className="flex w-full items-center gap-2 rounded-xl border border-indigo-200 dark:border-primary/30 bg-indigo-50/40 dark:bg-surface-container p-1.5 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+                className="flex w-full items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/40 p-1.5 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
               >
                 <div className="flex items-center pl-2">
                   <Smartphone className="h-4 w-4 text-primary" />
-                  <span className="ml-2 text-on-surface-variant text-xs font-semibold border-r border-indigo-200 dark:border-card-border pr-2">+91</span>
+                  <span className="ml-2 text-on-surface-variant text-xs font-semibold border-r border-indigo-200 pr-2">+91</span>
                 </div>
                 <AnimatedInput
                   type="tel"
@@ -271,9 +271,9 @@ export function SignUpPage() {
               <button
                 type="button"
                 onClick={() => setShowMobileInput(true)}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-indigo-200/90 dark:border-primary/25 bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-primary/10 dark:hover:bg-primary/15 px-4 py-2.5 text-sm font-semibold text-indigo-700 dark:text-primary transition-all cursor-pointer shadow-xs"
+                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-indigo-200/90 bg-indigo-50/70 hover:bg-indigo-100/80 px-4 py-2.5 text-sm font-semibold text-indigo-700 transition-all cursor-pointer shadow-xs"
               >
-                <Smartphone className="h-4 w-4 text-indigo-600 dark:text-primary" />
+                <Smartphone className="h-4 w-4 text-indigo-600" />
                 <span>Continue with Mobile</span>
               </button>
             )}
@@ -282,10 +282,10 @@ export function SignUpPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-200 dark:border-card-border" />
+              <span className="w-full border-t border-slate-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-surface-container-lowest px-3 text-on-surface-variant font-semibold tracking-wider">
+              <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider">
                 or register with email
               </span>
             </div>
@@ -301,7 +301,7 @@ export function SignUpPage() {
                 type="text"
                 id="name"
                 icon={<UserIcon className="h-4 w-4 text-on-surface-variant" />}
-                className="block w-full rounded-xl border border-slate-200 dark:border-card-border bg-slate-50 dark:bg-surface-container pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                 placeholder="Alex Morgan"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -317,7 +317,7 @@ export function SignUpPage() {
                 type="email"
                 id="email"
                 icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
-                className="block w-full rounded-xl border border-slate-200 dark:border-card-border bg-slate-50 dark:bg-surface-container pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                 placeholder="student@university.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -334,7 +334,7 @@ export function SignUpPage() {
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
-                  className="block w-full rounded-xl border border-slate-200 dark:border-card-border bg-slate-50 dark:bg-surface-container pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                   placeholder="At least 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -360,7 +360,7 @@ export function SignUpPage() {
                   setAgreedToTerms(e.target.checked);
                   if (error && error.includes('Terms')) setError(null);
                 }}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-card-border text-primary focus:ring-primary cursor-pointer transition-colors"
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer transition-colors"
                 required
               />
               <span className="text-xs font-medium text-on-surface-variant leading-snug">

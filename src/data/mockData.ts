@@ -37,7 +37,7 @@ export const degreeBranches = [
 
 export const universities = ['Stanford University', 'MIT', 'Harvard University', 'State University', 'Tech Institute'];
 export const subjects = ['Computer Science', 'Mathematics', 'Physics', 'Economics', 'Chemistry', 'Biology'];
-export const years = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+export const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'];
 export const semesters = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6'];
 
 // Placeholder chart data for the admin dashboard growth graph

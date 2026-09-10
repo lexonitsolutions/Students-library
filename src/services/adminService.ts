@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabaseClient';
 import type { UserRole } from '../types/database.types';
 
+export const ROOT_ADMIN_EMAIL = 'hr@lexonit.com';
+
 export interface AdminStats {
   readonly totalStudents: number;
   readonly totalDocuments: number;
@@ -61,7 +63,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     { count: activeDownloads },
     { count: pendingApprovals },
   ] = await Promise.all([
-    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('email', ROOT_ADMIN_EMAIL),
     supabase.from('materials').select('id, title, type, status'),
     supabase.from('downloads').select('*', { count: 'exact', head: true }).gte('downloaded_at', oneDayAgo),
     supabase.from('materials').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -69,6 +71,7 @@ export async function getAdminStats(): Promise<AdminStats> {
 
   const deletedApprovalIds = getDeletedApprovalIds();
   const deletedRejectionIds = getDeletedRejectionIds();
+  const deletedStudentIds = getDeletedStudentIds();
 
   const activeMaterials = (materialsData || []).filter(
     (m) => !deletedApprovalIds.has(m.id) && !deletedRejectionIds.has(m.id)
@@ -80,7 +83,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   const totalTestPapers = activeMaterials.filter((m) => getDocumentSection(m) === 'testpapers').length;
 
   return {
-    totalStudents: totalStudents ?? 0,
+    totalStudents: Math.max(0, (totalStudents ?? 0) - deletedStudentIds.size),
     totalDocuments,
     totalMaterials,
     totalAssignments,
@@ -208,8 +211,6 @@ export async function listModerationQueue(): Promise<ModerationItem[]> {
     };
   });
 }
-
-const ROOT_ADMIN_EMAIL = 'hr@lexonit.com';
 
 export interface AdminAllowlistEntry {
   readonly email: string;
@@ -883,11 +884,21 @@ export async function listRecentRejections(
     return localList;
   }
 
-  const { data: profiles } = await supabase
-    .from('public_profiles')
-    .select('id, name, username, avatar_url, university, college, branch, major');
+  const [{ data: pubProfiles }, { data: fullProfiles }] = await Promise.all([
+    supabase
+      .from('public_profiles')
+      .select('id, name, username, avatar_url, university, college, branch, major'),
+    supabase
+      .from('profiles')
+      .select('id, name, username, avatar_url, university, college, branch, major, email, role'),
+  ]);
 
-  const profileById = new Map(profiles?.map((u) => [u.id, u]) ?? []);
+  const profileById = new Map<string, any>();
+  (pubProfiles || []).forEach((u) => profileById.set(u.id, u));
+  (fullProfiles || []).forEach((u) => {
+    const prev = profileById.get(u.id) || {};
+    profileById.set(u.id, { ...prev, ...u });
+  });
 
   const merged: RecentRejectionItem[] = filteredDb.map((row) => {
     const prof = profileById.get(row.uploader_id);
@@ -927,35 +938,38 @@ export async function listRecentRejections(
 
     if (!adminName || ['admin', 'administrator', 'system'].includes(adminName.toLowerCase().trim())) {
       if (adminEmail && adminEmail.includes('@')) {
-        adminName = adminEmail.split('@')[0];
+        const matchedByEmail = Array.from(profileById.values()).find(
+          (p) => p.email && p.email.toLowerCase() === adminEmail.toLowerCase(),
+        );
+        if (matchedByEmail) {
+          adminName = matchedByEmail.name || matchedByEmail.username || adminEmail.split('@')[0];
+          if (!adminAvatar && matchedByEmail.avatar_url) adminAvatar = matchedByEmail.avatar_url;
+        } else {
+          adminName = adminEmail.split('@')[0];
+        }
       } else if (
         currentAdmin &&
-        ((adminId && currentAdmin.id === adminId) || (adminEmail && currentAdmin.email?.toLowerCase() === adminEmail.toLowerCase()))
+        ((adminId && currentAdmin.id === adminId) ||
+          (adminEmail && currentAdmin.email?.toLowerCase() === adminEmail.toLowerCase()))
       ) {
         adminName = currentAdmin.name || (currentAdmin.email ? currentAdmin.email.split('@')[0] : 'Admin');
+        if (!adminAvatar && currentAdmin.avatar) adminAvatar = currentAdmin.avatar;
       } else {
-        const uploaderLower = (prof?.name || '').toLowerCase();
-        if (uploaderLower.includes('shaik') || uploaderLower.includes('jafar')) {
-          const khan = Array.from(profileById.values()).find(
-            (p) => (p.name || '').toLowerCase().includes('khan') || p.username === 'khan',
-          );
-          adminName = khan?.name || khan?.username || 'khan';
-          if (!adminAvatar && khan?.avatar_url) adminAvatar = khan.avatar_url;
-        } else {
-          const shaik = Array.from(profileById.values()).find(
-            (p) => (p.name || '').toLowerCase().includes('shaik'),
-          );
-          adminName = shaik?.name || 'shaik jafar sadhik';
-          if (!adminAvatar && shaik?.avatar_url) adminAvatar = shaik.avatar_url;
+        const anyAdmin = Array.from(profileById.values()).find(
+          (p) => p.role === 'admin' || (p.email && p.email.includes('admin')),
+        );
+        if (anyAdmin) {
+          adminName = anyAdmin.name || anyAdmin.username || 'Admin';
+          if (!adminAvatar && anyAdmin.avatar_url) adminAvatar = anyAdmin.avatar_url;
         }
       }
     }
 
-    if (!adminAvatar) {
+    if (!adminAvatar && adminName) {
       const matched = Array.from(profileById.values()).find(
         (p) =>
-          (p.name && p.name.toLowerCase() === adminName.toLowerCase()) ||
-          (p.username && p.username.toLowerCase() === adminName.toLowerCase()),
+          (p.name && p.name.toLowerCase() === adminName?.toLowerCase()) ||
+          (p.username && p.username.toLowerCase() === adminName?.toLowerCase()),
       );
       if (matched?.avatar_url) {
         adminAvatar = matched.avatar_url;
@@ -974,7 +988,7 @@ export async function listRecentRejections(
       rejectedAt,
       rejectionReason: rejParsed.reason,
       rejectedByAdminId: adminId,
-      rejectedByAdminName: adminName,
+      rejectedByAdminName: adminName || 'Admin',
       rejectedByAdminAvatar: adminAvatar,
       rejectedByAdminEmail: adminEmail,
       filePath: row.file_path,
@@ -1025,7 +1039,7 @@ export async function listStudents(): Promise<StudentUserItem[]> {
     supabase
       .from('profiles')
       .select('id, name, username, email, phone, avatar_url, university, college, branch, major, year, semester, role, created_at')
-      .neq('role', 'admin')
+      .neq('email', ROOT_ADMIN_EMAIL)
       .order('created_at', { ascending: false }),
     supabase
       .from('profile_stats')
@@ -1042,7 +1056,11 @@ export async function listStudents(): Promise<StudentUserItem[]> {
   );
 
   return (profiles || [])
-    .filter((p) => !deletedIds.has(p.id))
+    .filter(
+      (p) =>
+        !deletedIds.has(p.id) &&
+        p.email?.toLowerCase() !== ROOT_ADMIN_EMAIL.toLowerCase()
+    )
     .map((p) => {
       const s = statsByUserId.get(p.id);
       return {
@@ -1140,6 +1158,8 @@ export interface AdminMaterialItem {
   readonly uploaderDetails?: UploaderDetails;
   readonly status: 'pending' | 'approved' | 'rejected';
   readonly rejectionReason?: string;
+  readonly rejectedByAdminName?: string;
+  readonly rejectedByAdminAvatar?: string;
   readonly filePath: string;
   readonly fileUrl?: string;
   readonly fileSizeMb?: number | null;
@@ -1195,9 +1215,13 @@ export async function listAllMaterialsForAdmin(): Promise<AdminMaterialItem[]> {
       };
 
       let reason = row.rejection_reason;
+      let rejectedByAdminName: string | undefined;
+      let rejectedByAdminAvatar: string | undefined;
       if (reason && reason.startsWith('REJECTED:')) {
         const parsed = parseRejectionMeta(reason);
         reason = parsed.reason;
+        rejectedByAdminName = parsed.meta?.adminName;
+        rejectedByAdminAvatar = parsed.meta?.adminAvatar;
       }
 
       return {
@@ -1210,6 +1234,8 @@ export async function listAllMaterialsForAdmin(): Promise<AdminMaterialItem[]> {
         uploaderDetails,
         status: (row.status as 'pending' | 'approved' | 'rejected') || 'pending',
         rejectionReason: reason || undefined,
+        rejectedByAdminName,
+        rejectedByAdminAvatar,
         filePath: row.file_path,
         fileUrl: resolvedUrl,
         fileSizeMb: row.file_size_mb,

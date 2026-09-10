@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, BookMarked, Moon, Settings, Sun, User } from 'lucide-react';
+import { Bell, BookMarked, History, Moon, Settings, Sun, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -20,6 +20,7 @@ export function TopBar() {
   const isDesktop = useIsDesktop();
   const { theme, cycleTheme } = useDarkMode();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [notificationsList, setNotificationsList] = useState<AppNotification[]>([]);
   const unreadCount = notificationsList.filter((notification) => !notification.read).length;
 
@@ -53,9 +54,18 @@ export function TopBar() {
     };
   }, [notificationsOpen]);
 
+  useEffect(() => {
+    if (notificationsOpen && notificationsList.some((n) => !n.read)) {
+      setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
+      if (user && !isExploring) {
+        notificationsService.markAllRead(user.id).catch(() => {});
+      }
+    }
+  }, [notificationsOpen, notificationsList, user, isExploring]);
+
   const handleDeleteNotification = (id: string) => {
     setNotificationsList((prev) => prev.filter((n) => n.id !== id));
-    notificationsService.deleteNotification(id).catch(() => {});
+    notificationsService.deleteNotification(id, user?.id).catch(() => {});
   };
 
   const handleMarkAllRead = () => {
@@ -113,7 +123,16 @@ export function TopBar() {
             onClick={(e) => {
               e.stopPropagation();
               if (isDesktop) {
-                setNotificationsOpen((open) => !open);
+                setNotificationsOpen((open) => {
+                  const next = !open;
+                  if (next && notificationsList.some((n) => !n.read)) {
+                    setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
+                    if (user && !isExploring) {
+                      notificationsService.markAllRead(user.id).catch(() => {});
+                    }
+                  }
+                  return next;
+                });
               } else {
                 navigate('/notifications');
               }
@@ -131,7 +150,10 @@ export function TopBar() {
                 <button
                   aria-label="Close notifications"
                   className="fixed inset-0 z-30 cursor-default"
-                  onClick={() => setNotificationsOpen(false)}
+                  onClick={() => {
+                    setNotificationsOpen(false);
+                    setShowHistory(false);
+                  }}
                 />
                 <motion.div
                   initial={{ opacity: 0, y: -8, scale: 0.98 }}
@@ -141,13 +163,64 @@ export function TopBar() {
                   onClick={(e) => e.stopPropagation()}
                   className="absolute right-0 top-12 z-40 w-96 rounded-2xl border border-card-border bg-surface-container-low p-3 shadow-2xl"
                 >
-                  <p className="px-2 py-1 text-label-md font-bold text-on-surface">Notifications</p>
+                  <div className="flex items-center justify-between px-2 py-1 pb-2 mb-1 border-b border-card-border/60">
+                    <div className="flex items-center gap-2">
+                      <p className="text-label-md font-bold text-on-surface">
+                        {showHistory ? 'Past Week History' : 'Notifications'}
+                      </p>
+                      {showHistory && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary tracking-wide uppercase">
+                          7 Days
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowHistory((prev) => !prev)}
+                      title={showHistory ? 'Show recent notifications' : 'Notification history (Past 7 days)'}
+                      aria-label="Notification history"
+                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                        showHistory
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'text-on-surface-variant hover:bg-surface-container hover:text-primary'
+                      }`}
+                    >
+                      <History size={14} />
+                      <span>{showHistory ? 'Recent' : 'History'}</span>
+                    </button>
+                  </div>
+
                   <NotificationList
-                    notifications={notificationsList}
+                    notifications={
+                      showHistory
+                        ? notificationsList.filter(notificationsService.isWithinPastWeek)
+                        : notificationsList
+                    }
                     onMarkAllRead={handleMarkAllRead}
                     onDeleteNotification={handleDeleteNotification}
                     compact
+                    isHistory={showHistory}
+                    emptyTitle={showHistory ? 'No past week notifications' : 'No notifications'}
+                    emptySubtitle={
+                      showHistory
+                        ? 'No notification activity recorded in the past 7 days.'
+                        : "You're all caught up!"
+                    }
                   />
+
+                  <div className="mt-2 pt-2 border-t border-card-border/50 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotificationsOpen(false);
+                        setShowHistory(false);
+                        navigate('/notifications');
+                      }}
+                      className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                    >
+                      View all on notifications page
+                    </button>
+                  </div>
                 </motion.div>
               </>
             )}

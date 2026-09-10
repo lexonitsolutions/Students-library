@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { Search, FileText, X } from 'lucide-react';
+import { Search, FileText, X, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { MaterialCard } from '../components/ui/MaterialCard';
@@ -123,15 +124,33 @@ export function DashboardPage() {
   const selectedCategoryObj = categories.find((c) => c.type === selectedCategory);
   const selectedLabel = selectedCategoryObj ? selectedCategoryObj.label : 'Materials';
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
-          Good morning, {user?.username || user?.name || 'Student'}
-        </h1>
-        <p className="mt-1 text-body-sm text-on-surface-variant sm:text-body-md">
-          Let&apos;s continue your studies where you left off.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-on-surface">
+            {getGreeting()}, {user?.name || user?.username || 'Student'}
+          </h1>
+          <p className="mt-1 text-body-sm text-on-surface-variant sm:text-body-md">
+            Let&apos;s continue your studies where you left off.
+          </p>
+        </div>
+
+        <Button
+          variant="primary"
+          onClick={() => navigate('/upload')}
+          icon={<Upload size={16} />}
+          className="self-start sm:self-auto shadow-sm text-xs sm:text-sm font-semibold cursor-pointer"
+        >
+          <span>Upload</span> 
+        </Button>
       </div>
 
       {/* Materials Category Segmented Control Tabs */}

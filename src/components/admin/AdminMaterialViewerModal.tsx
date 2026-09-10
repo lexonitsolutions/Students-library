@@ -18,7 +18,7 @@ import {
 import { createPortal } from 'react-dom';
 import { Avatar } from '../ui/Avatar';
 import { cleanDocumentTitle } from '../../lib/materialMapper';
-import type { ModerationItem } from '../../services/adminService';
+import { parseRejectionMeta, type ModerationItem } from '../../services/adminService';
 
 export interface AdminMaterialViewerModalProps {
   readonly item: ModerationItem | null;
@@ -278,24 +278,33 @@ export function AdminMaterialViewerModal({
                 </div>
 
                 {/* Rejected Banner if item was rejected */}
-                {item.status === 'rejected' && (
-                  <div className="p-3.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2.5">
-                    <ShieldAlert size={16} className="shrink-0 text-rose-500 mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-rose-800 dark:text-rose-200">Rejected Submission</span>
-                        {item.rejectedByAdminName && (
-                          <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-                            By {item.rejectedByAdminName}
-                          </span>
-                        )}
+                {item.status === 'rejected' && (() => {
+                  const { reason, meta } = parseRejectionMeta(item.rejectionReason);
+                  const reviewer = item.rejectedByAdminName || meta?.adminName;
+                  const displayReason = (reason && reason !== 'Guidelines not met')
+                    ? reason
+                    : item.rejectionReason && !item.rejectionReason.startsWith('REJECTED:')
+                    ? item.rejectionReason
+                    : 'Did not meet submission guidelines.';
+                  return (
+                    <div className="p-3.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2.5">
+                      <ShieldAlert size={16} className="shrink-0 text-rose-500 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-rose-800 dark:text-rose-200">Rejected Submission</span>
+                          {reviewer && (
+                            <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                              By {reviewer}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-0.5 leading-relaxed">
+                          Reason: {displayReason}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-0.5 leading-relaxed">
-                        Reason: {item.rejectionReason || 'Did not meet submission guidelines.'}
-                      </p>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Approved Banner if item was approved */}
                 {item.status === 'approved' && item.approvedByAdminName && (

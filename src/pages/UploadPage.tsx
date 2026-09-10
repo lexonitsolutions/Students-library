@@ -7,7 +7,7 @@ import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
-import { courses, engineeringBranches, degreeBranches, subjects } from '../data/mockData';
+import { courses, engineeringBranches, degreeBranches, subjects, years } from '../data/mockData';
 import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { uploadMaterial } from '../services/materialsService';
@@ -448,18 +448,17 @@ export function UploadPage() {
                   onChange={(e) => setSelectedCourse(e.target.value)}
                 />
                 <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-on-surface">
-                    Student Year <span className="text-error">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="year"
-                    required
-                    placeholder="1st year, 2nd year ..."
-                    className="h-11 w-full rounded-xl bg-surface-container-lowest border border-card-border/90 px-3.5 text-sm font-medium text-on-surface placeholder:text-outline/50 shadow-2xs transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                  />
-                </div>
+                <Select
+                  label={
+                    <span>
+                      Student Year <span className="text-error">*</span>
+                    </span>
+                  }
+                  placeholder="Select Year *"
+                  options={years}
+                  name="year"
+                  required
+                />
               </div>
             ) : isPastPaper ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -495,18 +494,17 @@ export function UploadPage() {
                 />
                 <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
                 <Select label="Subject *" placeholder="Select Subject *" options={subjects} name="subject" required />
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-on-surface">
-                    Student Year <span className="text-error">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="year"
-                    required
-                    placeholder="1st year, 2nd year ..."
-                    className="h-11 w-full rounded-xl bg-surface-container-lowest border border-card-border/90 px-3.5 text-sm font-medium text-on-surface placeholder:text-outline/50 shadow-2xs transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                  />
-                </div>
+                <Select
+                  label={
+                    <span>
+                      Student Year <span className="text-error">*</span>
+                    </span>
+                  }
+                  placeholder="Select Year *"
+                  options={years}
+                  name="year"
+                  required
+                />
               </div>
             )}
           </motion.div>

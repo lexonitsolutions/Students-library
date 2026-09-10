@@ -1,4 +1,5 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export type ThemeType = 'light' | 'dark';
 
@@ -11,6 +12,8 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+const LIGHT_ONLY_ROUTES = ['/get-started', '/onboarding', '/signin', '/signup'];
+
 function getInitialTheme(): ThemeType {
   const stored = localStorage.getItem('quicklearnit-theme') || localStorage.getItem('lexon-theme');
   if (stored === 'light' || stored === 'dark') {
@@ -21,8 +24,12 @@ function getInitialTheme(): ThemeType {
 
 export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [theme, setThemeState] = useState<ThemeType>(getInitialTheme);
+  const location = useLocation();
 
-  const activeTheme: ThemeType = theme;
+  const normalizedPath = location.pathname.replace(/\/+$/, '').toLowerCase() || '/';
+  const isLightOnlyPage = LIGHT_ONLY_ROUTES.includes(normalizedPath);
+
+  const activeTheme: ThemeType = isLightOnlyPage ? 'light' : theme;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -36,8 +43,10 @@ export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
       root.setAttribute('data-theme', 'light');
     }
 
-    localStorage.setItem('quicklearnit-theme', theme);
-  }, [theme, activeTheme]);
+    if (!isLightOnlyPage) {
+      localStorage.setItem('quicklearnit-theme', theme);
+    }
+  }, [theme, activeTheme, isLightOnlyPage]);
 
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {

@@ -626,6 +626,7 @@ export function LeaderboardPage() {
     setSelectedProfile({
       uploaderId: student.id,
       uploaderName: student.name,
+      uploaderUsername: student.username,
       uploaderAvatar: student.avatar,
       uploaderUniversity: student.university || undefined,
       uploaderCollege: student.branch || undefined,

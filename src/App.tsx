@@ -22,6 +22,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { ProfileUploadsPage } from './pages/ProfileUploadsPage';
 import { ReaderPage } from './pages/ReaderPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { CustomerSupportPage } from './pages/CustomerSupportPage';
 import { UploadPage } from './pages/UploadPage';
 import { AdminRoute } from './routes/AdminRoute';
 import { HomeGate } from './routes/HomeGate';
@@ -56,6 +57,7 @@ function App() {
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/profile/uploads" element={<ProfileUploadsPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/support" element={<CustomerSupportPage />} />
                     <Route path="/reader/:id" element={<ReaderPage />} />
                     <Route path="/notifications" element={<NotificationsPage />} />
                     <Route element={<AdminRoute />}>

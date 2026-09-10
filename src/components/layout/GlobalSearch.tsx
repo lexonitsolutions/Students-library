@@ -4,6 +4,7 @@ import {
   ClipboardList,
   FileQuestion,
   FileText,
+  Headphones,
   Search,
   Settings,
   User,
@@ -47,6 +48,7 @@ const STATIC_SUGGESTIONS: Suggestion[] = [
   { id: 'set-account', label: 'Account Settings', subtitle: 'Change name, email, avatar', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
   { id: 'set-notif', label: 'Notification Settings', subtitle: 'Manage your alerts', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
   { id: 'set-theme', label: 'Theme & Appearance', subtitle: 'Light or Dark mode', section: 'Settings', href: '/settings', icon: <Settings size={15} /> },
+  { id: 'supp-cust', label: 'Customer Support', subtitle: 'Student help desk, ticket submission & FAQ', section: 'Settings', href: '/support', icon: <Headphones size={15} /> },
   { id: 'pro-edit', label: 'Edit Profile', subtitle: 'Update your information', section: 'Profile', href: '/profile', icon: <User size={15} /> },
   { id: 'pro-uploads', label: 'My Uploads', subtitle: 'Files you have uploaded', section: 'Profile', href: '/profile/uploads', icon: <User size={15} /> },
 ];

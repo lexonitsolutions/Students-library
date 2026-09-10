@@ -117,3 +117,31 @@ export interface NotificationRow {
   read: boolean;
   created_at: string;
 }
+
+export type MessageRequestStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface MessageRequestRow {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  status: MessageRequestStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConversationRow {
+  id: string;
+  user_a: string;
+  user_b: string;
+  request_id: string;
+  created_at: string;
+}
+
+export interface MessageRow {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+}

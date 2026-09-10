@@ -511,6 +511,7 @@ export function AdminManageMaterialsPage() {
                                 date: new Date(mat.createdAt).toLocaleDateString(),
                                 status: mat.status,
                                 rejectionReason: mat.rejectionReason,
+                                rejectedByAdminName: mat.rejectedByAdminName,
                                 views: mat.views,
                                 downloads: mat.downloads,
                               });
@@ -594,11 +595,25 @@ export function AdminManageMaterialsPage() {
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 w-fit">
                           <XCircle size={11} /> Rejected
                         </span>
-                        {mat.rejectionReason && (
-                          <span className="text-[10px] text-on-surface-variant truncate max-w-[140px]" title={mat.rejectionReason}>
-                            {mat.rejectionReason}
+                        {mat.rejectedByAdminName && (
+                          <span className="text-[10px] text-on-surface-variant flex items-center gap-1 truncate max-w-[140px]" title={`Rejected by ${mat.rejectedByAdminName}`}>
+                            <span>By</span>
+                            <span className="font-semibold text-on-surface truncate">{mat.rejectedByAdminName}</span>
                           </span>
                         )}
+                        {mat.rejectionReason && (() => {
+                          const { reason } = adminService.parseRejectionMeta(mat.rejectionReason);
+                          const displayReason = (reason && reason !== 'Guidelines not met')
+                            ? reason
+                            : mat.rejectionReason && !mat.rejectionReason.startsWith('REJECTED:')
+                            ? mat.rejectionReason
+                            : 'Did not meet guidelines';
+                          return (
+                            <span className="text-[10px] text-on-surface-variant truncate max-w-[140px]" title={displayReason}>
+                              {displayReason}
+                            </span>
+                          );
+                        })()}
                       </div>
                     )}
                   </td>
@@ -653,6 +668,7 @@ export function AdminManageMaterialsPage() {
                             date: new Date(mat.createdAt).toLocaleDateString(),
                             status: mat.status,
                             rejectionReason: mat.rejectionReason,
+                            rejectedByAdminName: mat.rejectedByAdminName,
                             views: mat.views,
                             downloads: mat.downloads,
                           });
