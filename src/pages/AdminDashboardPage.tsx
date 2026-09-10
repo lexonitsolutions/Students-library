@@ -492,6 +492,7 @@ export function AdminDashboardPage() {
           rej.title.toLowerCase().includes(q) ||
           rej.subject.toLowerCase().includes(q) ||
           rej.uploaderName.toLowerCase().includes(q) ||
+          (rej.rejectedByAdminName || '').toLowerCase().includes(q) ||
           (rej.rejectionReason || '').toLowerCase().includes(q)
         );
       }
@@ -527,8 +528,6 @@ export function AdminDashboardPage() {
               <ShieldCheck size={12} />
               Admin Portal
             </span>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span className="text-xs font-medium text-on-surface-variant">System Operational</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
             Dashboard Overview
@@ -1050,18 +1049,19 @@ export function AdminDashboardPage() {
           <div className="overflow-x-auto">
             {approvalFilter === 'rejected' ? (
               /* Rejected Materials Table */
-              <table className="w-full min-w-[620px] text-left text-sm">
+              <table className="w-full min-w-[720px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-card-border bg-surface-container text-xs font-semibold text-on-surface-variant">
                     <th className="px-5 py-2.5">Document</th>
                     <th className="px-4 py-2.5">Contributor</th>
-                    <th className="px-4 py-2.5">Moderator & Reason</th>
+                    <th className="px-4 py-2.5">Rejected By</th>
+                    <th className="px-4 py-2.5">Reason</th>
                     <th className="px-4 py-2.5">Rejected Date</th>
                     <th className="px-5 py-2.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-card-border">
-                  {filteredRejections.slice(0, 15).map((item) => (
+                  {filteredRejections.map((item) => (
                     <tr key={item.id} className="hover:bg-surface-container transition-colors">
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2.5">
@@ -1091,6 +1091,7 @@ export function AdminDashboardPage() {
                                   date: formatApprovalTime(item.rejectedAt),
                                   status: 'rejected',
                                   rejectionReason: item.rejectionReason,
+                                  rejectedByAdminName: item.rejectedByAdminName,
                                 });
                                 setIsApprovedPreview(false);
                               }}
@@ -1136,19 +1137,32 @@ export function AdminDashboardPage() {
                         </button>
                       </td>
 
+                      {/* Rejected By Column */}
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1 max-w-[200px]">
-                          <span className="inline-flex items-center gap-1 w-fit rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 truncate">
-                            <ShieldAlert size={10} className="shrink-0" />
-                            {item.rejectionReason || 'Did not meet guidelines'}
-                          </span>
-                          <span className="text-[11px] text-on-surface-variant flex items-center gap-1 truncate">
-                            <span>By</span>
-                            <span className="font-semibold text-on-surface truncate max-w-[130px]" title={item.rejectedByAdminName || 'Admin'}>
+                        <div className="flex items-center gap-2">
+                          <Avatar
+                            src={item.rejectedByAdminAvatar}
+                            name={item.rejectedByAdminName || 'Admin'}
+                            size={22}
+                            className="shrink-0 ring-1 ring-rose-500/30"
+                          />
+                          <div className="min-w-0">
+                            <span className="text-xs font-semibold text-on-surface truncate block max-w-[130px]" title={item.rejectedByAdminName || 'Admin'}>
                               {item.rejectedByAdminName || 'Admin'}
                             </span>
-                          </span>
+                            <span className="text-[10px] text-rose-600 dark:text-rose-400 font-medium flex items-center gap-0.5">
+                              <ShieldAlert size={10} />
+                              Moderator
+                            </span>
+                          </div>
                         </div>
+                      </td>
+
+                      {/* Rejection Reason Column */}
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 max-w-[180px] truncate" title={adminService.parseRejectionMeta(item.rejectionReason).reason || 'Did not meet guidelines'}>
+                          {adminService.parseRejectionMeta(item.rejectionReason).reason || 'Did not meet guidelines'}
+                        </span>
                       </td>
 
                       <td className="px-4 py-3 text-xs text-on-surface-variant whitespace-nowrap">

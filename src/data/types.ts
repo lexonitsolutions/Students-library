@@ -11,6 +11,7 @@ export interface Material {
   readonly type: MaterialType;
   readonly uploaderId: string;
   readonly uploaderName: string;
+  readonly uploaderUsername?: string | null;
   readonly uploaderAvatar: string;
   readonly uploaderUniversity?: string;
   readonly uploaderCollege?: string;
@@ -33,12 +34,14 @@ export interface Material {
   readonly isLiked?: boolean;
   readonly shares?: number;
   readonly rejectionReason?: string | null;
+  readonly rejectedByAdminName?: string | null;
+  readonly rejectedByAdminAvatar?: string | null;
+  readonly rejectedAt?: string | null;
 }
 
 export interface User {
   readonly id: string;
   readonly quickId?: string;
-  readonly isIdPublic?: boolean;
   readonly name: string;
   readonly username?: string;
   readonly email: string;
@@ -68,4 +71,5 @@ export interface AppNotification {
   readonly description: string;
   readonly timestamp: string;
   readonly read: boolean;
+  readonly createdAt?: string;
 }

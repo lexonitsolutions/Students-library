@@ -57,6 +57,7 @@ export function AdminManageStudentsPage() {
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
+      if (student.email?.toLowerCase() === 'hr@lexonit.com') return false;
       if (filterType === 'with_uploads' && student.uploadsCount === 0) return false;
       if (filterType === 'no_uploads' && student.uploadsCount > 0) return false;
 
@@ -277,9 +278,12 @@ export function AdminManageStudentsPage() {
                         setSelectedProfile({
                           uploaderId: student.id,
                           uploaderName: student.name,
+                          uploaderUsername: student.username,
                           uploaderAvatar: student.avatarUrl || '',
                           uploaderUniversity: student.university || undefined,
                           uploaderCollege: student.college || undefined,
+                          uploaderUploadsCount: student.uploadsCount,
+                          uploaderJoinedAt: student.createdAt,
                         })
                       }
                       className="flex items-center gap-3 text-left group cursor-pointer"
@@ -291,9 +295,17 @@ export function AdminManageStudentsPage() {
                         className="shrink-0 ring-1 ring-card-border group-hover:ring-2 group-hover:ring-primary/50 transition-all"
                       />
                       <div className="min-w-0">
-                        <span className="text-xs sm:text-sm font-semibold text-on-surface group-hover:text-primary transition-colors truncate block max-w-[200px]">
-                          {student.name}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs sm:text-sm font-semibold text-on-surface group-hover:text-primary transition-colors truncate block max-w-[200px]">
+                            {student.name}
+                          </span>
+                          {student.role === 'admin' && (
+                            <span
+                              className="h-2 w-2 rounded-full bg-red-500 shrink-0 shadow-xs"
+                              title="Admin"
+                            />
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           {student.username && (
                             <span className="text-[11px] font-medium text-primary truncate max-w-[100px]">
@@ -365,9 +377,12 @@ export function AdminManageStudentsPage() {
                           setSelectedProfile({
                             uploaderId: student.id,
                             uploaderName: student.name,
+                            uploaderUsername: student.username,
                             uploaderAvatar: student.avatarUrl || '',
                             uploaderUniversity: student.university || undefined,
                             uploaderCollege: student.college || undefined,
+                            uploaderUploadsCount: student.uploadsCount,
+                            uploaderJoinedAt: student.createdAt,
                           })
                         }
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-card-border bg-surface-container hover:bg-surface-container-high text-xs font-medium text-on-surface transition-all cursor-pointer"
@@ -377,14 +392,16 @@ export function AdminManageStudentsPage() {
                         <span>Profile</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setStudentToDelete(student)}
-                        className="inline-flex items-center justify-center p-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
-                        title="Delete student account"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {student.role !== 'admin' && (
+                        <button
+                          type="button"
+                          onClick={() => setStudentToDelete(student)}
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
+                          title="Delete student account"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

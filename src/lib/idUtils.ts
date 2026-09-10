@@ -7,12 +7,3 @@ export function generateQuickId(uuid: string | undefined): string {
   return Math.abs(hash).toString().padStart(9, '0').substring(0, 9);
 }
 
-export function isIdPublic(uuid: string | undefined): boolean {
-  if (!uuid) return false;
-  return localStorage.getItem(`isIdPublic_${uuid}`) !== 'false'; // Default to true if not set
-}
-
-export function setIdPublic(uuid: string | undefined, isPublic: boolean): void {
-  if (!uuid) return;
-  localStorage.setItem(`isIdPublic_${uuid}`, isPublic.toString());
-}

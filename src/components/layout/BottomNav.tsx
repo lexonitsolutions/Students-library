@@ -4,9 +4,12 @@ import { useState, useEffect } from 'react';
 import { cn } from '../../lib/cn';
 import { navItems } from './navConfig';
 import { useAuth } from '../../hooks/useAuth';
+import { useUnreadMessages } from '../../hooks/useUnreadMessages';
+import { Avatar } from '../ui/Avatar';
 
 export function BottomNav() {
-  const { isExploring } = useAuth();
+  const { isExploring, user } = useAuth();
+  const { hasUnread } = useUnreadMessages();
   const [isScrolling, setIsScrolling] = useState(false);
 
   const visibleNavItems = isExploring
@@ -68,13 +71,33 @@ export function BottomNav() {
                   transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                 />
               )}
-              <item.icon
-                size={20}
-                className={cn(
-                  'relative z-10 transition-transform duration-200 group-hover:scale-110',
-                  isActive && 'scale-105',
+              <div className="relative">
+                {item.to === '/profile' ? (
+                  <Avatar
+                    name={user?.name || 'User'}
+                    src={user?.avatar}
+                    size={20}
+                    className={cn(
+                      'relative z-10 transition-transform duration-200 group-hover:scale-110 ring-1',
+                      isActive ? 'ring-primary scale-105' : 'ring-card-border',
+                    )}
+                  />
+                ) : (
+                  <item.icon
+                    size={20}
+                    className={cn(
+                      'relative z-10 transition-transform duration-200 group-hover:scale-110',
+                      isActive && 'scale-105',
+                    )}
+                  />
                 )}
-              />
+                {item.to === '/messages' && hasUnread && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500 ring-2 ring-surface" />
+                  </span>
+                )}
+              </div>
               <span className="relative z-10 mt-0.5 text-[10px] font-medium leading-tight">
                 {item.label}
               </span>

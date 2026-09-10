@@ -6,14 +6,13 @@ import * as profileService from '../services/profileService';
 import type { User } from '../data/types';
 import type { ProfileRow, ProfileStatsRow } from '../types/database.types';
 
-import { generateQuickId, isIdPublic } from '../lib/idUtils';
+import { generateQuickId } from '../lib/idUtils';
 
 function toUser(profile: ProfileRow, stats: ProfileStatsRow | null): User {
   const localCover = typeof window !== 'undefined' ? localStorage.getItem(`quicklearnit.cover_${profile.id}`) : null;
   return {
     id: profile.id,
     quickId: generateQuickId(profile.id),
-    isIdPublic: isIdPublic(profile.id),
     name: profile.name,
     username: profile.username ?? undefined,
     email: profile.email ?? '',
@@ -179,14 +178,20 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, [stopExploring]);
 
   const signIn = useCallback(async (params: authService.SignInParams) => {
-    const { error } = await authService.signInWithPassword(params);
+    const { data, error } = await authService.signInWithPassword(params);
     if (!error) {
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
       stopExploring();
+      if (data?.session && isSessionVerified(data.session)) {
+        setSession(data.session);
+        setLoading(true);
+        await loadProfile(data.session.user.id);
+        setLoading(false);
+      }
     }
     return { error: error?.message ?? null };
-  }, [stopExploring]);
+  }, [stopExploring, loadProfile]);
 
   const signInWithGoogle = useCallback(async () => {
     const { error } = await authService.signInWithGoogle();
@@ -204,14 +209,20 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const verifySignupOtp = useCallback(async (email: string, token: string) => {
-    const { error } = await authService.verifySignupOtp(email, token);
+    const { data, error } = await authService.verifySignupOtp(email, token);
     if (!error) {
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
       stopExploring();
+      if (data?.session && isSessionVerified(data.session)) {
+        setSession(data.session);
+        setLoading(true);
+        await loadProfile(data.session.user.id);
+        setLoading(false);
+      }
     }
     return { error: error?.message ?? null };
-  }, [stopExploring]);
+  }, [stopExploring, loadProfile]);
 
   const sendMobileOtp = useCallback(async (phone: string) => {
     const { error } = await authService.sendMobileOtp(phone);
@@ -219,14 +230,20 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const verifyMobileOtp = useCallback(async (phone: string, token: string) => {
-    const { error } = await authService.verifyMobileOtp(phone, token);
+    const { data, error } = await authService.verifyMobileOtp(phone, token);
     if (!error) {
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
       stopExploring();
+      if (data?.session && isSessionVerified(data.session)) {
+        setSession(data.session);
+        setLoading(true);
+        await loadProfile(data.session.user.id);
+        setLoading(false);
+      }
     }
     return { error: error?.message ?? null };
-  }, [stopExploring]);
+  }, [stopExploring, loadProfile]);
 
   const signOut = useCallback(async () => {
     localStorage.removeItem(ONBOARDED_KEY);
@@ -336,7 +353,6 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         return {
           ...guestUser,
           quickId: undefined,
-          isIdPublic: false,
         };
       }
       return null;

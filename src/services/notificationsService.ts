@@ -43,6 +43,7 @@ function toAppNotification(row: NotificationRow): AppNotification {
     description: cleanNotificationDescription(row.description),
     timestamp: timeAgo(row.created_at),
     read: row.read,
+    createdAt: row.created_at,
   };
 }
 
@@ -69,7 +70,11 @@ export function saveLocalNotifications(userId: string, notifications: AppNotific
 export function addNotificationForUser(userId: string, notification: AppNotification): void {
   if (!userId) return;
   const local = loadLocalNotifications(userId);
-  local.unshift(notification);
+  const notifWithDate: AppNotification = {
+    ...notification,
+    createdAt: notification.createdAt || new Date().toISOString(),
+  };
+  local.unshift(notifWithDate);
   saveLocalNotifications(userId, local);
 
   // Also attempt Supabase insert if logged in / connected
@@ -157,3 +162,48 @@ export function removeMessageRequestNotifications(toUserId: string, fromUserQuic
     }
   })();
 }
+
+export function isWithinPastWeek(notification: AppNotification): boolean {
+  if (notification.createdAt) {
+    const createdTime = new Date(notification.createdAt).getTime();
+    if (!isNaN(createdTime)) {
+      const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      return createdTime >= oneWeekAgo;
+    }
+  }
+
+  // Fallback checking based on timestamp text
+  const ts = (notification.timestamp || '').toLowerCase().trim();
+  if (
+    ts === 'just now' ||
+    ts.includes('sec') ||
+    ts.includes('min') ||
+    ts.includes('hour') ||
+    ts === 'yesterday'
+  ) {
+    return true;
+  }
+  const dayMatch = ts.match(/(\d+)\s*day/);
+  if (dayMatch) {
+    const days = parseInt(dayMatch[1], 10);
+    return days <= 7;
+  }
+  const weekMatch = ts.match(/(\d+)\s*week/);
+  if (weekMatch) {
+    const weeks = parseInt(weekMatch[1], 10);
+    return weeks <= 1;
+  }
+
+  // If it's a date string, try parsing it
+  const parsed = new Date(notification.timestamp).getTime();
+  if (!isNaN(parsed)) {
+    return parsed >= Date.now() - 7 * 24 * 60 * 60 * 1000;
+  }
+
+  return true;
+}
+
+export function filterPastWeekNotifications(notifications: AppNotification[]): AppNotification[] {
+  return notifications.filter(isWithinPastWeek);
+}
+

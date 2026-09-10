@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  AlertTriangle,
   BookOpen,
   Bookmark,
+  Check,
   CheckCircle2,
   Clock,
   Download,
@@ -9,31 +11,33 @@ import {
   Eye,
   FileText,
   Grid2x2,
+  Heart,
   List,
+  Plus,
+  Search,
   Trash2,
   Upload,
   UploadCloud,
+  X,
   XCircle,
-  Check,
-  AlertTriangle,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { AnimatedTextarea } from '../components/ui/AnimatedInput';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { AnimatedTextarea } from '../components/ui/AnimatedInput';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
-import { IconButton } from '../components/ui/IconButton';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
-import { Tabs } from '../components/ui/Tabs';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
-import { accentBg, materialTypeIcon } from '../lib/materialIcons';
 import { cn } from '../lib/cn';
+import { accentBg, materialTypeIcon } from '../lib/materialIcons';
 import { timeAgo } from '../lib/timeAgo';
 import { listRecentActivity, type ActivityItem } from '../services/activityService';
+import { removeBookmark } from '../services/bookmarksService';
+import { parseRejectionMeta } from '../services/adminService';
 import {
   deleteMaterialForUI,
   listMyUploadsForUI,
@@ -42,6 +46,31 @@ import {
 } from '../services/materialsService';
 
 const tabs = ['Saved', 'Manage Uploads', 'Recent Activity'] as const;
+
+function StatusBadge({ status }: { readonly status: 'approved' | 'pending' | 'rejected' }) {
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+        <Clock size={11} />
+        <span>Under Review</span>
+      </span>
+    );
+  }
+  if (status === 'rejected') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+        <XCircle size={11} />
+        <span>Rejected</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+      <CheckCircle2 size={11} />
+      <span>Approved & Published</span>
+    </span>
+  );
+}
 
 export function LibraryPage() {
   const { user, isExploring } = useAuth();
@@ -56,16 +85,15 @@ export function LibraryPage() {
     return 'Saved';
   });
 
-  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [view, setView] = useState<'grid' | 'list'>('list');
   const [items, setItems] = useState<Material[]>([]);
+  const [counts, setCounts] = useState<{ saved: number; uploads: number }>({ saved: 0, uploads: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [activityFilter, setActivityFilter] = useState<'all' | 'uploaded' | 'saved' | 'viewed'>('all');
   const [loading, setLoading] = useState(true);
-
-  const filteredActivities = activityItems.filter((item) => {
-    if (activityFilter === 'all') return true;
-    return item.type === activityFilter;
-  });
 
   // Edit / Delete Modals state
   const [editingItem, setEditingItem] = useState<Material | null>(null);
@@ -87,6 +115,8 @@ export function LibraryPage() {
 
   const setActiveTab = (tab: (typeof tabs)[number]) => {
     setActiveTabState(tab);
+    setSearchQuery('');
+    setStatusFilter('all');
     if (tab === 'Manage Uploads') {
       setSearchParams({ tab: 'uploads' }, { replace: true });
     } else if (tab === 'Recent Activity') {
@@ -96,6 +126,19 @@ export function LibraryPage() {
     }
   };
 
+  // Preload counts
+  useEffect(() => {
+    if (!user?.id) return;
+    Promise.all([
+      listSavedMaterialsForUI(user.id),
+      listMyUploadsForUI(user.id),
+    ])
+      .then(([saved, uploads]) => {
+        setCounts({ saved: saved.length, uploads: uploads.length });
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
   const loadData = async () => {
     if (!user) return;
     setLoading(true);
@@ -103,9 +146,11 @@ export function LibraryPage() {
       if (activeTab === 'Saved') {
         const data = user.id ? await listSavedMaterialsForUI(user.id) : [];
         setItems(data);
+        setCounts((prev) => ({ ...prev, saved: data.length }));
       } else if (activeTab === 'Manage Uploads') {
         const data = user.id ? await listMyUploadsForUI(user.id) : [];
         setItems(data);
+        setCounts((prev) => ({ ...prev, uploads: data.length }));
       } else if (activeTab === 'Recent Activity') {
         const activities = user.id ? await listRecentActivity(user.id) : [];
         setActivityItems(activities);
@@ -123,8 +168,40 @@ export function LibraryPage() {
     loadData();
   }, [activeTab, user]);
 
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchTitle = item.title.toLowerCase().includes(q);
+        const matchSubject = item.subject?.toLowerCase().includes(q);
+        const matchType = item.type?.toLowerCase().includes(q);
+        if (!matchTitle && !matchSubject && !matchType) return false;
+      }
+      if (activeTab === 'Manage Uploads' && statusFilter !== 'all') {
+        if (item.status !== statusFilter) return false;
+      }
+      return true;
+    });
+  }, [items, searchQuery, statusFilter, activeTab]);
+
+  const filteredActivities = useMemo(() => {
+    return activityItems.filter((item) => {
+      if (activityFilter === 'all') return true;
+      return item.type === activityFilter;
+    });
+  }, [activityItems, activityFilter]);
+
+  const handleItemClick = (materialId: string) => {
+    if (isExploring) {
+      openSignupModal(`/materials/${materialId}`);
+    } else {
+      navigate(`/materials/${materialId}`);
+    }
+  };
+
   const handleOpenEdit = (item: Material, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (item.status === 'rejected') return;
     setEditingItem(item);
     setEditTitle(item.title);
     setEditDescription(item.description || '');
@@ -135,10 +212,13 @@ export function LibraryPage() {
     e.preventDefault();
     if (!editingItem) return;
 
+    const wasRejected = editingItem.status === 'rejected';
+
     await updateMaterialDetails(editingItem.id, {
       title: editTitle,
       description: editDescription,
       subject: editSubject,
+      ...(wasRejected ? { status: 'pending', rejection_reason: null } : {}),
     });
 
     setItems((prev) =>
@@ -149,13 +229,24 @@ export function LibraryPage() {
               title: editTitle,
               description: editDescription,
               subject: editSubject,
+              ...(wasRejected
+                ? {
+                    status: 'pending' as const,
+                    rejectionReason: null,
+                    rejectedByAdminName: null,
+                  }
+                : {}),
             }
           : item
       )
     );
 
     setEditingItem(null);
-    showToast('Upload details updated successfully!');
+    showToast(
+      wasRejected
+        ? 'Material updated and resubmitted for admin review!'
+        : 'Upload details updated successfully!'
+    );
   };
 
   const handleConfirmDelete = async () => {
@@ -163,8 +254,18 @@ export function LibraryPage() {
 
     await deleteMaterialForUI(deletingItem.id, deletingItem.filePath);
     setItems((prev) => prev.filter((item) => item.id !== deletingItem.id));
+    setCounts((prev) => ({ ...prev, uploads: Math.max(0, prev.uploads - 1) }));
     setDeletingItem(null);
     showToast('Material deleted successfully.');
+  };
+
+  const handleUnsave = async (materialId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user?.id) return;
+    await removeBookmark(materialId, user.id);
+    setItems((prev) => prev.filter((m) => m.id !== materialId));
+    setCounts((prev) => ({ ...prev, saved: Math.max(0, prev.saved - 1) }));
+    showToast('Removed from saved materials.');
   };
 
   const showToast = (msg: string) => {
@@ -173,7 +274,7 @@ export function LibraryPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 pb-20">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -181,56 +282,187 @@ export function LibraryPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-body-sm font-semibold text-white shadow-md"
+            className="fixed top-20 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
           >
-            <Check size={18} />
+            <Check size={16} />
             <span>{toastMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* ── Page Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">Your Library</h1>
-          <p className="mt-1 text-body-md font-medium text-on-surface-variant">Manage and organize your study materials.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+            Your Library
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-on-surface-variant">
+            Manage, review, and organize your study materials and downloads.
+          </p>
         </div>
-        <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1">
-          <IconButton
-            label="Grid view"
-            size={32}
-            onClick={() => setView('grid')}
-            className={view === 'grid' ? 'bg-surface-container text-on-surface shadow-xs' : undefined}
+
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => navigate('/upload')}
+            className="gap-1.5 text-xs"
           >
-            <Grid2x2 size={16} />
-          </IconButton>
-          <IconButton
-            label="List view"
-            size={32}
-            onClick={() => setView('list')}
-            className={view === 'list' ? 'bg-surface-container text-on-surface shadow-xs' : undefined}
-          >
-            <List size={16} />
-          </IconButton>
+            <Plus size={15} />
+            <span>Upload Material</span>
+          </Button>
+
+          {activeTab !== 'Recent Activity' && (
+            <div className="flex items-center rounded-xl border border-card-border bg-surface-container-low p-0.5">
+              <button
+                type="button"
+                title="Grid View"
+                onClick={() => setView('grid')}
+                className={cn(
+                  'rounded-lg p-1.5 transition-colors cursor-pointer',
+                  view === 'grid'
+                    ? 'bg-surface text-primary shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface',
+                )}
+              >
+                <Grid2x2 size={16} />
+              </button>
+              <button
+                type="button"
+                title="List View"
+                onClick={() => setView('list')}
+                className={cn(
+                  'rounded-lg p-1.5 transition-colors cursor-pointer',
+                  view === 'list'
+                    ? 'bg-surface text-primary shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface',
+                )}
+              >
+                <List size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      <Tabs tabs={tabs as unknown as string[]} active={activeTab} onChange={(tab) => setActiveTab(tab as (typeof tabs)[number])} />
+      {/* ── Tabs Navigation ── */}
+      <div className="flex items-center gap-2 border-b border-card-border overflow-x-auto">
+        {tabs.map((tab) => {
+          const isActive = tab === activeTab;
+          const count =
+            tab === 'Saved'
+              ? counts.saved
+              : tab === 'Manage Uploads'
+                ? counts.uploads
+                : null;
 
+          return (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                'relative flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
+                isActive ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface',
+              )}
+            >
+              <span>{tab}</span>
+              {count !== null && (
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors',
+                    isActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-surface-container text-on-surface-variant',
+                  )}
+                >
+                  {count}
+                </span>
+              )}
+              {isActive && (
+                <motion.div
+                  layoutId="lib-tab-underline"
+                  className="absolute inset-x-0 -bottom-px h-0.5 bg-primary"
+                  transition={{ duration: 0.2 }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Sub-header: Search & Status Filters ── */}
+      {activeTab !== 'Recent Activity' && items.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search
+              size={15}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder={`Search in ${activeTab === 'Saved' ? 'saved materials' : 'uploads'}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-card-border bg-surface-container-low pl-9 pr-8 py-2 text-xs text-on-surface placeholder:text-outline focus:border-primary focus:outline-none transition-colors"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-0.5 cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {activeTab === 'Manage Uploads' && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs">
+              {(
+                [
+                  { key: 'all', label: 'All' },
+                  { key: 'approved', label: 'Approved' },
+                  { key: 'pending', label: 'Under Review' },
+                  { key: 'rejected', label: 'Rejected' },
+                ] as const
+              ).map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setStatusFilter(key)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap',
+                    statusFilter === key
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'border border-card-border bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Content View ── */}
       {activeTab === 'Recent Activity' ? (
-        <div className="mt-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">Recent Activity</h2>
-            <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1 border border-card-border text-label-sm">
+            <h2 className="text-base font-bold tracking-tight text-on-surface">Recent Activity</h2>
+            <div className="flex items-center gap-1 rounded-lg bg-surface-container-low p-1 border border-card-border text-xs">
               {(['all', 'uploaded', 'saved', 'viewed'] as const).map((filter) => (
                 <button
                   key={filter}
                   type="button"
                   onClick={() => setActivityFilter(filter)}
-                  className={`capitalize px-3 py-1 rounded-md transition-colors cursor-pointer font-medium ${
+                  className={cn(
+                    'capitalize px-3 py-1 rounded-md transition-colors cursor-pointer font-medium',
                     activityFilter === filter
-                      ? 'bg-primary text-on-primary shadow-xs'
-                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-soft'
-                  }`}
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container',
+                  )}
                 >
                   {filter}
                 </button>
@@ -238,7 +470,7 @@ export function LibraryPage() {
             </div>
           </div>
 
-          <Card hoverable={false} padded={false}>
+          <Card hoverable={false} padded={false} className="border-card-border overflow-hidden">
             {loading ? (
               <div className="py-12 flex justify-center">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -264,23 +496,23 @@ export function LibraryPage() {
                 }
 
                 const rowContent = (
-                  <div className="flex items-start gap-3 border-b border-card-border px-4 py-3.5 last:border-b-0 hover:bg-surface-soft transition-colors cursor-pointer">
-                    <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
+                  <div className="flex items-start gap-3 border-b border-card-border px-4 py-3.5 last:border-b-0 hover:bg-surface-container-low/60 transition-colors cursor-pointer">
+                    <span className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg', iconBg)}>
                       <Icon size={14} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-body-sm text-on-surface-variant">
-                        <span className={`inline-block rounded-md px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider mr-1.5 ${labelStyle}`}>
+                      <p className="text-xs sm:text-sm text-on-surface-variant">
+                        <span className={cn('inline-block rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider mr-1.5', labelStyle)}>
                           {activity.label}
                         </span>
-                        <span className="font-medium text-on-surface hover:underline">{activity.target}</span>
+                        <span className="font-semibold text-on-surface hover:underline">{activity.target}</span>
                         {activity.type === 'uploaded' && activity.status === 'pending' && (
-                          <span className="inline-block align-middle ml-2 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tracking-wider bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 whitespace-nowrap">
+                          <span className="inline-block align-middle ml-2 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
                             Pending Approval
                           </span>
                         )}
                       </p>
-                      <span className="mt-1 block text-label-sm text-outline">{activity.timestamp}</span>
+                      <span className="mt-1 block text-[11px] text-outline">{activity.timestamp}</span>
                     </div>
                   </div>
                 );
@@ -297,142 +529,349 @@ export function LibraryPage() {
             ) : (
               <div className="py-12 text-center">
                 <Clock className="mx-auto h-8 w-8 text-outline mb-2" />
-                <p className="text-body-sm text-on-surface-variant">No recent activity found.</p>
+                <p className="text-xs text-on-surface-variant">No recent activity found.</p>
               </div>
             )}
           </Card>
         </div>
       ) : (
-        <div className="mt-2">
+        <div>
           <AnimatePresence mode="wait">
-            {!loading && items.length === 0 ? (
-            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <EmptyState
-                icon={activeTab === 'Manage Uploads' ? <UploadCloud size={24} /> : <BookOpen size={24} />}
-                title={
-                  activeTab === 'Manage Uploads'
-                    ? 'No uploaded materials found'
-                    : activeTab === 'Saved'
-                      ? 'No saved materials yet'
-                      : 'No materials yet'
-                }
-                description={
-                  activeTab === 'Manage Uploads'
-                    ? 'You have not uploaded any study materials, past papers, or assignments yet.'
-                    : activeTab === 'Saved'
-                      ? 'Save study materials by clicking the bookmark icon while browsing.'
-                      : 'Your documents and study resources will appear here.'
-                }
-                actionLabel={activeTab === 'Manage Uploads' ? 'Upload Resource' : 'Browse Home'}
-                onAction={() => navigate(activeTab === 'Manage Uploads' ? '/upload' : '/')}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key={view}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={cn(
-                view === 'grid' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-3',
-              )}
-            >
-              {items.map((item) => {
-                const TypeIcon = materialTypeIcon[item.type] || FileText;
-                const isUserUpload = activeTab === 'Manage Uploads';
+            {loading ? (
+              <div className="py-20 flex justify-center">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <EmptyState
+                  icon={activeTab === 'Manage Uploads' ? <UploadCloud size={24} /> : <BookOpen size={24} />}
+                  title={
+                    searchQuery
+                      ? 'No matching materials found'
+                      : activeTab === 'Manage Uploads'
+                        ? 'No uploaded materials found'
+                        : 'No saved materials yet'
+                  }
+                  description={
+                    searchQuery
+                      ? 'Try adjusting your search query or filter settings.'
+                      : activeTab === 'Manage Uploads'
+                        ? 'You have not uploaded any study materials, past papers, or assignments yet.'
+                        : 'Save study materials by clicking the bookmark icon while browsing.'
+                  }
+                  actionLabel={
+                    searchQuery
+                      ? 'Clear Search'
+                      : activeTab === 'Manage Uploads'
+                        ? 'Upload Resource'
+                        : 'Browse Materials'
+                  }
+                  onAction={() => {
+                    if (searchQuery) {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                    } else {
+                      navigate(activeTab === 'Manage Uploads' ? '/upload' : '/');
+                    }
+                  }}
+                />
+              </motion.div>
+            ) : view === 'list' ? (
+              /* ── PROFESSIONAL LIST VIEW (TABLE ROWS) ── */
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col divide-y divide-card-border rounded-2xl border border-card-border bg-surface overflow-hidden shadow-xs"
+              >
+                {filteredItems.map((item) => {
+                  const TypeIcon = materialTypeIcon[item.type] || FileText;
+                  const isUserUpload = activeTab === 'Manage Uploads';
 
-                return (
-                  <Card
-                    key={item.id}
-                    hoverable={false}
-                    onClick={() => {
-                      if (isExploring) {
-                        openSignupModal(`/materials/${item.id}`);
-                      } else {
-                        navigate(`/materials/${item.id}`);
-                      }
-                    }}
-                    className="flex flex-col justify-between p-5 cursor-pointer transition-shadow hover:shadow-md border border-card-border"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', accentBg[item.accentColor])}>
-                        <TypeIcon size={22} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-label-sm font-bold text-primary uppercase">{item.type}</span>
-                          <span className="text-label-sm text-on-surface-variant">&bull; {item.subject}</span>
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleItemClick(item.id)}
+                      className="group flex flex-col p-4 transition-colors hover:bg-surface-container-low/60 cursor-pointer"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        {/* Left: Icon & Meta */}
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          <span
+                            className={cn(
+                              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105',
+                              accentBg[item.accentColor] || 'bg-primary/10 text-primary',
+                            )}
+                          >
+                            <TypeIcon size={20} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="truncate text-sm font-semibold text-on-surface group-hover:text-primary transition-colors">
+                                {item.title}
+                              </h3>
+                              {isUserUpload && (
+                                <span className="sm:hidden shrink-0">
+                                  <StatusBadge status={item.status} />
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 text-xs text-on-surface-variant">
+                              <span className="font-bold uppercase tracking-wider text-[10px] text-primary">
+                                {item.type}
+                              </span>
+                              {item.subject && <span>&bull; {item.subject}</span>}
+                              {item.semester && (
+                                <span className="hidden md:inline">&bull; Sem {item.semester}</span>
+                              )}
+                              <span className="hidden sm:inline">&bull; {timeAgo(item.uploadedAt)}</span>
+                            </div>
+                          </div>
                         </div>
-                        <p className="truncate text-body-md font-bold text-on-surface mt-0.5">{item.title}</p>
-                        <p className="mt-1 text-label-sm text-outline">Uploaded {timeAgo(item.uploadedAt)}</p>
-                      </div>
-                    </div>
 
-                    {/* Manage Uploads Specific Action Toolbar */}
-                    {isUserUpload && (
-                      <div className="mt-4 flex flex-col gap-2.5 border-t border-card-border pt-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          {item.status === 'pending' ? (
-                            <span className="flex items-center gap-1.5 text-label-sm font-semibold text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 px-2.5 py-1 rounded-full">
-                              <Clock size={13} />
-                              <span>Under Admin Approval</span>
-                            </span>
-                          ) : item.status === 'rejected' ? (
-                            <span className="flex items-center gap-1.5 text-label-sm font-semibold text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 px-2.5 py-1 rounded-full">
-                              <XCircle size={13} />
-                              <span>Rejected</span>
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1.5 text-label-sm font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-1 rounded-full">
-                              <CheckCircle2 size={13} />
-                              <span>Approved & Published</span>
-                            </span>
+                        {/* Right: Stats, Status & Actions */}
+                        <div className="flex items-center gap-3 sm:gap-4 shrink-0 justify-between sm:justify-end">
+                          {/* Stats */}
+                          {!(isUserUpload && item.status === 'rejected') && (
+                            <div className="flex items-center gap-3 text-xs text-on-surface-variant">
+                              <span className="flex items-center gap-1" title="Views">
+                                <Eye size={13} className="text-outline" />
+                                <span>{item.views ?? 0}</span>
+                              </span>
+                              <span className="flex items-center gap-1" title="Downloads">
+                                <Download size={13} className="text-outline" />
+                                <span>{item.downloads ?? 0}</span>
+                              </span>
+                              {(item.likes ?? 0) > 0 && (
+                                <span className="flex items-center gap-1" title="Likes">
+                                  <Heart size={13} className="text-rose-500 fill-rose-500" />
+                                  <span>{item.likes}</span>
+                                </span>
+                              )}
+                            </div>
                           )}
 
-                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              icon={<Edit3 size={14} />}
-                              onClick={(e) => handleOpenEdit(item, e)}
+                          {/* Status Badge (desktop) */}
+                          {isUserUpload && (
+                            <div className="hidden sm:block">
+                              <StatusBadge status={item.status} />
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div
+                            className="flex items-center gap-1.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {isUserUpload ? (
+                              <>
+                                {item.status !== 'rejected' && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleOpenEdit(item, e)}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-surface-container-low px-2.5 py-1.5 text-xs font-semibold text-on-surface hover:bg-surface-container hover:text-primary transition-all cursor-pointer"
+                                  >
+                                    <Edit3 size={13} />
+                                    <span>Edit</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingItem(item);
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-rose-200/50 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/30 px-2.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-900/50 transition-all cursor-pointer"
+                                >
+                                  <Trash2 size={13} />
+                                  <span>Delete</span>
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => handleUnsave(item.id, e)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-surface-container-low px-2.5 py-1.5 text-xs font-semibold text-on-surface hover:text-rose-500 hover:border-rose-200 transition-all cursor-pointer"
+                                title="Remove bookmark"
+                              >
+                                <Bookmark size={13} className="fill-primary text-primary" />
+                                <span className="hidden sm:inline">Saved</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rejection Note */}
+                      {isUserUpload && item.status === 'rejected' && (() => {
+                        const { reason } = parseRejectionMeta(item.rejectionReason);
+                        const displayReason = (reason && reason !== 'Guidelines not met')
+                          ? reason
+                          : item.rejectionReason && !item.rejectionReason.startsWith('REJECTED:')
+                          ? item.rejectionReason
+                          : 'Content did not meet academic guidelines.';
+                        return (
+                          <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">
+                            <AlertTriangle size={15} className="shrink-0 text-rose-600 dark:text-rose-400" />
+                            <div className="min-w-0 flex-1 flex flex-wrap items-center gap-1.5 font-semibold">
+                              <span className="text-rose-800 dark:text-rose-200">Rejection Reason:</span>
+                              <span className="font-normal text-on-surface">{displayReason}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  );
+                })}
+              </motion.div>
+            ) : (
+              /* ── PROFESSIONAL GRID VIEW ── */
+              <motion.div
+                key="grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              >
+                {filteredItems.map((item) => {
+                  const TypeIcon = materialTypeIcon[item.type] || FileText;
+                  const isUserUpload = activeTab === 'Manage Uploads';
+
+                  return (
+                    <Card
+                      key={item.id}
+                      hoverable={false}
+                      onClick={() => handleItemClick(item.id)}
+                      className="group flex flex-col justify-between p-5 cursor-pointer transition-all hover:shadow-md hover:border-primary/40 border border-card-border bg-surface"
+                    >
+                      <div>
+                        {/* Top: Type & Status */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
+                                accentBg[item.accentColor] || 'bg-primary/10 text-primary',
+                              )}
                             >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="text-error hover:bg-error/10 hover:text-error cursor-pointer"
-                              icon={<Trash2 size={14} />}
+                              <TypeIcon size={16} />
+                            </span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                              {item.type}
+                            </span>
+                          </div>
+                          {isUserUpload && <StatusBadge status={item.status} />}
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="line-clamp-2 text-sm font-semibold text-on-surface group-hover:text-primary transition-colors leading-snug">
+                          {item.title}
+                        </h3>
+
+                        {/* Subject & Semester */}
+                        <p className="mt-1 text-xs text-on-surface-variant truncate">
+                          {item.subject || 'General'}
+                          {item.semester && <span> &bull; Sem {item.semester}</span>}
+                        </p>
+
+                        {/* Engagement stats */}
+                        {!(isUserUpload && item.status === 'rejected') ? (
+                          <div className="mt-4 flex items-center gap-3 text-xs text-on-surface-variant border-t border-card-border/60 pt-3">
+                            <span className="flex items-center gap-1">
+                              <Eye size={12} className="text-outline" />
+                              <span>{item.views ?? 0}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Download size={12} className="text-outline" />
+                              <span>{item.downloads ?? 0}</span>
+                            </span>
+                            {(item.likes ?? 0) > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Heart size={12} className="text-rose-500 fill-rose-500" />
+                                <span>{item.likes}</span>
+                              </span>
+                            )}
+                            <span className="ml-auto text-[10px] text-outline">
+                              {timeAgo(item.uploadedAt)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="mt-4 flex items-center justify-end text-[10px] text-outline border-t border-card-border/60 pt-3">
+                            <span>Uploaded {timeAgo(item.uploadedAt)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Action Footer */}
+                      <div
+                        className="mt-4 flex items-center justify-end gap-2 border-t border-card-border/60 pt-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {isUserUpload ? (
+                          <>
+                            {item.status !== 'rejected' && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleOpenEdit(item, e)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-surface-container-low px-2.5 py-1 text-xs font-semibold text-on-surface hover:bg-surface-container hover:text-primary transition-all cursor-pointer"
+                              >
+                                <Edit3 size={13} />
+                                <span>Edit</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDeletingItem(item);
                               }}
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-200/50 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/30 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-900/50 transition-all cursor-pointer"
                             >
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Rejection Reason Feedback for Student */}
-                        {item.status === 'rejected' && (
-                          <div className="flex items-start gap-2 rounded-xl bg-rose-500/10 border border-rose-500/25 p-2.5 text-body-xs text-rose-700 dark:text-rose-300">
-                            <AlertTriangle size={15} className="shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
-                            <div className="min-w-0 flex-1">
-                              <span className="font-bold">Reason for rejection: </span>
-                              <span>{item.rejectionReason || 'Content did not meet our academic guidelines. Please review and edit your file to re-submit.'}</span>
-                            </div>
-                          </div>
+                              <Trash2 size={13} />
+                              <span>Delete</span>
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => handleUnsave(item.id, e)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-surface-container-low px-2.5 py-1 text-xs font-semibold text-on-surface hover:text-rose-500 hover:border-rose-200 transition-all cursor-pointer"
+                          >
+                            <Bookmark size={13} className="fill-primary text-primary" />
+                            <span>Saved</span>
+                          </button>
                         )}
                       </div>
-                    )}
-                  </Card>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    )}
+
+                      {/* Rejection Alert */}
+                      {isUserUpload && item.status === 'rejected' && (() => {
+                        const { reason } = parseRejectionMeta(item.rejectionReason);
+                        const displayReason = (reason && reason !== 'Guidelines not met')
+                          ? reason
+                          : item.rejectionReason && !item.rejectionReason.startsWith('REJECTED:')
+                          ? item.rejectionReason
+                          : 'Content did not meet academic guidelines.';
+                        return (
+                          <div className="mt-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 p-2 text-[11px] text-rose-700 dark:text-rose-300">
+                            <div className="flex items-start gap-1.5 font-semibold text-rose-800 dark:text-rose-200">
+                              <AlertTriangle size={13} className="shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                              <div className="min-w-0 flex-1">
+                                <span>Rejection Reason: </span>
+                                <span className="font-normal text-on-surface line-clamp-2">{displayReason}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </Card>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Edit Upload Modal */}
       <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Uploaded Material">
@@ -450,7 +889,7 @@ export function LibraryPage() {
               rows={3}
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              className="w-full resize-none rounded-lg border border-transparent bg-surface-soft px-4 py-3 text-body-md text-on-surface focus:bg-surface-container focus:border-primary-container focus:outline-none"
+              className="w-full resize-none rounded-lg border border-card-border bg-surface-container px-4 py-3 text-body-md text-on-surface focus:border-primary focus:outline-none"
             />
           </div>
 
@@ -496,3 +935,4 @@ export function LibraryPage() {
 }
 
 export default LibraryPage;
+

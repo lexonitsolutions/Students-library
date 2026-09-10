@@ -1,8 +1,13 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { RouteLoader } from '../components/ui/RouteLoader';
 import { useAuth } from '../hooks/useAuth';
 
 export function ProtectedRoute() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <RouteLoader />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/get-started" replace />;

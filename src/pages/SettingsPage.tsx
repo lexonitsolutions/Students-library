@@ -9,7 +9,6 @@ import {
   Moon,
   Palette,
   Pencil,
-  Shield,
   Sun,
   Trash2,
   User,
@@ -27,14 +26,12 @@ import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { AccountSettingsModal } from '../components/settings/AccountSettingsModal';
-import { PrivacySettingsModal } from '../components/settings/PrivacySettingsModal';
 
 const settingsSections = [
   {
     heading: 'General',
     items: [
       { label: 'Account', icon: UserCog },
-      { label: 'Privacy', icon: Shield },
     ],
   },
   {
@@ -60,7 +57,6 @@ export function SettingsPage() {
   const navigate = useNavigate();
 
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -147,14 +143,14 @@ export function SettingsPage() {
                 onClick={() => {
                   if (item.label === 'Recent Activity') {
                     navigate('/library?tab=activity');
+                  } else if (item.label === 'Help & Support') {
+                    navigate('/support');
                   } else if (item.label === 'Account') {
                     if (isExploring) {
                       openSignupModal('/settings');
                     } else {
                       setShowAccountModal(true);
                     }
-                  } else if (item.label === 'Privacy') {
-                    setShowPrivacyModal(true);
                   }
                 }}
                 className={`flex w-full items-center gap-3 border-b border-card-border px-4 py-3.5 text-left text-body-sm text-on-surface first:rounded-t-xl hover:bg-surface-soft cursor-pointer transition-colors ${
@@ -358,11 +354,6 @@ export function SettingsPage() {
       <AccountSettingsModal 
         open={showAccountModal} 
         onClose={() => setShowAccountModal(false)} 
-      />
-
-      <PrivacySettingsModal
-        open={showPrivacyModal}
-        onClose={() => setShowPrivacyModal(false)}
       />
     </div>
   );

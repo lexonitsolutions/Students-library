@@ -5,7 +5,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
@@ -30,7 +29,7 @@ const AVATAR_PRESETS = [
 
 const collegesList = [...universities, 'College of Engineering', 'College of Science', 'School of Engineering'];
 const branchesList = ['Computer Science', 'Mathematics', 'Electronics & Communication', 'Civil Engineering', 'Mechanical Engineering'];
-const yearsList = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+const yearsList = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'];
 const semestersList = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6', 'Semester 7', 'Semester 8'];
 
 export function ProfilePage() {
@@ -816,9 +815,10 @@ export function ProfilePage() {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
+            <Select
               label="Student Year"
-              placeholder="1st year, 2nd year ..."
+              placeholder="Select Year"
+              options={yearsList}
               value={editYear}
               onChange={(e) => setEditYear(e.target.value)}
             />

@@ -279,6 +279,7 @@ export function MaterialDetailsPage() {
     setSelectedProfile({
       uploaderId: material.uploaderId,
       uploaderName: material.uploaderName || 'Anonymous Student',
+      uploaderUsername: material.uploaderUsername,
       uploaderAvatar: material.uploaderAvatar || '',
       uploaderUniversity: material.uploaderUniversity,
       uploaderCollege: material.uploaderCollege,
@@ -586,7 +587,7 @@ export function MaterialDetailsPage() {
                     <ShieldCheck size={14} className="text-primary shrink-0" />
                   </div>
                   <p className="text-xs text-on-surface-variant truncate">
-                    {material.uploaderCollege || material.uploaderUniversity || 'Verified Scholar'}
+                    {material.uploaderCollege || material.uploaderUniversity || '-'}
                   </p>
                   <p className="mt-0.5 text-[11px] text-on-surface-variant/80">
                     Uploaded {new Date(material.uploadedAt).toLocaleDateString()}

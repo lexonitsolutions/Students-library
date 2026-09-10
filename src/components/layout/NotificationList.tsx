@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, BellOff, CheckCheck, CloudCheck, Megaphone, MessageSquare, Trash2, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, CloudCheck, History, Megaphone, MessageSquare, Trash2, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { AppNotification, NotificationType } from '../../data/types';
 import { cn } from '../../lib/cn';
@@ -9,6 +9,9 @@ export interface NotificationListProps {
   readonly onMarkAllRead?: () => void;
   readonly onDeleteNotification?: (id: string) => void;
   readonly compact?: boolean;
+  readonly isHistory?: boolean;
+  readonly emptyTitle?: string;
+  readonly emptySubtitle?: string;
 }
 
 const iconByType: Record<NotificationType, typeof CloudCheck> = {
@@ -26,6 +29,9 @@ export function NotificationList({
   onMarkAllRead,
   onDeleteNotification,
   compact,
+  isHistory,
+  emptyTitle,
+  emptySubtitle,
 }: Readonly<NotificationListProps>) {
   const navigate = useNavigate();
 
@@ -33,10 +39,14 @@ export function NotificationList({
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-low text-outline mb-2">
-          <BellOff size={20} />
+          {isHistory ? <History size={20} className="text-primary/70" /> : <BellOff size={20} />}
         </div>
-        <p className="text-body-sm font-medium text-on-surface">No notifications</p>
-        <p className="text-label-sm text-on-surface-variant">You&apos;re all caught up!</p>
+        <p className="text-body-sm font-medium text-on-surface">
+          {emptyTitle || (isHistory ? 'No past week notifications' : 'No notifications')}
+        </p>
+        <p className="text-label-sm text-on-surface-variant">
+          {emptySubtitle || (isHistory ? 'No activity recorded in the past 7 days.' : "You're all caught up!")}
+        </p>
       </div>
     );
   }

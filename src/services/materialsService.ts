@@ -326,6 +326,8 @@ export async function updateMaterialDetails(
     subject?: string;
     branch?: string;
     year?: string;
+    status?: MaterialStatus;
+    rejection_reason?: string | null;
   }
 ): Promise<void> {
   const { error } = await supabase
@@ -334,6 +336,8 @@ export async function updateMaterialDetails(
     .eq('id', id);
   if (error) {
     console.warn('DB update warning:', error);
+  } else {
+    invalidateMaterialsCache();
   }
 }
 

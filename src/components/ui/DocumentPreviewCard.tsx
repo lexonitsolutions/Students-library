@@ -243,10 +243,13 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
             onClick={() => onUploaderClick?.({
               uploaderId: material.uploaderId,
               uploaderName: material.uploaderName,
+              uploaderUsername: material.uploaderUsername,
               uploaderAvatar: material.uploaderAvatar,
               uploaderUniversity: material.uploaderUniversity,
               uploaderCollege: material.uploaderCollege,
               uploaderLocation: material.uploaderLocation,
+              uploaderUploadsCount: material.uploaderUploadsCount,
+              uploaderJoinedAt: material.uploaderJoinedAt,
             })}
             className="flex items-center gap-1.5 shrink-0 rounded-lg px-1.5 py-1 -mx-1.5 hover:bg-surface-container transition-colors cursor-pointer"
             title={`View ${material.uploaderName}'s profile`}

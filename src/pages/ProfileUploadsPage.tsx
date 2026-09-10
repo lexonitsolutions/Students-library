@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Eye, FileUp, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Eye, FileUp, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
@@ -10,6 +10,7 @@ import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import { materialTypeIcon } from '../lib/materialIcons';
 import { deleteMaterial, listMyUploadsForUI } from '../services/materialsService';
+import { parseRejectionMeta } from '../services/adminService';
 
 const statusStyles: Record<string, string> = {
   approved: 'bg-emerald-100 text-emerald-700',
@@ -81,18 +82,37 @@ export function ProfileUploadsPage() {
                       {statusLabel[upload.status]}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center gap-4 text-label-sm text-on-surface-variant">
-                    <span className="flex items-center gap-1">
-                      <Eye size={14} /> {upload.views.toLocaleString()} views
-                    </span>
-                    <span>{upload.downloads.toLocaleString()} downloads</span>
-                  </div>
-                  {upload.status === 'rejected' && (
-                    <div className="mt-2.5 rounded-lg bg-rose-500/10 border border-rose-500/25 p-2 text-body-xs text-rose-700 dark:text-rose-300">
-                      <span className="font-bold">Reason for rejection: </span>
-                      <span>{upload.rejectionReason || 'Content did not meet submission guidelines.'}</span>
+                  {upload.status !== 'rejected' && (
+                    <div className="mt-2 flex items-center gap-4 text-label-sm text-on-surface-variant">
+                      <span className="flex items-center gap-1">
+                        <Eye size={14} /> {upload.views.toLocaleString()} views
+                      </span>
+                      <span>{upload.downloads.toLocaleString()} downloads</span>
                     </div>
                   )}
+                  {upload.status === 'rejected' && (() => {
+                    const { reason, meta } = parseRejectionMeta(upload.rejectionReason);
+                    const displayReason = (reason && reason !== 'Guidelines not met')
+                      ? reason
+                      : upload.rejectionReason && !upload.rejectionReason.startsWith('REJECTED:')
+                      ? upload.rejectionReason
+                      : 'Content did not meet submission guidelines.';
+                    const reviewer = meta?.adminName || upload.rejectedByAdminName;
+                    return (
+                      <div className="mt-2.5 rounded-lg bg-rose-500/10 border border-rose-500/25 p-2.5 text-body-xs text-rose-700 dark:text-rose-300 space-y-1">
+                        <div className="flex items-start gap-1.5 font-semibold">
+                          <AlertTriangle size={13} className="shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                          <span className="text-rose-800 dark:text-rose-200">Reason for rejection:</span>
+                          <span className="font-normal text-on-surface">{displayReason}</span>
+                        </div>
+                        {reviewer && (
+                          <p className="text-[11px] text-on-surface-variant pl-4">
+                            Reviewed by <strong className="text-on-surface font-semibold">{reviewer}</strong>
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
                   <IconButton label="Delete upload" onClick={() => handleDelete(upload)}>

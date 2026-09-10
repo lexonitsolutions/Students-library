@@ -1,5 +1,6 @@
 import type { Material } from '../data/types';
 import type { MaterialRow, PublicProfileRow } from '../types/database.types';
+import { parseRejectionMeta } from '../services/adminService';
 
 const ACCENT_COLORS = ['indigo', 'blue', 'amber', 'rose', 'emerald'] as const;
 
@@ -43,6 +44,19 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     }
   }
 
+  let rejectionReason: string | undefined = undefined;
+  let rejectedByAdminName: string | undefined = undefined;
+  let rejectedByAdminAvatar: string | undefined = undefined;
+  let rejectedAt: string | undefined = undefined;
+
+  if (row.rejection_reason) {
+    const rejParsed = parseRejectionMeta(row.rejection_reason);
+    rejectionReason = rejParsed.reason || row.rejection_reason;
+    rejectedByAdminName = rejParsed.meta?.adminName;
+    rejectedByAdminAvatar = rejParsed.meta?.adminAvatar;
+    rejectedAt = rejParsed.meta?.rejectedAt;
+  }
+
   return {
     id: row.id,
     title: cleanDocumentTitle(row.title),
@@ -52,10 +66,11 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     type: row.type,
     uploaderId: row.uploader_id,
     uploaderName: finalUploaderName || 'Anonymous Student',
+    uploaderUsername: uploader?.username,
     uploaderAvatar: finalAvatar || `https://i.pravatar.cc/80?u=${row.uploader_id}`,
-    uploaderUniversity: finalUniversity || 'Harvard University',
-    uploaderCollege: finalCollege || 'School of Academic Studies',
-    uploaderLocation: finalLocation || 'Cambridge, MA',
+    uploaderUniversity: finalUniversity || undefined,
+    uploaderCollege: finalCollege || undefined,
+    uploaderLocation: finalLocation || undefined,
     uploaderUploadsCount: finalUploadsCount,
     uploaderJoinedAt: uploader?.joined_at,
     uploadedAt: row.created_at,
@@ -72,6 +87,9 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     fileSizeMb: row.file_size_mb ?? undefined,
     isSaved,
     isLiked,
-    rejectionReason: row.rejection_reason,
+    rejectionReason: rejectionReason ?? (row.rejection_reason || undefined),
+    rejectedByAdminName,
+    rejectedByAdminAvatar,
+    rejectedAt,
   };
 }
