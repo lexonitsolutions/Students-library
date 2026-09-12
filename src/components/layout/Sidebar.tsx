@@ -85,7 +85,7 @@ export function Sidebar() {
                     onClick={() => chooseWorkspace('admin')}
                     className={({ isActive }) =>
                       cn(
-                        'group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5',
+                        'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
                         isActive
                           ? 'text-primary font-semibold'
                           : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
@@ -94,32 +94,32 @@ export function Sidebar() {
                   >
                     {({ isActive }) => (
                       <>
-                        {/* Animated sleek active pill */}
+                        {/* Active unified pill */}
                         {isActive && (
                           <motion.div
                             layoutId="sidebarActivePill"
-                            className="absolute inset-0 rounded-xl bg-primary/[0.09] ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30"
+                            className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/15 dark:bg-primary/20 dark:border-primary/30 shadow-2xs"
                             transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                           />
                         )}
 
-                        {/* Fixed icon slot - 100% stationary */}
-                        <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+                        {/* Icon slot */}
+                        <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                           <item.icon
                             size={20}
                             strokeWidth={isActive ? 2.2 : 1.8}
                             className={cn(
-                              'shrink-0 transition-colors',
+                              'shrink-0 transition-colors duration-200',
                               isActive ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface',
                             )}
                           />
                         </div>
 
-                        {/* Text label - slides & fades smoothly */}
+                        {/* Text label */}
                         <span
                           className={cn(
-                            'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
-                            isActive && 'font-semibold text-primary dark:text-primary-300',
+                            'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
+                            isActive ? 'font-semibold text-primary' : 'font-medium',
                             expanded
                               ? 'opacity-100 translate-x-0 max-w-[160px]'
                               : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
@@ -160,7 +160,7 @@ export function Sidebar() {
                 onClick={() => isAdmin && chooseWorkspace('student')}
                 className={({ isActive }) =>
                   cn(
-                    'group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5',
+                    'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
                     isActive
                       ? 'text-primary font-semibold'
                       : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
@@ -169,22 +169,22 @@ export function Sidebar() {
               >
                 {({ isActive }) => (
                   <>
-                    {/* Animated sleek active pill */}
+                    {/* Active unified pill */}
                     {isActive && (
                       <motion.div
                         layoutId="sidebarActivePill"
-                        className="absolute inset-0 rounded-xl bg-primary/[0.09] ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30"
+                        className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/15 dark:bg-primary/20 dark:border-primary/30 shadow-2xs"
                         transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                       />
                     )}
 
-                    {/* Fixed icon slot - 100% stationary */}
-                    <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+                    {/* Icon slot */}
+                    <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                       <item.icon
                         size={20}
                         strokeWidth={isActive ? 2.2 : 1.8}
                         className={cn(
-                          'shrink-0 transition-colors',
+                          'shrink-0 transition-colors duration-200',
                           isActive ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface',
                         )}
                       />
@@ -197,11 +197,11 @@ export function Sidebar() {
                       )}
                     </div>
 
-                    {/* Text label - slides & fades smoothly */}
+                    {/* Text label */}
                     <span
                       className={cn(
-                        'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300 flex-1 flex items-center justify-between',
-                        isActive && 'font-semibold text-primary dark:text-primary-300',
+                        'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300 flex-1 flex items-center justify-between',
+                        isActive ? 'font-semibold text-primary' : 'font-medium',
                         expanded
                           ? 'opacity-100 translate-x-0 max-w-[160px]'
                           : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
@@ -235,7 +235,7 @@ export function Sidebar() {
             title={!expanded ? 'Customer Support' : undefined}
             className={({ isActive }) =>
               cn(
-                'group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5',
+                'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
                 isActive
                   ? 'text-primary font-semibold'
                   : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
@@ -247,19 +247,26 @@ export function Sidebar() {
                 {isActive && (
                   <motion.div
                     layoutId="sidebarActivePill"
-                    className="absolute inset-0 rounded-xl bg-primary/[0.09] ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30"
+                    className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/15 dark:bg-primary/20 dark:border-primary/30 shadow-2xs"
                     transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                   />
                 )}
 
-                <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
-                  <Headphones size={20} strokeWidth={1.8} className="shrink-0 transition-colors" />
+                <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                  <Headphones
+                    size={20}
+                    strokeWidth={isActive ? 2.2 : 1.8}
+                    className={cn(
+                      'shrink-0 transition-colors duration-200',
+                      isActive ? 'text-primary' : '',
+                    )}
+                  />
                 </div>
 
                 <span
                   className={cn(
-                    'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
-                    isActive && 'font-semibold text-primary dark:text-primary-300',
+                    'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
+                    isActive ? 'font-semibold text-primary' : 'font-medium',
                     expanded
                       ? 'opacity-100 translate-x-0 max-w-[160px]'
                       : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
@@ -278,7 +285,7 @@ export function Sidebar() {
               title={!expanded ? 'Profile' : undefined}
               className={({ isActive }) =>
                 cn(
-                  'group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5',
+                  'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
                   isActive
                     ? 'text-primary font-semibold'
                     : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
@@ -287,17 +294,16 @@ export function Sidebar() {
             >
               {({ isActive }) => (
                 <>
-                  {/* Animated sleek active pill */}
                   {isActive && (
                     <motion.div
                       layoutId="sidebarActivePill"
-                      className="absolute inset-0 rounded-xl bg-primary/[0.09] ring-1 ring-primary/20 dark:bg-primary/20 dark:ring-primary/30"
+                      className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/15 dark:bg-primary/20 dark:border-primary/30 shadow-2xs"
                       transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                     />
                   )}
 
-                  {/* Fixed user avatar slot in icon's place */}
-                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+                  {/* User avatar slot */}
+                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                     <Avatar
                       name={user?.name || 'User'}
                       src={user?.avatar}
@@ -305,17 +311,17 @@ export function Sidebar() {
                       className={cn(
                         'ring-2 transition-all',
                         isActive
-                          ? 'ring-primary ring-offset-1 ring-offset-surface'
+                          ? 'ring-primary ring-offset-1 ring-offset-surface shadow-[0_0_6px_2px] shadow-primary/30'
                           : 'ring-card-border group-hover:ring-primary/40',
                       )}
                     />
                   </div>
 
-                  {/* Text label - slides & fades smoothly */}
+                  {/* Text label */}
                   <span
                     className={cn(
-                      'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
-                      isActive && 'font-semibold text-primary dark:text-primary-300',
+                      'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
+                      isActive ? 'font-semibold text-primary' : 'font-medium',
                       expanded
                         ? 'opacity-100 translate-x-0 max-w-[160px]'
                         : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',

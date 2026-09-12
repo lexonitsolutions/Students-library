@@ -246,7 +246,7 @@ export function MaterialDetailsPage() {
       if (navigator.share) {
         await navigator.share({
           title: material?.title,
-          text: `Check out ${material?.title} on QuickLearnit!`,
+          text: `Check out ${material?.title} on Studexa!`,
           url: window.location.href,
         });
       } else {

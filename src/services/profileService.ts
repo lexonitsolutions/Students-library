@@ -4,6 +4,21 @@ import type { ProfileRow, ProfileStatsRow, ProfileUpdate } from '../types/databa
 export async function getProfile(userId: string): Promise<ProfileRow> {
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
   if (!error && data) {
+    if (!data.avatar_url || data.avatar_url.includes('pravatar.cc')) {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const googleAvatar =
+          (authData?.user?.user_metadata?.avatar_url as string) ||
+          (authData?.user?.user_metadata?.picture as string) ||
+          null;
+        if (googleAvatar && googleAvatar !== data.avatar_url) {
+          await supabase.from('profiles').update({ avatar_url: googleAvatar }).eq('id', userId);
+          return { ...data, avatar_url: googleAvatar };
+        }
+      } catch {
+        // Silently continue with existing data
+      }
+    }
     return data;
   }
 
@@ -12,19 +27,27 @@ export async function getProfile(userId: string): Promise<ProfileRow> {
     const { data: authData } = await supabase.auth.getUser();
     const authUser = authData?.user;
     const name =
+      (authUser?.user_metadata?.full_name as string) ||
       (authUser?.user_metadata?.name as string) ||
       authUser?.email?.split('@')[0] ||
       'User';
     const email = authUser?.email || null;
     const phone = authUser?.phone || null;
+    const avatar_url =
+      (authUser?.user_metadata?.avatar_url as string) ||
+      (authUser?.user_metadata?.picture as string) ||
+      null;
+
+    const baseUsername = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user';
+    const username = `${baseUsername}_${userId.slice(0, 5)}`;
 
     const defaultProfile: ProfileRow = {
       id: userId,
       name,
-      username: name.toLowerCase().replace(/[^a-z0-9]/g, '') || null,
+      username,
       email,
       phone,
-      avatar_url: null,
+      avatar_url,
       university: null,
       college: null,
       branch: null,

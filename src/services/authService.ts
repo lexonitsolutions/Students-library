@@ -29,6 +29,9 @@ export function formatAuthErrorMessage(error: any): string {
   if (lower.includes('user already registered') || lower.includes('already exists')) {
     return 'An account with this email already exists. Please sign in instead.';
   }
+  if (lower.includes('unsupported provider') || lower.includes('provider is not enabled') || lower.includes('oauth provider is disabled')) {
+    return 'Google Sign-In is not enabled yet in your Supabase project. Please enable Google provider in Supabase Dashboard (Authentication > Providers > Google).';
+  }
   return msg || 'Authentication request failed.';
 }
 
@@ -125,11 +128,22 @@ export async function signInWithPassword({ email, password }: SignInParams) {
   return result;
 }
 
-export async function signInWithGoogle() {
-  return supabase.auth.signInWithOAuth({
+export async function signInWithGoogle(redirectTo?: string) {
+  const targetUrl = redirectTo || `${window.location.origin}/dashboard`;
+  const result = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin },
+    options: {
+      redirectTo: targetUrl,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'select_account',
+      },
+    },
   });
+  if (result.error) {
+    return { data: result.data, error: new Error(formatAuthErrorMessage(result.error)) };
+  }
+  return result;
 }
 
 export async function resendSignupOtp(email: string) {

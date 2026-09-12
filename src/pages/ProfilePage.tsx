@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bookmark, BookOpen, Calendar, Camera, ChevronRight, Download, Edit, Eye, Lock, School, Upload, User, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Bookmark, BookOpen, Calendar, Camera, ChevronRight, Download, Eye, Lock, School, Upload, User, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
@@ -15,7 +15,9 @@ import { materialTypeIcon } from '../lib/materialIcons';
 import { timeAgo } from '../lib/timeAgo';
 import { listRecentActivity, type ActivityItem } from '../services/activityService';
 import { listMyUploadsForUI } from '../services/materialsService';
-import { uploadAvatar } from '../services/profileService';
+import { getLocalLikesCount, getLocalStorageLikedIds, fetchUserLikedIds } from '../services/likesService';
+import { uploadAvatar, getProfileStats } from '../services/profileService';
+import { listBookmarkedMaterialIds } from '../services/bookmarksService';
 import { resizeImageFile } from '../lib/imageUtils';
 import { cn } from '../lib/cn';
 
@@ -76,10 +78,75 @@ export function ProfilePage() {
     }
   }, [isExploring, navigate]);
 
+  const [userLikedCount, setUserLikedCount] = useState<number>(() => {
+    if (typeof window === 'undefined' || !user?.id) return 0;
+    return getLocalStorageLikedIds(user.id).size;
+  });
+
+  const [dbStats, setDbStats] = useState<{ uploads: number; downloads: number; saved: number } | null>(() => {
+    if (user?.stats) {
+      return {
+        uploads: user.stats.uploads ?? 0,
+        downloads: user.stats.downloads ?? 0,
+        saved: user.stats.saved ?? 0,
+      };
+    }
+    return null;
+  });
+
+  const [savedCount, setSavedCount] = useState<number>(() => {
+    if (typeof window === 'undefined' || !user?.id) return user?.stats?.saved ?? 0;
+    try {
+      const raw = localStorage.getItem(`quicklearnit_saved_ids_${user.id}`);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Math.max(Array.isArray(parsed) ? parsed.length : 0, user?.stats?.saved ?? 0);
+    } catch {
+      return user?.stats?.saved ?? 0;
+    }
+  });
+
   useEffect(() => {
     if (!user || !user.id) return;
     listMyUploadsForUI(user.id).then(setUploads);
     listRecentActivity(user.id).then(setActivityItems);
+
+    fetchUserLikedIds(user.id).then((ids) => {
+      setUserLikedCount((prev) => Math.max(prev, ids.size));
+    });
+
+    listBookmarkedMaterialIds(user.id).then((savedIds) => {
+      setSavedCount((prev) => Math.max(prev, savedIds.size));
+    });
+
+    getProfileStats(user.id).then((st) => {
+      if (st) {
+        setDbStats({
+          uploads: st.uploads_count ?? 0,
+          downloads: st.downloads_count ?? 0,
+          saved: st.saved_count ?? 0,
+        });
+      }
+    });
+
+    const handleSync = () => {
+      if (user?.id) {
+        setUserLikedCount(getLocalStorageLikedIds(user.id).size);
+        try {
+          const raw = localStorage.getItem(`quicklearnit_saved_ids_${user.id}`);
+          if (raw) {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) setSavedCount(arr.length);
+          }
+        } catch {}
+      }
+    };
+
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
   }, [user]);
 
   if (!user) return null;
@@ -109,6 +176,7 @@ export function ProfilePage() {
       const publicUrl = await uploadAvatar(user.id, file);
       setEditAvatar(publicUrl);
     } catch (err) {
+      console.error('Failed to upload avatar, falling back to local base64:', err);
       try {
         const dataUrl = await resizeImageFile(file, 800);
         setEditAvatar(dataUrl);
@@ -194,6 +262,36 @@ export function ProfilePage() {
     return new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   })();
 
+  // Original interaction counts:
+  // 1. Live likes received on uploaded materials (database counts + local interaction updates)
+  const uploadLikesReceived = uploads.reduce((acc, item) => {
+    const fallbackDb = Number(item.likes ?? (item as any).likes_count ?? (item as any).saves_count ?? item.saves ?? 0);
+    const local = typeof window !== 'undefined'
+      ? getLocalLikesCount(item.id, fallbackDb)
+      : fallbackDb;
+    return acc + local;
+  }, 0);
+
+  // 2. Count of materials liked by this user or likes received on uploads
+  const totalLikes = Math.max(uploadLikesReceived, userLikedCount);
+
+  // 3. Original total views on user's uploads
+  const totalViews = uploads.reduce((acc, item) => acc + (item.views || 0), 0);
+
+  // 4. Original total uploads (from database profile_stats, user.stats, or uploads array)
+  const totalUploads = Math.max(
+    user?.stats?.uploads ?? 0,
+    dbStats?.uploads ?? 0,
+    uploads.length
+  );
+
+  // 5. Original total saved (from database profile_stats, bookmarksService, and user.stats)
+  const totalSaved = Math.max(
+    user?.stats?.saved ?? 0,
+    dbStats?.saved ?? 0,
+    savedCount
+  );
+
   return (
     <div className="flex flex-col gap-6 relative">
       {toastMessage && (
@@ -204,13 +302,20 @@ export function ProfilePage() {
             <AlertCircle size={18} className="text-error" />
           )}
           <span className="text-body-sm font-medium text-on-surface">{toastMessage.text}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="ml-2 text-on-surface-variant hover:text-on-surface"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
-      {/* ── 1. Clean Profile Header ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-card-border bg-surface-container-low shadow-xs">
-        {/* Cover Image Banner */}
-        <div className="relative h-44 sm:h-52 md:h-56 w-full overflow-hidden bg-surface-container-high">
+      {/* ── 1. Hero Profile Header Card ── */}
+      <div className="rounded-2xl border border-card-border/80 bg-surface shadow-2xs overflow-hidden">
+        {/* Cover Photo */}
+        <div className="relative h-40 sm:h-48 w-full bg-surface-container overflow-hidden">
           {user.coverImage ? (
             <img src={user.coverImage} alt="Cover" className="h-full w-full object-cover object-center" />
           ) : (
@@ -228,8 +333,8 @@ export function ProfilePage() {
         </div>
 
         <div className="px-6 pb-6 pt-0">
-          {/* Top Row: Avatar & Action Buttons */}
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-14 sm:-mt-16 mb-4">
+          {/* Top Row: Avatar */}
+          <div className="flex items-end -mt-14 sm:-mt-16 mb-4">
             <div className="relative inline-block">
               <Avatar
                 name={user.name}
@@ -245,27 +350,6 @@ export function ProfilePage() {
               >
                 <Camera size={13} />
               </button>
-            </div>
-
-            <div className="flex items-center gap-2.5">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                icon={<Edit size={14} />}
-                onClick={handleOpenEditModal}
-              >
-                Edit Profile
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                icon={<Lock size={14} />}
-                onClick={() => navigate('/settings')}
-              >
-                Settings
-              </Button>
             </div>
           </div>
 
@@ -287,7 +371,7 @@ export function ProfilePage() {
               )}
               {(user.branch || user.major) && (
                 <span className="flex items-center gap-1.5">
-                  <BookOpen size={14} className="text-on-surface-variant/70 shrink-0" />
+                  <BookOpen size={14} className="text-primary shrink-0" />
                   {user.branch || user.major}
                 </span>
               )}
@@ -302,17 +386,21 @@ export function ProfilePage() {
           </div>
 
           {/* Stat Counters */}
-          <div className="mt-5 pt-4 border-t border-card-border/60 flex items-center gap-8">
+          <div className="mt-5 pt-4 border-t border-card-border/60 flex items-center gap-7 sm:gap-9">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold text-on-surface">{user.stats.uploads}</span>
+              <span className="text-lg font-bold text-on-surface">{totalLikes}</span>
+              <span className="text-xs text-on-surface-variant font-medium">Likes</span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-bold text-on-surface">{totalViews}</span>
+              <span className="text-xs text-on-surface-variant font-medium">Views</span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-bold text-on-surface">{totalUploads}</span>
               <span className="text-xs text-on-surface-variant font-medium">Uploads</span>
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold text-on-surface">{user.stats.downloads}</span>
-              <span className="text-xs text-on-surface-variant font-medium">Downloads</span>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold text-on-surface">{user.stats.saved}</span>
+              <span className="text-lg font-bold text-on-surface">{totalSaved}</span>
               <span className="text-xs text-on-surface-variant font-medium">Saved</span>
             </div>
           </div>
@@ -612,7 +700,12 @@ export function ProfilePage() {
       </div>
 
       {/* Edit Personal Information Modal */}
-      <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Personal Information">
+      <Modal
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Personal Information"
+        description="Update your public profile display name, avatar, and banner."
+      >
         <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
           <input
             type="file"
@@ -635,89 +728,79 @@ export function ProfilePage() {
             onChange={handleCoverChange}
           />
 
-          {/* Banner & Avatar Section */}
-          <div className="relative">
-            {/* Cover Banner Preview */}
-            <div className="relative h-32 w-full rounded-xl overflow-hidden bg-surface-container-high border border-card-border/80 shadow-2xs">
+          {/* Cover Banner Section */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-on-surface">Cover Banner</span>
+            <div className="relative h-28 w-full rounded-lg overflow-hidden border border-card-border bg-surface-container-low shadow-2xs">
               {editCover ? (
                 <img src={editCover} alt="Cover Preview" className="h-full w-full object-cover object-center" />
               ) : (
-                <div className="h-full w-full bg-gradient-to-r from-primary/15 via-indigo-500/10 to-surface-container-high" />
+                <div className="h-full w-full bg-gradient-to-r from-primary/10 via-primary/5 to-surface-container-high flex items-center justify-center text-xs text-on-surface-variant/60">
+                  No cover banner set
+                </div>
               )}
-              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+              <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
                 <button
                   type="button"
                   onClick={() => coverInputRef.current?.click()}
-                  className="flex items-center gap-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white text-xs font-medium px-2.5 py-1.5 backdrop-blur-md transition-all shadow-xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-black/60 hover:bg-black/80 text-white text-[11px] font-medium px-2.5 py-1 backdrop-blur-md transition-colors cursor-pointer"
                 >
-                  <Camera size={13} />
-                  <span>{editCover ? 'Change banner' : 'Add banner'}</span>
+                  <Camera size={12} />
+                  <span>{editCover ? 'Change' : 'Upload'}</span>
                 </button>
                 {editCover && (
                   <button
                     type="button"
                     onClick={() => setEditCover('')}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-all shadow-xs cursor-pointer"
+                    className="flex h-6 w-6 items-center justify-center rounded-md bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer"
                     title="Remove banner"
                   >
-                    <X size={13} />
+                    <X size={12} />
                   </button>
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Avatar & Photo Action Row */}
-            <div className="flex items-end gap-3.5 px-2 -mt-9 mb-3">
-              <div
-                className="relative group cursor-pointer shrink-0"
-                onClick={() => fileInputRef.current?.click()}
-                title="Click to upload profile photo"
-              >
-                <Avatar
-                  name={editName || 'User'}
-                  src={editAvatar}
-                  size={72}
-                  className="ring-4 ring-surface shadow-md bg-surface"
-                />
-                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                  <Camera size={20} />
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white ring-2 ring-surface shadow-xs group-hover:scale-110 transition-transform">
-                  <Camera size={12} />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-0.5 pb-1 flex-1 min-w-0">
+          {/* Profile Photo / Avatar Row */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-on-surface">Profile Photo</span>
+            <div className="flex items-center gap-3.5 p-3 rounded-lg border border-card-border bg-surface-container-lowest">
+              <Avatar
+                name={editName || 'User'}
+                src={editAvatar}
+                size={52}
+                className="ring-1 ring-card-border shrink-0"
+              />
+              <div className="flex flex-col gap-1 flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-container border border-card-border hover:bg-surface-container-high text-on-surface transition-colors cursor-pointer"
                   >
-                    Upload Photo
+                    <Upload size={12} />
+                    <span>Upload Image</span>
                   </button>
                   {editAvatar && (
-                    <>
-                      <span className="text-on-surface-variant/30 text-xs">•</span>
-                      <button
-                        type="button"
-                        onClick={() => setEditAvatar('')}
-                        className="text-xs font-medium text-error hover:underline transition-colors cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => setEditAvatar('')}
+                      className="text-xs font-medium text-error hover:underline transition-colors cursor-pointer"
+                    >
+                      Remove
+                    </button>
                   )}
                 </div>
-                <span className="text-[11px] text-on-surface-variant/70">JPG, PNG or WEBP · Max 5MB</span>
+                <span className="text-[11px] text-on-surface-variant/70">JPG, PNG or WEBP (Max 5MB)</span>
               </div>
             </div>
           </div>
 
           {/* Preset Avatars Selector */}
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-surface-container-high/30 border border-card-border/60 text-xs">
-            <span className="text-[11px] text-on-surface-variant font-medium shrink-0">Avatar presets:</span>
-            <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-on-surface">Or choose an avatar preset</span>
+            <div className="flex items-center gap-2 p-2 rounded-lg border border-card-border bg-surface-container-lowest overflow-x-auto">
               {AVATAR_PRESETS.map((preset, idx) => (
                 <button
                   key={preset}
@@ -726,19 +809,19 @@ export function ProfilePage() {
                   className={cn(
                     'rounded-full p-0.5 border-2 transition-all cursor-pointer shrink-0',
                     editAvatar === preset
-                      ? 'border-primary scale-110 shadow-xs'
-                      : 'border-transparent opacity-70 hover:opacity-100'
+                      ? 'border-primary ring-2 ring-primary/20 scale-105'
+                      : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
                   )}
                   title={`Preset ${idx + 1}`}
                 >
-                  <Avatar name={`Preset ${idx + 1}`} src={preset} size={26} />
+                  <Avatar name={`Preset ${idx + 1}`} src={preset} size={28} />
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Name & Username Inputs */}
-          <div className="flex flex-col gap-3.5 mt-1">
+          {/* Form Fields: Full Name & Username */}
+          <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-on-surface">
                 Full Name <span className="text-error">*</span>
@@ -749,7 +832,7 @@ export function ProfilePage() {
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Enter your full name"
                 required
-                className="h-11 w-full rounded-xl bg-surface-container-lowest border border-card-border/90 px-3.5 text-sm font-medium text-on-surface placeholder:text-outline/50 shadow-2xs transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                className="h-10 w-full rounded-lg bg-surface-container-lowest border border-card-border px-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 shadow-2xs transition-colors focus:border-primary focus:ring-1 focus:ring-primary/25 focus:outline-none"
               />
             </div>
 
@@ -758,10 +841,10 @@ export function ProfilePage() {
                 <label className="text-xs font-semibold text-on-surface">
                   Username <span className="text-error">*</span>
                 </label>
-                <span className="text-[11px] text-on-surface-variant/70">Public handle</span>
+                <span className="text-[11px] text-on-surface-variant/70 font-mono">quicklearnit.com/@{editUsername || 'handle'}</span>
               </div>
-              <div className="relative flex items-center">
-                <span className="pointer-events-none absolute left-3.5 text-sm font-semibold text-on-surface-variant/50 select-none">
+              <div className="flex rounded-lg border border-card-border bg-surface-container-lowest shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/25 overflow-hidden transition-colors">
+                <span className="inline-flex items-center px-3 bg-surface-container-low border-r border-card-border text-xs font-mono font-medium text-on-surface-variant select-none">
                   @
                 </span>
                 <input
@@ -770,7 +853,7 @@ export function ProfilePage() {
                   onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                   placeholder="username"
                   required
-                  className="h-11 w-full rounded-xl bg-surface-container-lowest border border-card-border/90 pl-8 pr-3.5 text-sm font-medium text-on-surface placeholder:text-outline/50 shadow-2xs transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none font-mono"
+                  className="h-10 w-full bg-transparent px-3 text-sm font-mono text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none"
                 />
               </div>
               <span className="text-[11px] text-on-surface-variant/70">
@@ -780,17 +863,29 @@ export function ProfilePage() {
           </div>
 
           {saveError && (
-            <div className="flex items-center gap-2 rounded-lg bg-error-container/20 border border-error/30 p-3 text-body-sm text-error">
-              <AlertCircle size={18} className="shrink-0" />
+            <div className="flex items-center gap-2 rounded-lg bg-error-container/20 border border-error/30 p-2.5 text-xs text-error">
+              <AlertCircle size={15} className="shrink-0" />
               <span>{saveError}</span>
             </div>
           )}
 
-          <div className="mt-2 flex items-center justify-end gap-2.5 pt-3 border-t border-card-border/60">
-            <Button type="button" variant="secondary" onClick={() => setIsEditModalOpen(false)} disabled={isSaving}>
+          {/* Modal Actions */}
+          <div className="mt-2 pt-3 border-t border-card-border/60 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsEditModalOpen(false)}
+              disabled={isSaving}
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={isSaving}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              disabled={isSaving}
+            >
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
@@ -798,8 +893,13 @@ export function ProfilePage() {
       </Modal>
 
       {/* Edit Academic Details Modal */}
-      <Modal open={isAcademicModalOpen} onClose={() => setIsAcademicModalOpen(false)} title="Edit Academic Details">
-        <form onSubmit={handleSaveAcademic} className="flex flex-col gap-4">
+      <Modal
+        open={isAcademicModalOpen}
+        onClose={() => setIsAcademicModalOpen(false)}
+        title="Edit Academic Details"
+        description="Update your institution, branch, and current semester."
+      >
+        <form onSubmit={handleSaveAcademic} className="flex flex-col gap-3.5">
           <CollegeAutocomplete
             label="College / University"
             placeholder="Type your college or university name"
@@ -814,7 +914,7 @@ export function ProfilePage() {
             onChange={(e) => setEditBranch(e.target.value)}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <Select
               label="Student Year"
               placeholder="Select Year"
@@ -832,17 +932,28 @@ export function ProfilePage() {
           </div>
 
           {academicError && (
-            <div className="flex items-center gap-2 rounded-lg bg-error-container/20 border border-error/30 p-3 text-body-sm text-error">
-              <AlertCircle size={18} className="shrink-0" />
+            <div className="flex items-center gap-2 rounded-lg bg-error-container/20 border border-error/30 p-2.5 text-xs text-error">
+              <AlertCircle size={15} className="shrink-0" />
               <span>{academicError}</span>
             </div>
           )}
 
-          <div className="mt-4 flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setIsAcademicModalOpen(false)} disabled={isAcademicSaving}>
+          <div className="mt-2 pt-3 border-t border-card-border/60 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsAcademicModalOpen(false)}
+              disabled={isAcademicSaving}
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={isAcademicSaving}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              disabled={isAcademicSaving}
+            >
               {isAcademicSaving ? 'Saving...' : 'Save Academic Details'}
             </Button>
           </div>

@@ -270,7 +270,7 @@ export function OtpVerificationPage() {
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-[11px]">
                     1
                   </span>
-                  <span>Check your email inbox for a message from <strong>QuickLearnit</strong>.</span>
+                  <span>Check your email inbox for a message from <strong>Studexa</strong>.</span>
                 </div>
                 <div className="flex items-start gap-2.5 text-xs text-on-surface">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-[11px]">
@@ -368,7 +368,7 @@ export function OtpVerificationPage() {
 
       {/* Bottom Footer note */}
       <div className="text-center text-xs text-on-surface-variant">
-        Protected by QuickLearnit Security • Academic Learning Platform
+        Protected by Studexa Security • Academic Learning Platform
       </div>
     </div>
   );

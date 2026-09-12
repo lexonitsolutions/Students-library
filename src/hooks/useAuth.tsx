@@ -8,15 +8,21 @@ import type { ProfileRow, ProfileStatsRow } from '../types/database.types';
 
 import { generateQuickId } from '../lib/idUtils';
 
-function toUser(profile: ProfileRow, stats: ProfileStatsRow | null): User {
+function toUser(profile: ProfileRow, stats: ProfileStatsRow | null, session?: Session | null): User {
   const localCover = typeof window !== 'undefined' ? localStorage.getItem(`quicklearnit.cover_${profile.id}`) : null;
+  const googleAvatar =
+    (session?.user?.user_metadata?.avatar_url as string) ||
+    (session?.user?.user_metadata?.picture as string) ||
+    null;
+  const resolvedAvatar = profile.avatar_url || googleAvatar || `https://i.pravatar.cc/160?u=${profile.id}`;
+
   return {
     id: profile.id,
     quickId: generateQuickId(profile.id),
     name: profile.name,
     username: profile.username ?? undefined,
     email: profile.email ?? '',
-    avatar: profile.avatar_url ?? `https://i.pravatar.cc/160?u=${profile.id}`,
+    avatar: resolvedAvatar,
     coverImage: profile.cover_image || localCover || undefined,
     university: profile.university ?? '',
     major: profile.major ?? '',
@@ -45,7 +51,7 @@ interface AuthContextValue {
     params: authService.SignUpParams,
   ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
   readonly signIn: (params: authService.SignInParams) => Promise<{ error: string | null }>;
-  readonly signInWithGoogle: () => Promise<{ error: string | null }>;
+  readonly signInWithGoogle: (redirectTo?: string) => Promise<{ error: string | null }>;
   readonly resendSignupOtp: (email: string) => Promise<{ error: string | null }>;
   readonly verifySignupOtp: (email: string, token: string) => Promise<{ error: string | null }>;
   readonly sendMobileOtp: (phone: string) => Promise<{ error: string | null }>;
@@ -130,21 +136,50 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      const currentSession = data.session;
-      if (currentSession && isSessionVerified(currentSession)) {
-        setSession(currentSession);
-        loadProfile(currentSession.user.id).finally(() => active && setLoading(false));
-      } else {
-        if (currentSession && !isSessionVerified(currentSession)) {
-          supabase.auth.signOut().catch(() => {});
+    async function initSession() {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const code = searchParams.get('code');
+
+        if (code) {
+          const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (!exchangeError && exchangeData?.session && active) {
+            const sess = exchangeData.session;
+            setSession(sess);
+            localStorage.setItem(ONBOARDED_KEY, 'true');
+            setHasOnboarded(true);
+            stopExploring();
+            await loadProfile(sess.user.id);
+            const fromGoogle = searchParams.get('from_google');
+            const cleanUrl = window.location.origin + window.location.pathname + (fromGoogle ? '?from_google=true' : '');
+            window.history.replaceState({}, document.title, cleanUrl);
+            if (active) setLoading(false);
+            return;
+          }
         }
-        setSession(null);
-        setProfile(null);
-        setLoading(false);
+
+        const { data } = await supabase.auth.getSession();
+        if (!active) return;
+        const currentSession = data.session;
+        if (currentSession && isSessionVerified(currentSession)) {
+          setSession(currentSession);
+          await loadProfile(currentSession.user.id);
+          if (active) setLoading(false);
+        } else {
+          if (currentSession && !isSessionVerified(currentSession)) {
+            supabase.auth.signOut().catch(() => {});
+          }
+          setSession(null);
+          setProfile(null);
+          if (active) setLoading(false);
+        }
+      } catch (err) {
+        console.warn('Session init error:', err);
+        if (active) setLoading(false);
       }
-    });
+    }
+
+    initSession();
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (nextSession && isSessionVerified(nextSession)) {
@@ -193,8 +228,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     return { error: error?.message ?? null };
   }, [stopExploring, loadProfile]);
 
-  const signInWithGoogle = useCallback(async () => {
-    const { error } = await authService.signInWithGoogle();
+  const signInWithGoogle = useCallback(async (redirectTo?: string) => {
+    const { error } = await authService.signInWithGoogle(redirectTo);
     if (!error) {
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
@@ -268,11 +303,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       id: '',
       name: 'Guest User',
       username: 'guest',
-      email: 'guest@quicklearnit.com',
+      email: 'guest@studexa.app',
       avatar: '',
       university: 'Explore Mode',
       major: 'Guest Access',
-      college: 'QuickLearnit',
+      college: 'Studexa',
       role: 'student',
       stats: {
         uploads: 0,
@@ -347,7 +382,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const user = useMemo<User | null>(
     () => {
       if (profile) {
-        return toUser(profile, stats);
+        return toUser(profile, stats, session);
       }
       if (guestUser && isExploring) {
         return {
@@ -357,7 +392,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       }
       return null;
     },
-    [guestUser, isExploring, profile, stats],
+    [guestUser, isExploring, profile, stats, session],
   );
 
   const value = useMemo<AuthContextValue>(

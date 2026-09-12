@@ -217,7 +217,7 @@ export function CollegeAutocomplete({
   return (
     <div className={cn('flex flex-col gap-1.5', className)} ref={containerRef}>
       {label && (
-        <label htmlFor={id} className="text-label-md text-on-surface-variant font-medium">
+        <label htmlFor={id} className="text-xs font-semibold text-on-surface">
           {label}
         </label>
       )}
@@ -229,11 +229,11 @@ export function CollegeAutocomplete({
 
       <div className="relative">
         {/* Left search/loader icon */}
-        <div className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-outline">
+        <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-on-surface-variant/60">
           {isLoading ? (
-            <Loader2 size={16} className="animate-spin text-primary" />
+            <Loader2 size={15} className="animate-spin text-primary" />
           ) : (
-            <Search size={16} />
+            <Search size={15} />
           )}
         </div>
 
@@ -258,10 +258,9 @@ export function CollegeAutocomplete({
             }
           }}
           className={cn(
-            'h-12 w-full rounded-lg bg-surface-soft pl-10 pr-10 text-body-md text-on-surface placeholder:text-outline',
-            'border border-transparent transition-colors duration-150',
-            'focus:bg-white focus:border-primary focus:outline-none dark:focus:bg-surface-container-low',
-            isOpen && 'rounded-b-none border-primary bg-white dark:bg-surface-container-low',
+            'h-10 w-full rounded-lg bg-surface-container-lowest border border-card-border pl-9 pr-9 text-sm text-on-surface placeholder:text-on-surface-variant/40 shadow-2xs',
+            'transition-colors duration-150 focus:border-primary focus:ring-1 focus:ring-primary/25 focus:outline-none',
+            isOpen && 'rounded-b-none border-primary',
           )}
         />
 
@@ -271,9 +270,9 @@ export function CollegeAutocomplete({
             type="button"
             aria-label="Clear college name"
             onClick={handleClear}
-            className="absolute inset-y-0 right-3 flex items-center text-outline hover:text-on-surface transition-colors cursor-pointer"
+            className="absolute inset-y-0 right-2.5 flex items-center text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         )}
 

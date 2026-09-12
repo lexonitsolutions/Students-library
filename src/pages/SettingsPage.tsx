@@ -19,7 +19,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../hooks/useAuth';
@@ -45,7 +44,7 @@ const settingsSections = [
     heading: 'Support',
     items: [
       { label: 'Help & Support', icon: CircleHelp },
-      { label: 'About QuickLearnit', icon: Info },
+      { label: 'About Studexa', icon: Info },
     ],
   },
 ];
@@ -98,23 +97,41 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="mb-6 text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">Settings</h1>
+    <div className="mx-auto max-w-xl pb-12">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Settings</h1>
+        <p className="text-xs text-on-surface-variant mt-0.5">
+          Manage your account preferences, appearance, and security.
+        </p>
+      </div>
 
-      <Card hoverable={false} className="flex items-center gap-3 relative">
-        {isExploring ? (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20">
-            <User size={24} />
-          </div>
-        ) : (
-          <Avatar name={user.name} src={user.avatar} size={48} />
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-body-md font-semibold text-on-surface">{user.name}</p>
-          {user.quickId && (
-            <p className="mt-1 truncate text-label-xs font-mono font-bold tracking-wider text-primary">ID: {user.quickId}</p>
+      {/* Profile Summary Card */}
+      <div className="rounded-xl border border-card-border bg-surface p-4 shadow-2xs flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          {isExploring ? (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20">
+              <User size={22} />
+            </div>
+          ) : (
+            <Avatar name={user.name} src={user.avatar} size={46} className="ring-1 ring-card-border shrink-0" />
           )}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-on-surface">{user.name}</p>
+            <div className="flex items-center gap-2 mt-1">
+              {user.quickId && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-container border border-card-border text-[11px] font-mono font-medium text-on-surface-variant">
+                  <span className="text-[10px] uppercase font-bold text-on-surface-variant/60 font-sans">ID</span>
+                  <span>{user.quickId}</span>
+                </span>
+              )}
+              {user.email && (
+                <span className="text-xs text-on-surface-variant truncate hidden sm:inline">{user.email}</span>
+              )}
+            </div>
+          </div>
         </div>
+
         <button 
           onClick={() => {
             if (isExploring) {
@@ -123,20 +140,22 @@ export function SettingsPage() {
               setShowAccountModal(true);
             }
           }}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-soft hover:text-primary transition-colors cursor-pointer ml-auto shrink-0"
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-card-border bg-surface hover:bg-surface-container text-xs font-medium text-on-surface transition-colors cursor-pointer shrink-0 shadow-2xs"
           aria-label="Edit Profile"
         >
-          <Pencil size={18} />
+          <Pencil size={13} className="text-on-surface-variant" />
+          <span>Edit</span>
         </button>
-      </Card>
+      </div>
 
+      {/* Settings Sections */}
       {settingsSections.map((section) => (
         <div key={section.heading} className="mt-5">
-          <p className="mb-2 px-1 text-label-sm font-semibold uppercase tracking-wide text-outline">
+          <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/80">
             {section.heading}
           </p>
-          <Card hoverable={false} padded={false}>
-            {section.items.map((item, index) => (
+          <div className="rounded-xl border border-card-border bg-surface divide-y divide-card-border/60 shadow-2xs overflow-hidden">
+            {section.items.map((item) => (
               <button
                 key={item.label}
                 type="button"
@@ -153,22 +172,27 @@ export function SettingsPage() {
                     }
                   }
                 }}
-                className={`flex w-full items-center gap-3 border-b border-card-border px-4 py-3.5 text-left text-body-sm text-on-surface first:rounded-t-xl hover:bg-surface-soft cursor-pointer transition-colors ${
-                  section.heading === 'Preferences' && index === section.items.length - 1 ? '' : 'last:rounded-b-xl last:border-b-0'
-                }`}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-on-surface hover:bg-surface-container-low/60 cursor-pointer transition-colors group"
               >
-                <item.icon size={18} className="text-on-surface-variant" />
-                <span className="flex-1">{item.label}</span>
-                <ChevronRight size={16} className="text-outline" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container/70 text-on-surface-variant group-hover:text-on-surface transition-colors shrink-0">
+                  <item.icon size={15} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-sm text-on-surface">{item.label}</span>
+                </div>
+                <ChevronRight size={15} className="text-on-surface-variant/40 group-hover:text-on-surface-variant group-hover:translate-x-0.5 transition-all" />
               </button>
             ))}
+
             {section.heading === 'Preferences' && (
-              <div className="flex w-full items-center justify-between px-4 py-3.5 text-left text-body-sm text-on-surface rounded-b-xl hover:bg-surface-soft transition-colors">
+              <div className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-on-surface">
                 <div className="flex items-center gap-3">
-                  <Palette size={18} className="text-on-surface-variant" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container/70 text-on-surface-variant shrink-0">
+                    <Palette size={15} />
+                  </div>
                   <div>
-                    <p className="font-medium text-on-surface">Appearance</p>
-                    <p className="text-label-sm text-on-surface-variant capitalize">
+                    <p className="font-medium text-sm text-on-surface">Appearance</p>
+                    <p className="text-[11px] text-on-surface-variant capitalize">
                       {theme} theme enabled
                     </p>
                   </div>
@@ -177,71 +201,96 @@ export function SettingsPage() {
                   type="button"
                   onClick={cycleTheme}
                   aria-label="Toggle theme"
-                  className="flex h-8 w-14 items-center rounded-full border border-card-border bg-surface-container-low p-0.5 transition-all duration-200 hover:border-primary/50 cursor-pointer relative"
+                  className="flex h-7 w-12 items-center rounded-full border border-card-border bg-surface-container-high p-0.5 transition-colors duration-200 hover:border-primary/50 cursor-pointer relative"
                 >
                   <span
-                    className="flex h-6.5 w-6.5 items-center justify-center rounded-full shadow-xs transition-all duration-200 absolute left-0.5"
+                    className="flex h-5.5 w-5.5 items-center justify-center rounded-full shadow-xs transition-all duration-200 absolute left-0.5"
                     style={{
-                      transform: theme === 'dark' ? 'translateX(24px)' : 'translateX(0)',
-                      backgroundColor: theme === 'dark' ? '#6366F1' : '#F1F5F9',
+                      transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(0)',
+                      backgroundColor: theme === 'dark' ? '#6366F1' : '#FFFFFF',
                     }}
                   >
                     {theme === 'dark' ? (
-                      <Moon size={13} className="text-white" />
+                      <Moon size={12} className="text-white" />
                     ) : (
-                      <Sun size={13} className="text-amber-500" />
+                      <Sun size={12} className="text-amber-500" />
                     )}
                   </span>
                 </button>
               </div>
             )}
-          </Card>
+          </div>
         </div>
       ))}
 
-      {/* Account Actions Section */}
-      <div className="mt-8 flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={() => setShowLogoutAlert(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-card-border bg-surface-container py-3 text-label-md font-semibold text-on-surface transition-colors hover:bg-surface-container-high cursor-pointer shadow-xs"
-        >
-          <LogOut size={18} className="text-on-surface-variant" />
-          Log Out
-        </button>
+      {/* Session Management */}
+      <div className="mt-6">
+        <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/80">
+          Session
+        </p>
+        <div className="rounded-xl border border-card-border bg-surface p-3.5 shadow-2xs flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-on-surface">Sign Out</p>
+            <p className="text-xs text-on-surface-variant">Log out of your account on this device.</p>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={<LogOut size={13} />}
+            onClick={() => setShowLogoutAlert(true)}
+            className="h-8 px-3 rounded-lg text-xs font-medium shrink-0"
+          >
+            Log Out
+          </Button>
+        </div>
+      </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setDeletePassword('');
-            setPasswordError('');
-            setShowDeleteModal(true);
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-error/30 bg-error/5 py-3 text-label-md font-semibold text-error transition-colors hover:bg-error-container/40 cursor-pointer"
-        >
-          <Trash2 size={18} />
-          Delete Account
-        </button>
+      {/* Danger Zone */}
+      <div className="mt-6">
+        <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-error/80">
+          Danger Zone
+        </p>
+        <div className="rounded-xl border border-error/25 bg-error/5 p-3.5 shadow-2xs flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-error">Delete Account</p>
+            <p className="text-xs text-on-surface-variant">Permanently delete your account and all study materials.</p>
+          </div>
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            icon={<Trash2 size={13} />}
+            onClick={() => {
+              setDeletePassword('');
+              setPasswordError('');
+              setShowDeleteModal(true);
+            }}
+            className="h-8 px-3 rounded-lg text-xs font-medium bg-error hover:bg-error/90 text-white shrink-0"
+          >
+            Delete Account
+          </Button>
+        </div>
       </div>
 
       {/* Designed Logout Alert Modal */}
       <Modal open={showLogoutAlert} onClose={() => setShowLogoutAlert(false)} title="Confirm Logout">
         <div className="flex flex-col items-center text-center gap-3 py-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <LogOut size={28} />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <LogOut size={24} />
           </div>
           <div>
-            <h3 className="text-headline-md text-on-surface font-semibold">Are you sure you want to log out?</h3>
-            <p className="mt-2 text-body-sm text-on-surface-variant max-w-xs mx-auto">
-              You will need to enter your credentials again to access your saved study materials and notes.
+            <h3 className="text-sm font-semibold text-on-surface">Are you sure you want to log out?</h3>
+            <p className="mt-1 text-xs text-on-surface-variant max-w-xs mx-auto">
+              You will need to sign in again to access your personal dashboard and saved notes.
             </p>
           </div>
-          <div className="mt-5 flex w-full justify-end gap-3">
-            <Button variant="secondary" onClick={() => setShowLogoutAlert(false)}>
+          <div className="mt-3 flex w-full justify-end gap-2 pt-3 border-t border-card-border/60">
+            <Button variant="secondary" size="sm" onClick={() => setShowLogoutAlert(false)}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleConfirmLogout} className="bg-error hover:bg-error/90 text-white">
-              Yes, Log Out
+            <Button variant="primary" size="sm" onClick={handleConfirmLogout} className="bg-error hover:bg-error/90 text-white">
+              Log Out
             </Button>
           </div>
         </div>
@@ -257,31 +306,32 @@ export function SettingsPage() {
           setIsBlinking(false);
         }}
         title="Delete Account"
+        description="This action cannot be undone."
       >
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3 rounded-xl bg-error-container/20 p-3.5 border border-error/30 text-error">
-            <AlertTriangle size={24} className="shrink-0" />
-            <p className="text-body-sm">
-              This action is permanent and cannot be undone. All your saved documents, uploads, and data will be erased.
+        <div className="flex flex-col gap-3.5">
+          <div className="flex items-center gap-2.5 rounded-lg bg-error-container/20 p-3 border border-error/30 text-error text-xs">
+            <AlertTriangle size={18} className="shrink-0" />
+            <p>
+              Permanently deletes your account, profile, uploads, and all personal data.
             </p>
           </div>
 
-          <p className="text-body-sm text-on-surface-variant font-medium">
-            Please enter your password below to confirm account deletion:
+          <p className="text-xs text-on-surface-variant font-medium">
+            Please enter your password to confirm:
           </p>
 
           <motion.div
             animate={
               isBlinking
                 ? {
-                    x: [-10, 10, -8, 8, -4, 4, 0],
+                    x: [-8, 8, -6, 6, -3, 3, 0],
                   }
                 : {}
             }
-            transition={{ duration: 0.5 }}
-            className={`rounded-xl transition-all duration-200 ${
+            transition={{ duration: 0.4 }}
+            className={`rounded-lg transition-all duration-200 ${
               isBlinking
-                ? 'ring-4 ring-red-500/70 border-2 border-red-500 bg-red-500/10 animate-pulse p-1'
+                ? 'ring-2 ring-red-500/70 border-red-500 bg-red-500/10 p-0.5'
                 : ''
             }`}
           >
@@ -318,17 +368,18 @@ export function SettingsPage() {
             <motion.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-label-sm font-semibold text-error flex items-center gap-1.5"
+              className="text-xs font-semibold text-error flex items-center gap-1.5"
             >
-              <AlertTriangle size={14} className="shrink-0" />
+              <AlertTriangle size={13} className="shrink-0" />
               <span>{passwordError}</span>
             </motion.p>
           )}
 
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="mt-2 flex justify-end gap-2 pt-3 border-t border-card-border/60">
             <Button
               type="button"
               variant="secondary"
+              size="sm"
               onClick={() => {
                 setShowDeleteModal(false);
                 setDeletePassword('');
@@ -341,6 +392,7 @@ export function SettingsPage() {
             <Button
               type="button"
               variant="primary"
+              size="sm"
               disabled={isDeleting}
               onClick={handleConfirmDeleteAccount}
               className="bg-error hover:bg-error/90 text-white"

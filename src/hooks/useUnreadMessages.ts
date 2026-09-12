@@ -11,10 +11,12 @@ export function triggerUnreadMessagesRefresh() {
 export function useUnreadMessages() {
   const { user, isExploring } = useAuth();
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [pendingQueriesCount, setPendingQueriesCount] = useState<number>(0);
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user?.id || isExploring) {
       setUnreadCount(0);
+      setPendingQueriesCount(0);
       return;
     }
 
@@ -50,11 +52,44 @@ export function useUnreadMessages() {
 
       const totalPending = !reqError && pendingCount !== null ? pendingCount : 0;
 
-      setUnreadCount(unreadMsgCount + totalPending);
+      // 3. For Admins: count received student queries waiting in 'Pending' queue
+      let adminPendingQueries = 0;
+      if (user.role === 'admin') {
+        const { count: queryCount, error: queryErr } = await supabase
+          .from('student_queries')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'Pending')
+          .is('assigned_admin_id', null);
+
+        if (!queryErr && queryCount !== null) {
+          adminPendingQueries = queryCount;
+        } else {
+          // Local storage cache fallback
+          try {
+            const raw =
+              localStorage.getItem('studexa.admin_queries_cache') ||
+              localStorage.getItem('quicklearnit.admin_queries_cache');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                adminPendingQueries = parsed.filter(
+                  (q: { status: string; assignedAdminId?: string | null }) =>
+                    q.status === 'Pending' && !q.assignedAdminId
+                ).length;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      setPendingQueriesCount(adminPendingQueries);
+      setUnreadCount(unreadMsgCount + totalPending + adminPendingQueries);
     } catch (err) {
       console.warn('Failed to fetch unread messages count:', err);
     }
-  }, [user?.id, isExploring]);
+  }, [user?.id, user?.role, isExploring]);
 
   useEffect(() => {
     fetchUnreadCount();
@@ -91,16 +126,35 @@ export function useUnreadMessages() {
       )
       .subscribe();
 
+    // Subscribe to student_queries changes for admins
+    let queryChannel: ReturnType<typeof supabase.channel> | null = null;
+    if (user.role === 'admin') {
+      const queryChannelName = `global_unread_queries_${user.id}_${Math.random().toString(36).substring(2, 7)}`;
+      queryChannel = supabase
+        .channel(queryChannelName)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'student_queries' },
+          fetchUnreadCount,
+        )
+        .subscribe();
+    }
+
     return () => {
       window.removeEventListener('refresh_unread_messages', fetchUnreadCount);
       supabase.removeChannel(msgChannel);
       supabase.removeChannel(reqChannel);
+      if (queryChannel) {
+        supabase.removeChannel(queryChannel);
+      }
     };
-  }, [user?.id, isExploring, fetchUnreadCount]);
+  }, [user?.id, user?.role, isExploring, fetchUnreadCount]);
 
   return {
     unreadCount,
     hasUnread: unreadCount > 0,
+    hasPendingQueries: pendingQueriesCount > 0,
+    pendingQueriesCount,
     refresh: fetchUnreadCount,
   };
 }

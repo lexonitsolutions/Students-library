@@ -1,6 +1,6 @@
-# QuickLearnit Backend (Supabase)
+# Studexa Backend (Supabase)
 
-QuickLearnit's frontend is a Vite + React SPA with no server of its own. Supabase is
+Studexa's frontend is a Vite + React SPA with no server of its own. Supabase is
 the entire backend: Postgres database, Auth, and file Storage, accessed
 directly from the browser via `src/lib/supabaseClient.ts` and the service
 layer in `src/services/`. This folder holds the SQL that defines that backend.
@@ -8,7 +8,7 @@ layer in `src/services/`. This folder holds the SQL that defines that backend.
 ## Architecture
 
 ```
-QuickLearnit Web (Vite SPA)
+Studexa Web (Vite SPA)
    |
    v
 Supabase

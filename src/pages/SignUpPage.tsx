@@ -1,25 +1,38 @@
-import { useState } from 'react';
-import { Mail, Lock, Smartphone, ArrowRight, BookOpen, CheckCircle2, User as UserIcon, Eye, EyeOff, Award, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, Lock, ArrowRight, BookOpen, CheckCircle2, User as UserIcon, Eye, EyeOff, Award, Sparkles } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { AnimatedInput } from '../components/ui/AnimatedInput';
+import { Logo } from '../components/ui/Logo';
+import { supabase } from '../lib/supabaseClient';
 
 export function SignUpPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signUp, signInWithGoogle, sendMobileOtp } = useAuth();
+  const { signUp, signInWithGoogle, session, updateUser, signOut } = useAuth();
   
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState(location.state?.prefillEmail ?? '');
+  const googleUser = session?.user?.app_metadata?.provider === 'google' ? session.user : null;
+  const googleName = (googleUser?.user_metadata?.full_name as string) || (googleUser?.user_metadata?.name as string) || '';
+  const googleEmail = googleUser?.email || '';
+  const googleAvatar = (googleUser?.user_metadata?.avatar_url as string) || (googleUser?.user_metadata?.picture as string) || '';
+
+  const [name, setName] = useState(googleName || '');
+  const [email, setEmail] = useState(googleEmail || location.state?.prefillEmail || '');
   const [password, setPassword] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [showMobileInput, setShowMobileInput] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (googleUser) {
+      if (googleName) setName(googleName);
+      if (googleEmail) setEmail(googleEmail);
+    }
+  }, [googleUser, googleName, googleEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,13 +51,39 @@ export function SignUpPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (!googleUser && password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (googleUser && password && password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
 
     if (!agreedToTerms) {
       setError('Please accept the Terms and Conditions to create your account');
+      return;
+    }
+
+    if (googleUser) {
+      setIsSubmitting(true);
+      try {
+        if (password) {
+          await supabase.auth.updateUser({ password }).catch(() => {});
+        }
+        await updateUser({
+          name: nameTrimmed,
+          ...(googleAvatar ? { avatar: googleAvatar } : {}),
+        });
+        localStorage.setItem('quicklearnit_google_signup_completed', 'true');
+        localStorage.setItem('quicklearnit_has_onboarded', 'true');
+        navigate('/dashboard', { replace: true });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to complete registration');
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -78,9 +117,28 @@ export function SignUpPage() {
   };
 
   const handleGoogleSignUp = async () => {
-    setError(null);
-    const { error: googleError } = await signInWithGoogle();
-    if (googleError) setError(googleError);
+    try {
+      setIsGoogleLoading(true);
+      setError(null);
+      const redirectUrl = `${window.location.origin}/signup?from_google=true`;
+      const { error: googleError } = await signInWithGoogle(redirectUrl);
+      if (googleError) {
+        setError(googleError);
+        setIsGoogleLoading(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-up failed');
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleDisconnectGoogle = async () => {
+    await signOut();
+    setName('');
+    setEmail('');
+    setPassword('');
+    localStorage.removeItem('quicklearnit_google_signup_completed');
+    navigate('/signup', { replace: true });
   };
 
   return (
@@ -94,13 +152,8 @@ export function SignUpPage() {
 
         {/* Brand Header */}
         <div className="flex items-center gap-3 relative z-10">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-on-primary font-black text-lg shadow-sm">
-              Q
-            </div>
-            <span className="font-bold text-xl tracking-tight text-on-surface">
-              Quick<span className="text-primary">Learnit</span>
-            </span>
+          <Link to="/" className="flex items-center">
+            <Logo height={36} />
           </Link>
         </div>
 
@@ -170,11 +223,8 @@ export function SignUpPage() {
       <div className="flex flex-1 flex-col justify-between p-6 sm:p-12 bg-white">
         {/* Mobile-only brand link */}
         <div className="flex items-center justify-between lg:hidden mb-6">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-on-primary font-black text-sm">
-              Q
-            </div>
-            <span className="font-bold text-lg text-on-surface">QuickLearnit</span>
+          <Link to="/" className="flex items-center">
+            <Logo height={30} />
           </Link>
           <Link to="/signin" className="text-xs font-semibold text-primary hover:underline">
             Sign in
@@ -201,80 +251,72 @@ export function SignUpPage() {
             </div>
           )}
 
-          {/* Social Sign-Up Buttons */}
+          {/* Social Sign-Up or Connected Google Account */}
           <div className="space-y-2.5">
-            <button
-              type="button"
-              onClick={handleGoogleSignUp}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              <span>Sign up with Google</span>
-            </button>
-
-            {showMobileInput ? (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setError(null);
-                  const phone = `+91${mobileNumber}`;
-                  const { error: otpError } = await sendMobileOtp(phone);
-                  if (otpError) {
-                    setError(otpError);
-                    return;
-                  }
-                  navigate('/verify-otp', { state: { target: phone, type: 'mobile', otpKind: 'sms' } });
-                }}
-                className="flex w-full items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/40 p-1.5 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
-              >
-                <div className="flex items-center pl-2">
-                  <Smartphone className="h-4 w-4 text-primary" />
-                  <span className="ml-2 text-on-surface-variant text-xs font-semibold border-r border-indigo-200 pr-2">+91</span>
+            {googleUser ? (
+              <div className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 shadow-xs">
+                <div className="flex items-center gap-3 min-w-0">
+                  {googleAvatar ? (
+                    <img
+                      src={googleAvatar}
+                      alt={googleName || 'Google Account'}
+                      className="h-10 w-10 rounded-full object-cover border-2 border-indigo-300 shrink-0"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shrink-0">
+                      {(googleName || googleEmail || 'G').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 text-left">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-on-surface truncate">
+                        {googleName || 'Google Account'}
+                      </span>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    </div>
+                    <p className="text-xs text-on-surface-variant truncate">{googleEmail}</p>
+                  </div>
                 </div>
-                <AnimatedInput
-                  type="tel"
-                  className="flex-1 bg-transparent px-2 py-1 text-sm text-on-surface outline-none w-full placeholder:text-on-surface-variant/50"
-                  placeholder="98765 43210"
-                  pattern="[0-9]{10}"
-                  maxLength={10}
-                  inputMode="numeric"
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                  required
-                  autoFocus
-                />
+
                 <button
-                  type="submit"
-                  className="rounded-lg bg-primary hover:bg-primary-hover px-3 py-1.5 text-xs font-semibold text-on-primary transition-colors cursor-pointer"
+                  type="button"
+                  onClick={handleDisconnectGoogle}
+                  className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline ml-2 shrink-0 cursor-pointer"
                 >
-                  Verify
+                  Change
                 </button>
-              </form>
+              </div>
             ) : (
               <button
                 type="button"
-                onClick={() => setShowMobileInput(true)}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-indigo-200/90 bg-indigo-50/70 hover:bg-indigo-100/80 px-4 py-2.5 text-sm font-semibold text-indigo-700 transition-all cursor-pointer shadow-xs"
+                onClick={handleGoogleSignUp}
+                disabled={isGoogleLoading}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Smartphone className="h-4 w-4 text-indigo-600" />
-                <span>Continue with Mobile</span>
+                {isGoogleLoading ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                )}
+                <span>{isGoogleLoading ? 'Connecting to Google...' : 'Sign up with Google'}</span>
               </button>
             )}
           </div>
@@ -286,7 +328,7 @@ export function SignUpPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider">
-                or register with email
+                {googleUser ? 'Complete your details' : 'or register with email'}
               </span>
             </div>
           </div>
@@ -310,14 +352,22 @@ export function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-xs font-semibold text-on-surface mb-1.5 text-left">
-                Email Address
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="email" className="block text-xs font-semibold text-on-surface text-left">
+                  Email Address
+                </label>
+                {googleUser && (
+                  <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Verified by Google
+                  </span>
+                )}
+              </div>
               <AnimatedInput
                 type="email"
                 id="email"
+                readOnly={Boolean(googleUser)}
                 icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
-                className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                className={`block w-full rounded-xl border border-slate-200 ${googleUser ? 'bg-slate-100 cursor-not-allowed opacity-90' : 'bg-slate-50 focus:bg-white'} pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors`}
                 placeholder="student@university.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -326,19 +376,21 @@ export function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-semibold text-on-surface mb-1.5 text-left">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
+                  Password {googleUser && <span className="text-on-surface-variant font-normal">(Optional for Google sign-in)</span>}
+                </label>
+              </div>
               <div className="relative">
                 <AnimatedInput
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
                   className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  placeholder="At least 6 characters"
+                  placeholder={googleUser ? 'Set optional password for email login' : 'At least 6 characters'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
+                  required={!googleUser}
                 />
                 <button
                   type="button"
@@ -377,7 +429,7 @@ export function SignUpPage() {
               disabled={isSubmitting || !agreedToTerms}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer pt-2"
             >
-              <span>{isSubmitting ? 'Creating account...' : 'Create Account'}</span>
+              <span>{isSubmitting ? 'Creating account...' : googleUser ? 'Complete Registration' : 'Create Account'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>

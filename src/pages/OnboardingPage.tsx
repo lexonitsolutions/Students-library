@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { onboardingSlides } from '../data/mockData';
 import { useAuth } from '../hooks/useAuth';
 import { cn } from '../lib/cn';
 import { Button } from '../components/ui/Button';
+import { Logo } from '../components/ui/Logo';
 
 export function OnboardingPage() {
   const [slideIndex, setSlideIndex] = useState(0);
@@ -113,11 +114,8 @@ export function OnboardingPage() {
               transition={{ duration: 0.2 }}
               className="flex flex-1 flex-col p-6 sm:p-8"
             >
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-on-primary">
-                  <BookOpen size={18} />
-                </div>
-                <span className="text-headline-md text-on-surface">QuickLearnit</span>
+              <div className="flex items-center">
+                <Logo height={32} />
               </div>
 
               <div className="flex flex-1 flex-col items-center justify-center text-center">

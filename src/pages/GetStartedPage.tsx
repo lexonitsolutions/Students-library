@@ -17,6 +17,7 @@ import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { Logo } from '../components/ui/Logo';
 
 /* ── 3D PARTICLE CONSTELLATION CANVAS ── */
 function Hero3DCanvas() {
@@ -307,7 +308,7 @@ const PLATFORM_FEATURES: PlatformFeature[] = [
     categoryBadge: 'CURATED SEMESTER REPOSITORY',
     title: 'Instant access to verified semester notes & past papers',
     description:
-      'Stop searching through disorganized WhatsApp groups and expired Google Drive links. QuickLearnit curates study materials indexed by Branch, Semester, and Subject syllabus.',
+      'Stop searching through disorganized WhatsApp groups and expired Google Drive links. Studexa curates study materials indexed by Branch, Semester, and Subject syllabus.',
     highlights: [
       { title: 'Curriculum-Aligned Structure', desc: 'Browse Engineering and Degree notes mapped by unit and semester.' },
       { title: 'Quality Moderation Queue', desc: 'Every uploaded file is reviewed and approved by student admins before publishing.' },
@@ -406,13 +407,8 @@ export function GetStartedPage() {
       {/* ── TOP NAVIGATION ── */}
       <header className="sticky top-0 z-40 border-b border-card-border bg-surface-container-low/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white font-bold shadow-xs">
-              <GraduationCap size={20} />
-            </div>
-            <div>
-              <span className="text-body-md font-bold tracking-tight text-on-surface">QuickLearnit</span>
-            </div>
+          <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
+            <Logo height={34} />
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
@@ -560,7 +556,7 @@ export function GetStartedPage() {
             Everything built for academic excellence
           </h2>
           <p className="mt-3 text-body-md text-on-surface-variant">
-            Explore how QuickLearnit connects students with verified university course materials and peer study tools.
+            Explore how Studexa connects students with verified university course materials and peer study tools.
           </p>
 
           {/* Segmented Animated Navigation Tabs */}
@@ -660,7 +656,7 @@ export function GetStartedPage() {
                     </div>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-surface border border-card-border text-[11px] text-on-surface-variant font-mono">
                       <ShieldCheck size={12} className="text-emerald-500" />
-                      <span>quicklearnit.edu/app/{activeFeature.id}</span>
+                      <span>studexa.app/{activeFeature.id}</span>
                     </div>
                     <div className="w-12" />
                   </div>
@@ -974,15 +970,12 @@ export function GetStartedPage() {
       <footer className="border-t border-card-border bg-surface-container-low py-8 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-white text-xs font-bold">
-              Q
-            </div>
-            <span className="font-bold text-body-sm text-on-surface">QuickLearnit</span>
+            <Logo height={24} />
             <span className="text-on-surface-variant text-body-xs">· Open University Study Platform</span>
           </div>
 
           <p className="text-body-xs text-on-surface-variant">
-            &copy; {new Date().getFullYear()} QuickLearnit. All academic rights reserved.
+            &copy; {new Date().getFullYear()} Studexa. All academic rights reserved.
           </p>
         </div>
       </footer>

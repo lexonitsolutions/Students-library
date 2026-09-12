@@ -34,6 +34,7 @@ export interface UploaderProfile {
   uploaderName: string;
   uploaderUsername?: string | null;
   uploaderAvatar: string;
+  uploaderCoverImage?: string | null;
   uploaderUniversity?: string;
   uploaderCollege?: string;
   uploaderLocation?: string;
@@ -66,6 +67,7 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isCheckingChat, setIsCheckingChat] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [coverImage, setCoverImage] = useState<string | null>(profile?.uploaderCoverImage || null);
 
   const handleCopyId = () => {
     if (!profile) return;
@@ -83,6 +85,11 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
       if (profile.uploaderCollege || profile.uploaderUniversity) {
         setDisplayCollege(profile.uploaderCollege || profile.uploaderUniversity || '');
       }
+      const localCover =
+        typeof window !== 'undefined'
+          ? localStorage.getItem(`quicklearnit.cover_${profile.uploaderId}`)
+          : null;
+      setCoverImage(profile.uploaderCoverImage || localCover || null);
     }
   }, [profile]);
 
@@ -97,23 +104,25 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
       try {
         const { data: prof } = await supabase
           .from('public_profiles')
-          .select('name, username, university, college, joined_at')
+          .select('name, username, university, college, joined_at, cover_image')
           .eq('id', profile.uploaderId)
           .maybeSingle();
 
+        let foundCover: string | null = (prof as any)?.cover_image || null;
         if (prof && isMounted) {
           if (prof.name) setDisplayName(prof.name);
           if (prof.username) setDisplayUsername(prof.username);
           if (prof.joined_at) setJoinedAt(prof.joined_at);
           const col = prof.college || prof.university;
           if (col && col.trim()) setDisplayCollege(col.trim());
+          if (foundCover) setCoverImage(foundCover);
         }
 
-        // If college/university or joined_at is still missing, fallback to profiles table
-        if ((!prof?.college && !prof?.university) || !prof?.joined_at) {
+        // If college/university or joined_at or cover_image is still missing, check profiles table
+        if ((!prof?.college && !prof?.university) || !prof?.joined_at || !foundCover) {
           const { data: fullP } = await supabase
             .from('profiles')
-            .select('created_at, college, university, username')
+            .select('created_at, college, university, username, cover_image')
             .eq('id', profile.uploaderId)
             .maybeSingle();
           if (fullP && isMounted) {
@@ -121,6 +130,9 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
             if (fullP.username && !displayUsername) setDisplayUsername(fullP.username);
             const col = fullP.college || fullP.university;
             if (col && col.trim()) setDisplayCollege(col.trim());
+            if ((fullP as any).cover_image) {
+              setCoverImage((fullP as any).cover_image);
+            }
           }
         }
       } catch (err) {
@@ -287,9 +299,23 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
           >
             {/* ── Banner / Top Cover ── */}
             <div className="relative h-28 w-full bg-gradient-to-br from-primary/25 via-primary/10 to-indigo-500/15 overflow-hidden shrink-0 border-b border-card-border/40">
-              {/* Subtle decorative glow */}
-              <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
-              <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-500/15 blur-xl pointer-events-none" />
+              {coverImage ? (
+                <>
+                  <img
+                    src={coverImage}
+                    alt="Profile Banner"
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                  />
+                  {/* Gradient overlay for top button contrast and smooth transition */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/20" />
+                </>
+              ) : (
+                <>
+                  {/* Subtle decorative glow */}
+                  <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
+                  <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-500/15 blur-xl pointer-events-none" />
+                </>
+              )}
 
               {/* Tag / Profile Indicator */}
               <div className="absolute top-3.5 left-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface/80 border border-card-border/50 backdrop-blur-md text-[11px] font-medium text-on-surface-variant shadow-2xs">

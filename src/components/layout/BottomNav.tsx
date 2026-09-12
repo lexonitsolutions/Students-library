@@ -55,9 +55,9 @@ export function BottomNav() {
           end={item.to === '/'}
           className={({ isActive }) =>
             cn(
-              'group relative flex h-11 w-11 flex-col items-center justify-center rounded-xl transition-all duration-150 cursor-pointer select-none',
+              'group relative flex h-12 w-12 flex-col items-center justify-center rounded-xl transition-all duration-200 cursor-pointer select-none',
               isActive
-                ? 'bg-primary/10 text-primary font-bold shadow-xs'
+                ? 'text-primary font-bold'
                 : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container',
             )
           }
@@ -66,8 +66,8 @@ export function BottomNav() {
             <>
               {isActive && (
                 <motion.div
-                  layoutId="apple-liquid-active-pill"
-                  className="absolute inset-0 rounded-full apple-liquid-pill-active"
+                  layoutId="bottomNavActivePill"
+                  className="absolute inset-0 rounded-xl bg-gradient-to-b from-primary/20 to-primary/8 dark:from-primary/30 dark:to-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
                   transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                 />
               )}
@@ -78,16 +78,21 @@ export function BottomNav() {
                     src={user?.avatar}
                     size={20}
                     className={cn(
-                      'relative z-10 transition-transform duration-200 group-hover:scale-110 ring-1',
-                      isActive ? 'ring-primary scale-105' : 'ring-card-border',
+                      'relative z-10 transition-all duration-200 group-hover:scale-110 ring-1.5',
+                      isActive
+                        ? 'ring-primary scale-105 shadow-[0_0_6px_2px] shadow-primary/30'
+                        : 'ring-card-border',
                     )}
                   />
                 ) : (
                   <item.icon
                     size={20}
+                    strokeWidth={isActive ? 2.2 : 1.8}
                     className={cn(
-                      'relative z-10 transition-transform duration-200 group-hover:scale-110',
-                      isActive && 'scale-105',
+                      'relative z-10 transition-all duration-200 group-hover:scale-110',
+                      isActive
+                        ? 'scale-110 drop-shadow-[0_0_4px_rgba(99,102,241,0.6)]'
+                        : '',
                     )}
                   />
                 )}
@@ -98,7 +103,10 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className="relative z-10 mt-0.5 text-[10px] font-medium leading-tight">
+              <span className={cn(
+                'relative z-10 mt-0.5 text-[10px] leading-tight transition-all duration-200',
+                isActive ? 'font-bold' : 'font-medium',
+              )}>
                 {item.label}
               </span>
             </>

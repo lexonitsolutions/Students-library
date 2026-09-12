@@ -24,8 +24,8 @@ export function Select({ label, options, placeholder, id, className, ...props }:
           id={selectId}
           defaultValue={props.value === undefined ? '' : undefined}
           className={cn(
-            'h-11 w-full appearance-none rounded-xl bg-surface-container-lowest border border-card-border/90 px-3.5 pr-10 text-sm font-medium text-on-surface shadow-2xs',
-            'transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-pointer',
+            'h-10 w-full appearance-none rounded-lg bg-surface-container-lowest border border-card-border px-3 pr-9 text-sm text-on-surface shadow-2xs',
+            'transition-colors duration-150 focus:border-primary focus:ring-1 focus:ring-primary/25 focus:outline-none cursor-pointer',
             className,
           )}
           {...props}
@@ -42,8 +42,8 @@ export function Select({ label, options, placeholder, id, className, ...props }:
           ))}
         </select>
         <ChevronDown
-          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant"
-          size={16}
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70"
+          size={15}
         />
       </div>
     </div>

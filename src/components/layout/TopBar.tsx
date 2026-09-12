@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, BookMarked, History, Moon, Settings, Sun, User } from 'lucide-react';
+import { Bell, History, Moon, Settings, Sun, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,6 +9,7 @@ import { useIsDesktop } from '../../hooks/useMediaQuery';
 import type { AppNotification } from '../../data/types';
 import * as notificationsService from '../../services/notificationsService';
 import { Avatar } from '../ui/Avatar';
+import { Logo } from '../ui/Logo';
 import { IconButton } from '../ui/IconButton';
 import { NotificationList } from './NotificationList';
 import { GlobalSearch } from './GlobalSearch';
@@ -77,16 +78,10 @@ export function TopBar() {
     <header className="sticky top-0 z-30 shrink-0 flex h-16 items-center gap-4 border-b border-card-border bg-surface-container-low px-4 sm:px-6 lg:px-4 shadow-xs">
       {/* Brand & Logo on Left */}
       <div
-        className="flex items-center gap-3 w-56 shrink-0 cursor-pointer select-none"
+        className="flex items-center w-56 shrink-0 cursor-pointer select-none"
         onClick={() => navigate('/')}
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white font-bold shadow-xs">
-          <BookMarked size={20} />
-        </div>
-        <div>
-          <p className="text-body-md font-bold tracking-tight text-on-surface">QuickLearnit</p>
-          <p className="text-[11px] font-medium text-on-surface-variant">Student Learning Platform</p>
-        </div>
+        <Logo height={32} />
       </div>
 
       {/* ── Centered Global Search ── */}

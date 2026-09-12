@@ -145,3 +145,34 @@ export interface MessageRow {
   created_at: string;
   read_at: string | null;
 }
+
+export type QueryStatus = 'Pending' | 'Opened' | 'Resolved';
+
+export interface StudentQueryRow {
+  id: string;
+  student_id: string;
+  student_name: string;
+  student_email: string | null;
+  student_phone?: string | null;
+  category: string;
+  subject: string;
+  description: string;
+  status: QueryStatus;
+  assigned_admin_id: string | null;
+  assigned_at: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QueryMessageRow {
+  id: string;
+  query_id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_role: 'student' | 'admin';
+  message: string;
+  created_at: string;
+}
+
