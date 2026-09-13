@@ -1,20 +1,18 @@
-import type { Session } from '@supabase/supabase-js';
+import { useAuth as useClerkAuth, useUser, useClerk } from '@clerk/react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import * as authService from '../services/authService';
 import * as profileService from '../services/profileService';
+import * as authService from '../services/authService';
 import type { User } from '../data/types';
 import type { ProfileRow, ProfileStatsRow } from '../types/database.types';
-
 import { generateQuickId } from '../lib/idUtils';
 
-function toUser(profile: ProfileRow, stats: ProfileStatsRow | null, session?: Session | null): User {
-  const localCover = typeof window !== 'undefined' ? localStorage.getItem(`quicklearnit.cover_${profile.id}`) : null;
-  const googleAvatar =
-    (session?.user?.user_metadata?.avatar_url as string) ||
-    (session?.user?.user_metadata?.picture as string) ||
-    null;
-  const resolvedAvatar = profile.avatar_url || googleAvatar || `https://i.pravatar.cc/160?u=${profile.id}`;
+function toUser(profile: ProfileRow, stats: ProfileStatsRow | null): User {
+  const localCover =
+    typeof window !== 'undefined'
+      ? localStorage.getItem(`quicklearnit.cover_${profile.id}`)
+      : null;
+  const resolvedAvatar =
+    profile.avatar_url || `https://i.pravatar.cc/160?u=${profile.id}`;
 
   return {
     id: profile.id,
@@ -42,20 +40,10 @@ function toUser(profile: ProfileRow, stats: ProfileStatsRow | null, session?: Se
 
 interface AuthContextValue {
   readonly user: User | null;
-  readonly session: Session | null;
   readonly isAuthenticated: boolean;
   readonly isExploring: boolean;
   readonly hasOnboarded: boolean;
   readonly loading: boolean;
-  readonly signUp: (
-    params: authService.SignUpParams,
-  ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
-  readonly signIn: (params: authService.SignInParams) => Promise<{ error: string | null }>;
-  readonly signInWithGoogle: (redirectTo?: string) => Promise<{ error: string | null }>;
-  readonly resendSignupOtp: (email: string) => Promise<{ error: string | null }>;
-  readonly verifySignupOtp: (email: string, token: string) => Promise<{ error: string | null }>;
-  readonly sendMobileOtp: (phone: string) => Promise<{ error: string | null }>;
-  readonly verifyMobileOtp: (phone: string, token: string) => Promise<{ error: string | null }>;
   readonly signOut: () => Promise<void>;
   readonly checkAccountStatus: (email: string) => Promise<authService.AccountStatus>;
   readonly completeOnboarding: () => void;
@@ -63,7 +51,7 @@ interface AuthContextValue {
   readonly stopExploring: () => void;
   readonly updateUser: (fields: Partial<User>) => Promise<void>;
   readonly refreshUser: () => Promise<void>;
-  readonly deleteAccount: (password: string) => Promise<{ error: string | null }>;
+  readonly deleteAccount: () => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -88,22 +76,27 @@ function toUserUpdate(fields: Partial<User>) {
   };
 }
 
-function isSessionVerified(session: Session | null): boolean {
-  if (!session) return false;
-  if (session.user.app_metadata?.provider && session.user.app_metadata.provider !== 'email') {
-    return true;
-  }
-  return Boolean(session.user.email_confirmed_at);
-}
-
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [session, setSession] = useState<Session | null>(null);
+  // Clerk auth state
+  const { isLoaded, isSignedIn, userId } = useClerkAuth();
+  const { user: clerkUser } = useUser();
+  const clerk = useClerk();
+
+  const isClerkSignedIn = !!(isSignedIn || clerk.session || clerk.user);
+  const activeUserId = userId || clerk.session?.user?.id || clerk.user?.id || null;
+  const activeClerkUser = clerkUser || clerk.user || (clerk.session?.user as any) || null;
+
+  // Supabase profile state
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [stats, setStats] = useState<ProfileStatsRow | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [hasOnboarded, setHasOnboarded] = useState(() => localStorage.getItem(ONBOARDED_KEY) === 'true');
 
-  const [isExploring, setIsExploring] = useState(() => localStorage.getItem(EXPLORING_KEY) === 'true');
+  // Guest / explore mode state
+  const [hasOnboarded, setHasOnboarded] = useState(
+    () => localStorage.getItem(ONBOARDED_KEY) === 'true',
+  );
+  const [isExploring, setIsExploring] = useState(
+    () => localStorage.getItem(EXPLORING_KEY) === 'true',
+  );
   const [guestUser, setGuestUser] = useState<User | null>(() => {
     try {
       const raw = localStorage.getItem(GUEST_USER_KEY);
@@ -113,19 +106,6 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     }
   });
 
-  const loadProfile = useCallback(async (userId: string) => {
-    try {
-      const [profileRow, statsRow] = await Promise.all([
-        profileService.getProfile(userId),
-        profileService.getProfileStats(userId).catch(() => null),
-      ]);
-      setProfile(profileRow);
-      setStats(statsRow);
-    } catch (err) {
-      console.warn('Failed to load user profile:', err);
-    }
-  }, []);
-
   const stopExploring = useCallback(() => {
     localStorage.removeItem(EXPLORING_KEY);
     localStorage.removeItem(GUEST_USER_KEY);
@@ -133,152 +113,50 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setGuestUser(null);
   }, []);
 
+  const loadProfile = useCallback(async (uid: string) => {
+    try {
+      const activeUser = clerkUser || clerk.user || (clerk.session?.user as any);
+      const userEmail =
+        activeUser?.primaryEmailAddress?.emailAddress ||
+        activeUser?.emailAddresses?.[0]?.emailAddress ||
+        null;
+
+      const fallback = {
+        name:
+          activeUser?.fullName ||
+          activeUser?.firstName ||
+          userEmail?.split('@')[0] ||
+          'User',
+        email: userEmail,
+        phone: activeUser?.primaryPhoneNumber?.phoneNumber ?? null,
+        avatar_url: activeUser?.imageUrl || null,
+      };
+      const profileRow = await profileService.getProfile(uid, fallback);
+      const statsRow = await profileService.getProfileStats(profileRow.id).catch(() => null);
+      setProfile(profileRow);
+      setStats(statsRow);
+    } catch (err) {
+      console.warn('Failed to load user profile:', err);
+    }
+  }, [clerkUser, clerk]);
+
+  // Load/clear profile when Clerk auth state changes
   useEffect(() => {
-    let active = true;
+    if (!isLoaded) return;
 
-    async function initSession() {
-      try {
-        const searchParams = new URLSearchParams(window.location.search);
-        const code = searchParams.get('code');
-
-        if (code) {
-          const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (!exchangeError && exchangeData?.session && active) {
-            const sess = exchangeData.session;
-            setSession(sess);
-            localStorage.setItem(ONBOARDED_KEY, 'true');
-            setHasOnboarded(true);
-            stopExploring();
-            await loadProfile(sess.user.id);
-            const fromGoogle = searchParams.get('from_google');
-            const cleanUrl = window.location.origin + window.location.pathname + (fromGoogle ? '?from_google=true' : '');
-            window.history.replaceState({}, document.title, cleanUrl);
-            if (active) setLoading(false);
-            return;
-          }
-        }
-
-        const { data } = await supabase.auth.getSession();
-        if (!active) return;
-        const currentSession = data.session;
-        if (currentSession && isSessionVerified(currentSession)) {
-          setSession(currentSession);
-          await loadProfile(currentSession.user.id);
-          if (active) setLoading(false);
-        } else {
-          if (currentSession && !isSessionVerified(currentSession)) {
-            supabase.auth.signOut().catch(() => {});
-          }
-          setSession(null);
-          setProfile(null);
-          if (active) setLoading(false);
-        }
-      } catch (err) {
-        console.warn('Session init error:', err);
-        if (active) setLoading(false);
-      }
-    }
-
-    initSession();
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (nextSession && isSessionVerified(nextSession)) {
-        setSession(nextSession);
-        stopExploring();
-        setLoading(true);
-        loadProfile(nextSession.user.id).finally(() => setLoading(false));
-      } else {
-        if (nextSession && !isSessionVerified(nextSession)) {
-          supabase.auth.signOut().catch(() => {});
-        }
-        setSession(null);
-        setProfile(null);
-        setStats(null);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      active = false;
-      subscription.subscription.unsubscribe();
-    };
-  }, [loadProfile, stopExploring]);
-
-  const signUp = useCallback(async (params: authService.SignUpParams) => {
-    const { error } = await authService.signUpWithPassword(params);
-    if (!error) {
+    if (isClerkSignedIn && activeUserId) {
       stopExploring();
-    }
-    return { error: error?.message ?? null, needsEmailConfirmation: true };
-  }, [stopExploring]);
-
-  const signIn = useCallback(async (params: authService.SignInParams) => {
-    const { data, error } = await authService.signInWithPassword(params);
-    if (!error) {
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
-      stopExploring();
-      if (data?.session && isSessionVerified(data.session)) {
-        setSession(data.session);
-        setLoading(true);
-        await loadProfile(data.session.user.id);
-        setLoading(false);
-      }
+      loadProfile(activeUserId);
+    } else if (!isClerkSignedIn) {
+      setProfile(null);
+      setStats(null);
     }
-    return { error: error?.message ?? null };
-  }, [stopExploring, loadProfile]);
+  }, [isLoaded, isClerkSignedIn, activeUserId, activeClerkUser, loadProfile, stopExploring]);
 
-  const signInWithGoogle = useCallback(async (redirectTo?: string) => {
-    const { error } = await authService.signInWithGoogle(redirectTo);
-    if (!error) {
-      localStorage.setItem(ONBOARDED_KEY, 'true');
-      setHasOnboarded(true);
-      stopExploring();
-    }
-    return { error: error?.message ?? null };
-  }, [stopExploring]);
-
-  const resendSignupOtp = useCallback(async (email: string) => {
-    const { error } = await authService.resendSignupOtp(email);
-    return { error: error?.message ?? null };
-  }, []);
-
-  const verifySignupOtp = useCallback(async (email: string, token: string) => {
-    const { data, error } = await authService.verifySignupOtp(email, token);
-    if (!error) {
-      localStorage.setItem(ONBOARDED_KEY, 'true');
-      setHasOnboarded(true);
-      stopExploring();
-      if (data?.session && isSessionVerified(data.session)) {
-        setSession(data.session);
-        setLoading(true);
-        await loadProfile(data.session.user.id);
-        setLoading(false);
-      }
-    }
-    return { error: error?.message ?? null };
-  }, [stopExploring, loadProfile]);
-
-  const sendMobileOtp = useCallback(async (phone: string) => {
-    const { error } = await authService.sendMobileOtp(phone);
-    return { error: error?.message ?? null };
-  }, []);
-
-  const verifyMobileOtp = useCallback(async (phone: string, token: string) => {
-    const { data, error } = await authService.verifyMobileOtp(phone, token);
-    if (!error) {
-      localStorage.setItem(ONBOARDED_KEY, 'true');
-      setHasOnboarded(true);
-      stopExploring();
-      if (data?.session && isSessionVerified(data.session)) {
-        setSession(data.session);
-        setLoading(true);
-        await loadProfile(data.session.user.id);
-        setLoading(false);
-      }
-    }
-    return { error: error?.message ?? null };
-  }, [stopExploring, loadProfile]);
+  // Overall loading state: only wait for Clerk SDK initialization
+  const loading = !isLoaded;
 
   const signOut = useCallback(async () => {
     localStorage.removeItem(ONBOARDED_KEY);
@@ -288,10 +166,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setIsExploring(false);
     setGuestUser(null);
     sessionStorage.removeItem(WORKSPACE_KEY);
-    await authService.signOut().catch(() => {});
-  }, []);
+    setProfile(null);
+    setStats(null);
+    await clerk.signOut();
+    window.location.href = '/signin';
+  }, [clerk]);
 
-  const checkAccountStatus = useCallback((email: string) => authService.checkAccountStatus(email), []);
+  const checkAccountStatus = useCallback(
+    (email: string) => authService.checkAccountStatus(email),
+    [],
+  );
 
   const completeOnboarding = useCallback(() => {
     localStorage.setItem(ONBOARDED_KEY, 'true');
@@ -309,11 +193,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       major: 'Guest Access',
       college: 'Studexa',
       role: 'student',
-      stats: {
-        uploads: 0,
-        downloads: 0,
-        saved: 0,
-      },
+      stats: { uploads: 0, downloads: 0, saved: 0 },
     };
     localStorage.setItem(EXPLORING_KEY, 'true');
     localStorage.setItem(GUEST_USER_KEY, JSON.stringify(guest));
@@ -325,7 +205,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const updateUser = useCallback(
     async (fields: Partial<User>) => {
-      const activeId = session?.user?.id ?? guestUser?.id ?? 'guest';
+      const activeId = profile?.id ?? guestUser?.id ?? 'guest';
+
       if (fields.coverImage !== undefined && typeof window !== 'undefined') {
         if (fields.coverImage) {
           localStorage.setItem(`quicklearnit.cover_${activeId}`, fields.coverImage);
@@ -334,12 +215,13 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         }
       }
 
-      if (!session) {
+      if (!profile) {
         if (guestUser) {
           const updatedGuest: User = {
             ...guestUser,
             ...fields,
-            coverImage: fields.coverImage !== undefined ? fields.coverImage : guestUser.coverImage,
+            coverImage:
+              fields.coverImage !== undefined ? fields.coverImage : guestUser.coverImage,
           };
           setGuestUser(updatedGuest);
           localStorage.setItem(GUEST_USER_KEY, JSON.stringify(updatedGuest));
@@ -347,69 +229,77 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         return;
       }
 
-      const updated = await profileService.updateProfile(session.user.id, toUserUpdate(fields));
+      const updated = await profileService.updateProfile(profile.id, toUserUpdate(fields));
       setProfile(updated);
     },
-    [session, guestUser],
+    [profile, guestUser],
   );
 
   const refreshUser = useCallback(async () => {
-    if (!session) return;
-    await loadProfile(session.user.id);
-  }, [session, loadProfile]);
+    if (!userId) return;
+    await loadProfile(userId);
+  }, [userId, loadProfile]);
 
-  const deleteAccount = useCallback(
-    async (password: string) => {
-      if (!session?.user.email) return { error: 'Not signed in.' };
-
-      if (password) {
-        const { error: verifyError } = await authService.signInWithPassword({
-          email: session.user.email,
-          password,
-        });
-        if (verifyError) return { error: 'Incorrect password.' };
-      }
-
-      const { error: deleteError } = await authService.deleteOwnAccount();
-      if (deleteError) return { error: deleteError.message };
-
-      await authService.signOut();
-      return { error: null };
-    },
-    [session],
-  );
-
-  const user = useMemo<User | null>(
-    () => {
+  const deleteAccount = useCallback(async () => {
+    if (!clerkUser) return { error: 'Not signed in.' };
+    try {
       if (profile) {
-        return toUser(profile, stats, session);
+        await authService.deleteOwnAccount(profile.id);
       }
-      if (guestUser && isExploring) {
-        return {
-          ...guestUser,
-          quickId: undefined,
-        };
-      }
-      return null;
-    },
-    [guestUser, isExploring, profile, stats, session],
-  );
+      await clerkUser.delete();
+      return { error: null };
+    } catch (err: any) {
+      return { error: err?.message || 'Failed to delete account.' };
+    }
+  }, [clerkUser, profile]);
+
+  const user = useMemo<User | null>(() => {
+    if (profile) {
+      return toUser(profile, stats);
+    }
+    if (activeClerkUser) {
+      const fallbackId = activeUserId || 'user';
+      const userEmail =
+        activeClerkUser.primaryEmailAddress?.emailAddress ??
+        activeClerkUser.emailAddresses?.[0]?.emailAddress ??
+        '';
+      const isAdmin =
+        userEmail === 'hr@lexonit.com' ||
+        userEmail === 'shaikjafarsadhik2521@gmail.com';
+      return {
+        id: fallbackId,
+        quickId: generateQuickId(fallbackId),
+        name:
+          activeClerkUser.fullName ||
+          activeClerkUser.firstName ||
+          userEmail.split('@')[0] ||
+          'User',
+        username: activeClerkUser.username ?? undefined,
+        email: userEmail,
+        avatar:
+          activeClerkUser.imageUrl || `https://i.pravatar.cc/160?u=${fallbackId}`,
+        university: '',
+        major: '',
+        role: isAdmin ? 'admin' : 'student',
+        stats: { uploads: 0, downloads: 0, saved: 0 },
+      };
+    }
+    if (guestUser && isExploring) {
+      return { ...guestUser, quickId: undefined };
+    }
+    return null;
+  }, [profile, stats, activeClerkUser, activeUserId, guestUser, isExploring]);
+
+  const isAuthenticated =
+    isClerkSignedIn || (guestUser !== null && isExploring);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      session,
-      isAuthenticated: (isSessionVerified(session) && profile !== null) || (guestUser !== null && isExploring),
+      isAuthenticated,
       isExploring,
       hasOnboarded,
       loading,
-      signUp,
-      signIn,
-      signInWithGoogle,
-      resendSignupOtp,
-      verifySignupOtp,
-      sendMobileOtp,
-      verifyMobileOtp,
       signOut,
       checkAccountStatus,
       completeOnboarding,
@@ -421,18 +311,10 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     }),
     [
       user,
-      session,
-      guestUser,
+      isAuthenticated,
       isExploring,
       hasOnboarded,
       loading,
-      signUp,
-      signIn,
-      signInWithGoogle,
-      resendSignupOtp,
-      verifySignupOtp,
-      sendMobileOtp,
-      verifyMobileOtp,
       signOut,
       checkAccountStatus,
       completeOnboarding,

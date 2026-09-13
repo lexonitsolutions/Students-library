@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, KeyRound, AlertTriangle, CheckCircle2, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { useUser } from '@clerk/react';
 import { useAuth } from '../../hooks/useAuth';
-import * as authService from '../../services/authService';
 
 interface ModifyPasswordModalProps {
   readonly open: boolean;
@@ -15,17 +15,14 @@ interface ModifyPasswordModalProps {
 
 export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<ModifyPasswordModalProps>) {
   const navigate = useNavigate();
-  const { user, session } = useAuth();
+  const { user: clerkUser } = useUser();
+  const { user } = useAuth();
 
-  const userProviders = session?.user?.app_metadata?.providers || [];
-  const userIdentities = session?.user?.identities || [];
-  const primaryProvider = session?.user?.app_metadata?.provider;
-
-  const isGoogleLinked = primaryProvider === 'google' || userProviders.includes('google');
-  const hasExistingPassword =
-    userProviders.includes('email') ||
-    userIdentities.some((id: any) => id.provider === 'email') ||
-    primaryProvider === 'email';
+  // Detect if user has a password or is Google-only
+  const hasExistingPassword = clerkUser?.passwordEnabled ?? false;
+  const isGoogleLinked = clerkUser?.externalAccounts?.some(
+    (a) => a.provider === 'google',
+  ) ?? false;
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
@@ -45,7 +42,7 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
   // Shake animation trigger
   const [shakeKey, setShakeKey] = useState(0);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setStep(hasExistingPassword ? 1 : 2);
     setCurrentPassword('');
     setShowCurrentPassword(false);
@@ -56,19 +53,20 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
     setShowNewPassword(false);
     setIsUpdating(false);
     setNewPasswordError('');
-  };
+  }, [hasExistingPassword]);
 
   useEffect(() => {
     if (open) {
       resetForm();
     }
-  }, [open]);
+  }, [open, resetForm]);
 
   const handleClose = () => {
     resetForm();
     onClose();
   };
 
+  // Step 1: Verify current password by attempting update with it
   const handleVerifyCurrentPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword.trim()) {
@@ -81,15 +79,10 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
     setCurrentPasswordError('');
 
     try {
-      const email = session?.user?.email || user?.email;
-      const { error } = await authService.verifyCurrentPassword(currentPassword, email);
-      if (error) {
-        setCurrentPasswordError(error.message || 'Incorrect current password. Please try again.');
-        setShakeKey((k) => k + 1);
-        return;
-      }
-
-      // Current password is correct! Proceed to Step 2
+      // Verify by attempting a dummy update — if currentPassword is wrong, Clerk will throw
+      // We just check it's correct before proceeding to step 2
+      if (!clerkUser) throw new Error('Not signed in');
+      // Clerk doesn't have a "verify password only" API — we validate at step 2
       setStep(2);
     } catch (err: any) {
       setCurrentPasswordError(err?.message || 'Failed to verify password. Please try again.');
@@ -107,19 +100,16 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
       setShakeKey((k) => k + 1);
       return;
     }
-
-    if (newPassword.length < 6) {
-      setNewPasswordError('New password must be at least 6 characters long.');
+    if (newPassword.length < 8) {
+      setNewPasswordError('New password must be at least 8 characters long.');
       setShakeKey((k) => k + 1);
       return;
     }
-
     if (hasExistingPassword && currentPassword && newPassword === currentPassword) {
       setNewPasswordError('New password must be different from your current password.');
       setShakeKey((k) => k + 1);
       return;
     }
-
     if (newPassword !== confirmPassword) {
       setNewPasswordError('Passwords do not match. Please retype carefully.');
       setShakeKey((k) => k + 1);
@@ -130,15 +120,15 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
     setNewPasswordError('');
 
     try {
-      const { error } = await authService.updatePassword(newPassword);
-      if (error) {
-        setNewPasswordError(error.message || 'Failed to update password. Please try again.');
-        setShakeKey((k) => k + 1);
-        return;
-      }
+      if (!clerkUser) throw new Error('Not signed in');
 
-      const userEmail = session?.user?.email || user?.email || '';
+      await clerkUser.updatePassword({
+        newPassword,
+        ...(hasExistingPassword && currentPassword ? { currentPassword } : {}),
+        signOutOfOtherSessions: false,
+      });
 
+      const userEmail = user?.email || '';
       if (onSuccess) onSuccess();
 
       sessionStorage.setItem('studexa_password_changed', 'true');
@@ -146,10 +136,7 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
         sessionStorage.setItem('studexa_prefill_email', userEmail);
       }
 
-      // Sign out and redirect directly to sign in page
-      await authService.signOut();
       handleClose();
-
       navigate('/signin', {
         replace: true,
         state: {
@@ -158,7 +145,18 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
         },
       });
     } catch (err: any) {
-      setNewPasswordError(err?.message || 'An unexpected error occurred while updating your password.');
+      const msg: string =
+        err?.errors?.[0]?.longMessage ||
+        err?.errors?.[0]?.message ||
+        err?.message ||
+        'An unexpected error occurred while updating your password.';
+
+      if (msg.toLowerCase().includes('incorrect') || msg.toLowerCase().includes('current')) {
+        setCurrentPasswordError(msg);
+        setStep(1);
+      } else {
+        setNewPasswordError(msg);
+      }
       setShakeKey((k) => k + 1);
     } finally {
       setIsUpdating(false);
@@ -253,7 +251,7 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
                     </motion.p>
                     {isGoogleLinked && (
                       <p className="text-[11px] text-on-surface-variant">
-                        Signed in via Google? If you haven't created a Studexa password yet,{' '}
+                        Signed in via Google? If you haven&apos;t created a Studexa password yet,{' '}
                         <button
                           type="button"
                           onClick={() => {
@@ -320,10 +318,10 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
                       setNewPassword(e.target.value);
                       if (newPasswordError) setNewPasswordError('');
                     }}
-                    placeholder="Enter at least 6 characters"
+                    placeholder="Enter at least 8 characters"
                     autoFocus
                     required
-                    minLength={6}
+                    minLength={8}
                     className="h-10 w-full rounded-lg bg-surface-container-lowest border border-card-border px-3 pr-10 text-sm text-on-surface placeholder:text-on-surface-variant/40 shadow-2xs transition-colors focus:border-primary focus:ring-1 focus:ring-primary/25 focus:outline-none"
                   />
                   <button
@@ -354,7 +352,7 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
                     }}
                     placeholder="Confirm your new password"
                     required
-                    minLength={6}
+                    minLength={8}
                     className="h-10 w-full rounded-lg bg-surface-container-lowest border border-card-border px-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 shadow-2xs transition-colors focus:border-primary focus:ring-1 focus:ring-primary/25 focus:outline-none"
                   />
                 </motion.div>

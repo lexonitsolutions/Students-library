@@ -2,6 +2,8 @@ import { ArrowRight, Eye, EyeOff, BookOpen, CheckCircle2, Lock, Mail, Award, Spa
 import { type FormEvent, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useSignIn } from '@clerk/react/legacy';
+import { useAuth as useClerkAuth, useClerk } from '@clerk/react';
 
 import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../hooks/useWorkspace';
@@ -11,6 +13,21 @@ import { Logo } from '../components/ui/Logo';
 
 export function SignInPage() {
   const location = useLocation();
+  const { stopExploring } = useAuth();
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const { isSignedIn } = useClerkAuth();
+  const clerk = useClerk();
+  const { chooseWorkspace } = useWorkspace();
+  const { getAndClearRedirectPath } = useSignupRedirect();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isSignedIn || clerk.session) {
+      chooseWorkspace('student');
+      window.location.href = '/dashboard';
+    }
+  }, [isSignedIn, clerk.session, chooseWorkspace]);
+
   const emailFromStorage = sessionStorage.getItem('studexa_prefill_email');
   const wasPasswordChanged = sessionStorage.getItem('studexa_password_changed') === 'true';
 
@@ -35,69 +52,92 @@ export function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [noAccountEmail, setNoAccountEmail] = useState<string | null>(null);
-  const { signIn, signInWithGoogle, checkAccountStatus } = useAuth();
-  const { chooseWorkspace } = useWorkspace();
-  const { getAndClearRedirectPath } = useSignupRedirect();
-  const navigate = useNavigate();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+
+    if (!isLoaded || !signIn || !setActive) {
+      setError('Connecting to authentication service... please wait a moment.');
+      return;
+    }
+
     setIsSubmitting(true);
+    stopExploring();
 
     const emailVal = email.trim();
     const passwordVal = password;
 
-    let userIsAdmin = false;
     try {
-      const status = await checkAccountStatus(emailVal);
-      if (status.isAdmin) {
-        userIsAdmin = true;
-      } else if (!status.hasAccount && !status.isUnconfirmed) {
-        setIsSubmitting(false);
-        setNoAccountEmail(emailVal);
+      console.log('[SignIn] Attempting sign-in for:', emailVal);
+      const result = await signIn.create({
+        identifier: emailVal,
+        password: passwordVal,
+      });
+      console.log('[SignIn] Result status:', result?.status);
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        chooseWorkspace('student');
+        const redirectPath = getAndClearRedirectPath();
+        window.location.href = redirectPath || '/dashboard';
         return;
       }
-    } catch {
-      // If status check fails, proceed with normal sign-in
-    }
 
-    const { error: signInError } = await signIn({ email: emailVal, password: passwordVal });
-    setIsSubmitting(false);
-
-    if (signInError) {
-      if (signInError.toLowerCase().includes('pending')) {
-        navigate('/verify-otp', {
-          state: {
-            target: emailVal,
-            type: 'email',
-          },
+      if (result.status === 'needs_first_factor') {
+        console.log('[SignIn] Needs first factor, submitting password...');
+        const factorResult = await result.attemptFirstFactor({
+          strategy: 'password',
+          password: passwordVal,
         });
-      } else {
-        setError(signInError);
+        console.log('[SignIn] Factor result status:', factorResult?.status);
+        if (factorResult.status === 'complete') {
+          await setActive({ session: factorResult.createdSessionId });
+          chooseWorkspace('student');
+          const redirectPath = getAndClearRedirectPath();
+          window.location.href = redirectPath || '/dashboard';
+          return;
+        }
       }
-    } else {
-      chooseWorkspace(userIsAdmin ? 'admin' : 'student');
-      const redirectPath = getAndClearRedirectPath();
-      if (redirectPath && !userIsAdmin) {
-        navigate(redirectPath);
-      } else {
-        navigate(userIsAdmin ? '/admin' : '/dashboard');
+
+      setError('Sign in could not be completed. Please try again.');
+    } catch (err: any) {
+      console.error('[SignIn] Sign in error:', err);
+      const msg: string =
+        err?.errors?.[0]?.longMessage ||
+        err?.errors?.[0]?.message ||
+        err?.message ||
+        'Sign in failed. Please check your credentials.';
+
+      if (msg.toLowerCase().includes('already signed in') || msg.toLowerCase().includes('already active')) {
+        chooseWorkspace('student');
+        window.location.href = '/dashboard';
+        return;
       }
+
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isLoaded || !signIn) return;
     try {
       setIsGoogleLoading(true);
       setError(null);
-      const { error: googleError } = await signInWithGoogle();
-      if (googleError) {
-        setError(googleError);
-        setIsGoogleLoading(false);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google sign-in failed');
+      await signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: `${window.location.origin}/sso-callback`,
+        redirectUrlComplete: '/dashboard',
+      });
+    } catch (err: any) {
+      const msg: string =
+        err?.errors?.[0]?.longMessage ||
+        err?.errors?.[0]?.message ||
+        err?.message ||
+        'Google sign-in failed';
+      setError(msg);
       setIsGoogleLoading(false);
     }
   };
@@ -147,7 +187,7 @@ export function SignInPage() {
                   <BookOpen size={20} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-on-surface">Algorithms & Data Structures</h4>
+                  <h4 className="text-sm font-semibold text-on-surface">Algorithms &amp; Data Structures</h4>
                   <p className="text-xs text-on-surface-variant">CS301 • 42 Pages • Verified PDF</p>
                 </div>
               </div>
@@ -253,22 +293,10 @@ export function SignInPage() {
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
               ) : (
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                 </svg>
               )}
               <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
@@ -348,7 +376,7 @@ export function SignInPage() {
 
           {/* Footer link */}
           <p className="mt-6 text-center text-xs text-on-surface-variant">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link to="/signup" className="font-semibold text-primary hover:underline">
               Create an account
             </Link>
@@ -365,4 +393,3 @@ export function SignInPage() {
 }
 
 export default SignInPage;
-

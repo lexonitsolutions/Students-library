@@ -9,16 +9,13 @@ if (!supabaseUrl || !supabaseKey) {
   );
 }
 
-// No generic `Database` type is passed here: this project's hand-written
-// database.types.ts models Row/Insert/Update shapes for documentation and
-// service-layer return types, but doesn't attempt to match postgrest-js's
-// full query-builder generics (which expect CLI-generated types with exact
-// embedded-relationship metadata). Each function in src/services/ annotates
-// its own return type against those row interfaces instead.
+// Supabase is used exclusively for database and storage operations.
+// Authentication is handled by Clerk. Supabase auth session persistence
+// is disabled to avoid conflicts with Clerk's session management.
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
   },
 });

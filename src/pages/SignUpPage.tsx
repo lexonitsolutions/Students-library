@@ -1,42 +1,41 @@
-import { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight, BookOpen, CheckCircle2, User as UserIcon, Eye, EyeOff, Award, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Mail, Lock, ArrowRight, BookOpen, CheckCircle2, User as UserIcon, Eye, EyeOff, Award, Sparkles, LogOut } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useSignUp } from '@clerk/react/legacy';
+import { useClerk } from '@clerk/react';
 import { useAuth } from '../hooks/useAuth';
 import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { Logo } from '../components/ui/Logo';
-import { supabase } from '../lib/supabaseClient';
 
 export function SignUpPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signUp, signInWithGoogle, session, updateUser, signOut } = useAuth();
-  
-  const googleUser = session?.user?.app_metadata?.provider === 'google' ? session.user : null;
-  const googleName = (googleUser?.user_metadata?.full_name as string) || (googleUser?.user_metadata?.name as string) || '';
-  const googleEmail = googleUser?.email || '';
-  const googleAvatar = (googleUser?.user_metadata?.avatar_url as string) || (googleUser?.user_metadata?.picture as string) || '';
+  const { signUp, isLoaded } = useSignUp();
+  const { isAuthenticated, signOut } = useAuth();
+  const clerk = useClerk();
 
-  const [name, setName] = useState(googleName || '');
-  const [email, setEmail] = useState(googleEmail || location.state?.prefillEmail || '');
+  const isAlreadyLoggedIn = isAuthenticated || !!clerk.session;
+
+  const [name, setName] = useState(location.state?.prefillName || '');
+  const [email, setEmail] = useState(location.state?.prefillEmail || '');
   const [password, setPassword] = useState('');
-  
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  useEffect(() => {
-    if (googleUser) {
-      if (googleName) setName(googleName);
-      if (googleEmail) setEmail(googleEmail);
-    }
-  }, [googleUser, googleName, googleEmail]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLoaded || !signUp) return;
     setError(null);
+
+    // If user is already signed in to Clerk, prompt them to go to dashboard or sign out first
+    if (isAlreadyLoggedIn) {
+      setError("You're already signed in. Please go to your dashboard or sign out to create a new account.");
+      return;
+    }
 
     const emailTrimmed = email.trim();
     const nameTrimmed = name.trim();
@@ -45,96 +44,71 @@ export function SignUpPage() {
       setError('Please enter your name');
       return;
     }
-
     if (!emailTrimmed) {
       setError('Please enter your email address');
       return;
     }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
-
     if (!agreedToTerms) {
       setError('Please accept the Terms and Conditions to create your account');
       return;
     }
 
-    if (googleUser) {
-      setIsSubmitting(true);
-      try {
-        const { error: passwordError } = await supabase.auth.updateUser({ password });
-        if (passwordError) {
-          throw new Error(passwordError.message || 'Failed to set password. Please try again.');
-        }
-        await updateUser({
-          name: nameTrimmed,
-          ...(googleAvatar ? { avatar: googleAvatar } : {}),
-        });
-        localStorage.setItem('quicklearnit_google_signup_completed', 'true');
-        localStorage.setItem('quicklearnit_has_onboarded', 'true');
-        navigate('/dashboard', { replace: true });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to complete registration');
-      } finally {
-        setIsSubmitting(false);
-      }
-      return;
-    }
-
     setIsSubmitting(true);
-    const { error: signUpError } = await signUp({
-      email: emailTrimmed,
-      password,
-      name: nameTrimmed,
-    });
-    setIsSubmitting(false);
-
-    if (signUpError) {
-      if (signUpError.toLowerCase().includes('pending')) {
-        navigate('/verify-otp', {
-          state: {
-            target: emailTrimmed,
-            type: 'email',
-          },
-        });
-      } else {
-        setError(signUpError);
-      }
-    } else {
-      navigate('/verify-otp', {
-        state: {
-          target: emailTrimmed,
-          type: 'email',
-        },
+    try {
+      await signUp.create({
+        emailAddress: emailTrimmed,
+        password,
+        firstName: nameTrimmed,
       });
+
+      // Send email verification code
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+
+      navigate('/verify-otp', {
+        state: { target: emailTrimmed, type: 'email' },
+      });
+    } catch (err: any) {
+      const msg: string =
+        err?.errors?.[0]?.longMessage ||
+        err?.errors?.[0]?.message ||
+        err?.message ||
+        'Sign up failed. Please try again.';
+
+      if (msg.toLowerCase().includes('already signed in') || msg.toLowerCase().includes('already active')) {
+        setError("You're already signed in. Please go to your dashboard or sign out to create a new account.");
+      } else if (msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('taken')) {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleGoogleSignUp = async () => {
+    if (!isLoaded || !signUp) return;
     try {
       setIsGoogleLoading(true);
       setError(null);
-      const redirectUrl = `${window.location.origin}/signup?from_google=true`;
-      const { error: googleError } = await signInWithGoogle(redirectUrl);
-      if (googleError) {
-        setError(googleError);
-        setIsGoogleLoading(false);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google sign-up failed');
+      await signUp.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: `${window.location.origin}/sso-callback`,
+        redirectUrlComplete: '/dashboard',
+      });
+    } catch (err: any) {
+      const msg: string =
+        err?.errors?.[0]?.longMessage ||
+        err?.errors?.[0]?.message ||
+        err?.message ||
+        'Google sign-up failed';
+      setError(msg);
       setIsGoogleLoading(false);
     }
-  };
-
-  const handleDisconnectGoogle = async () => {
-    await signOut();
-    setName('');
-    setEmail('');
-    setPassword('');
-    localStorage.removeItem('quicklearnit_google_signup_completed');
-    navigate('/signup', { replace: true });
   };
 
   return (
@@ -182,7 +156,7 @@ export function SignUpPage() {
                   <BookOpen size={20} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-on-surface">Digital Electronics & Circuits</h4>
+                  <h4 className="text-sm font-semibold text-on-surface">Digital Electronics &amp; Circuits</h4>
                   <p className="text-xs text-on-surface-variant">EE204 • Solved Midterm • 28 Pages</p>
                 </div>
               </div>
@@ -240,81 +214,64 @@ export function SignUpPage() {
             <p className="mt-1 text-sm text-on-surface-variant">Join thousands of students sharing and discovering study materials.</p>
           </div>
 
-          {/* Error Display */}
-          {error && (
+          {/* Already Signed In or Error Display */}
+          {error && error.toLowerCase().includes('already signed in') ? (
+            <div className="mb-5 rounded-2xl bg-indigo-50 border border-indigo-200/80 p-4 text-xs shadow-xs">
+              <div className="flex items-center gap-2 text-indigo-900 font-bold mb-1.5">
+                <CheckCircle2 className="h-4 w-4 text-indigo-600 shrink-0" />
+                <span>You are already signed in</span>
+              </div>
+              <p className="text-slate-600 mb-3 leading-relaxed">
+                Your browser currently has an active session. You can proceed directly to your dashboard, or sign out first to create a different account.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = '/dashboard'; }}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white px-4 py-2.5 text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                >
+                  <span>Go to Dashboard</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await signOut();
+                    window.location.reload();
+                  }}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 px-4 py-2.5 text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          ) : error ? (
             <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-semibold text-red-600">
               {error}
             </div>
-          )}
+          ) : null}
 
-          {/* Social Sign-Up or Connected Google Account */}
+          {/* Google Sign-Up */}
           <div className="space-y-2.5">
-            {googleUser ? (
-              <div className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 shadow-xs">
-                <div className="flex items-center gap-3 min-w-0">
-                  {googleAvatar ? (
-                    <img
-                      src={googleAvatar}
-                      alt={googleName || 'Google Account'}
-                      className="h-10 w-10 rounded-full object-cover border-2 border-indigo-300 shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shrink-0">
-                      {(googleName || googleEmail || 'G').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0 text-left">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-on-surface truncate">
-                        {googleName || 'Google Account'}
-                      </span>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    </div>
-                    <p className="text-xs text-on-surface-variant truncate">{googleEmail}</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleDisconnectGoogle}
-                  className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline ml-2 shrink-0 cursor-pointer"
-                >
-                  Change
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleGoogleSignUp}
-                disabled={isGoogleLoading}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isGoogleLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
-                ) : (
-                  <svg className="h-4 w-4" viewBox="0 0 24 24">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                )}
-                <span>{isGoogleLoading ? 'Connecting to Google...' : 'Sign up with Google'}</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleGoogleSignUp}
+              disabled={isGoogleLoading}
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isGoogleLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+              )}
+              <span>{isGoogleLoading ? 'Connecting to Google...' : 'Sign up with Google'}</span>
+            </button>
           </div>
 
           {/* Divider */}
@@ -324,7 +281,7 @@ export function SignUpPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider">
-                {googleUser ? 'Complete your details' : 'or register with email'}
+                or register with email
               </span>
             </div>
           </div>
@@ -348,22 +305,14 @@ export function SignUpPage() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="email" className="block text-xs font-semibold text-on-surface text-left">
-                  Email Address
-                </label>
-                {googleUser && (
-                  <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Verified by Google
-                  </span>
-                )}
-              </div>
+              <label htmlFor="email" className="block text-xs font-semibold text-on-surface mb-1.5 text-left">
+                Email Address
+              </label>
               <AnimatedInput
                 type="email"
                 id="email"
-                readOnly={Boolean(googleUser)}
                 icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
-                className={`block w-full rounded-xl border border-slate-200 ${googleUser ? 'bg-slate-100 cursor-not-allowed opacity-90' : 'bg-slate-50 focus:bg-white'} pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors`}
+                className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                 placeholder="student@university.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -372,23 +321,16 @@ export function SignUpPage() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
-                  Studexa Password <span className="text-error">*</span>
-                  {googleUser && (
-                    <span className="text-on-surface-variant font-normal ml-1.5 text-[11px]">
-                      (Set your password to secure your Studexa account)
-                    </span>
-                  )}
-                </label>
-              </div>
+              <label htmlFor="password" className="block text-xs font-semibold text-on-surface mb-1.5 text-left">
+                Password <span className="text-error">*</span>
+              </label>
               <div className="relative">
                 <AnimatedInput
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
                   className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  placeholder="Create your password (min 6 characters)"
+                  placeholder="Create your password (min 8 characters)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -430,7 +372,7 @@ export function SignUpPage() {
               disabled={isSubmitting || !agreedToTerms}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer pt-2"
             >
-              <span>{isSubmitting ? 'Creating account...' : googleUser ? 'Complete Registration' : 'Create Account'}</span>
+              <span>{isSubmitting ? 'Creating account...' : 'Create Account'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </form>

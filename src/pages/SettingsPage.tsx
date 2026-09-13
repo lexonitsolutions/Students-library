@@ -20,7 +20,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
@@ -69,17 +68,10 @@ export function SettingsPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const [deletePassword, setDeletePassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [isBlinking, setIsBlinking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   if (!user) return null;
-
-  const triggerBlink = () => {
-    setIsBlinking(true);
-    setTimeout(() => setIsBlinking(false), 1500);
-  };
 
   const handleConfirmLogout = async () => {
     await signOut();
@@ -88,19 +80,13 @@ export function SettingsPage() {
 
   const handleConfirmDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!deletePassword.trim()) {
-      setPasswordError('Password is required to confirm account deletion.');
-      triggerBlink();
-      return;
-    }
-
     setIsDeleting(true);
-    const { error } = await deleteAccount(deletePassword);
+    setDeleteError('');
+    const { error } = await deleteAccount();
     setIsDeleting(false);
 
     if (error) {
-      setPasswordError(error);
-      triggerBlink();
+      setDeleteError(error);
       return;
     }
     navigate('/signup', { replace: true });
@@ -257,8 +243,7 @@ export function SettingsPage() {
           variant="danger"
           icon={<Trash2 size={15} />}
           onClick={() => {
-            setDeletePassword('');
-            setPasswordError('');
+            setDeleteError('');
             setShowDeleteModal(true);
           }}
           className="w-full sm:flex-1 h-10 rounded-xl text-sm font-medium"
@@ -290,14 +275,12 @@ export function SettingsPage() {
         </div>
       </Modal>
 
-      {/* Delete Account Modal with Password Validation */}
+      {/* Delete Account Modal */}
       <Modal
         open={showDeleteModal}
         onClose={() => {
           setShowDeleteModal(false);
-          setDeletePassword('');
-          setPasswordError('');
-          setIsBlinking(false);
+          setDeleteError('');
         }}
         title="Delete Account"
         description="This action cannot be undone."
@@ -311,61 +294,17 @@ export function SettingsPage() {
           </div>
 
           <p className="text-xs text-on-surface-variant font-medium">
-            Please enter your password to confirm:
+            Are you sure you want to permanently delete your Studexa account? All associated academic materials and activity will be removed.
           </p>
 
-          <motion.div
-            animate={
-              isBlinking
-                ? {
-                    x: [-8, 8, -6, 6, -3, 3, 0],
-                  }
-                : {}
-            }
-            transition={{ duration: 0.4 }}
-            className={`rounded-lg transition-all duration-200 ${
-              isBlinking
-                ? 'ring-2 ring-red-500/70 border-red-500 bg-red-500/10 p-0.5'
-                : ''
-            }`}
-          >
-            <Input
-              type="text"
-              style={{ WebkitTextSecurity: 'disc', textSecurity: 'disc' } as React.CSSProperties}
-              name="verification_code_field"
-              id="verification_code_field"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              data-1p-ignore="true"
-              data-lpignore="true"
-              data-bwignore="true"
-              data-form-type="other"
-              label="Your Password *"
-              placeholder="••••••••"
-              value={deletePassword}
-              onChange={(e) => {
-                setDeletePassword(e.target.value);
-                setPasswordError('');
-                setIsBlinking(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleConfirmDeleteAccount(e);
-                }
-              }}
-            />
-          </motion.div>
-
-          {passwordError && (
+          {deleteError && (
             <motion.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-xs font-semibold text-error flex items-center gap-1.5"
             >
               <AlertTriangle size={13} className="shrink-0" />
-              <span>{passwordError}</span>
+              <span>{deleteError}</span>
             </motion.p>
           )}
 
@@ -376,9 +315,7 @@ export function SettingsPage() {
               size="sm"
               onClick={() => {
                 setShowDeleteModal(false);
-                setDeletePassword('');
-                setPasswordError('');
-                setIsBlinking(false);
+                setDeleteError('');
               }}
             >
               Cancel

@@ -229,9 +229,8 @@ export interface UploadMaterialParams {
 export async function uploadMaterial(params: UploadMaterialParams): Promise<MaterialRow> {
   const { file, uploaderId, ...metadata } = params;
 
-  // Get active Supabase auth user ID if available
-  const { data: authData } = await supabase.auth.getUser();
-  const effectiveUploaderId = authData?.user?.id || uploaderId;
+  // Use the passed uploaderId directly (auth is handled by Clerk, not Supabase)
+  const effectiveUploaderId = uploaderId;
   const path = `${effectiveUploaderId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
   // Attempt file upload to storage

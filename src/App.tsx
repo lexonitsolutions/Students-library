@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { AuthenticateWithRedirectCallback } from '@clerk/react';
 import { AppShell } from './components/layout/AppShell';
 import { AuthProvider } from './hooks/useAuth';
 import { ThemeProvider } from './hooks/useDarkMode';
@@ -70,6 +71,7 @@ function App() {
                   </Route>
                 </Route>
 
+                <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </SignupRedirectProvider>
