@@ -41,14 +41,14 @@ export function Sidebar() {
   return (
     <>
       {/* ── Collapsed placeholder: always occupies 72px in layout flow so main content doesn't jump ── */}
-      <div className="hidden lg:block shrink-0 w-[72px]" />
+      <div className="hidden xl:block shrink-0 w-[72px]" />
 
       {/* ── Actual sidebar: fixed icons with smooth Instagram-style slide expansion on hover ── */}
       <aside
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
         className={cn(
-          'hidden lg:flex absolute left-0 top-0 z-30 h-full flex-col',
+          'hidden xl:flex absolute left-0 top-0 z-30 h-full flex-col',
           'border-r border-card-border bg-surface-container-low/95 backdrop-blur-md',
           'transition-[width] duration-300 ease-out select-none',
           expanded ? 'w-64 shadow-2xl ring-1 ring-black/5' : 'w-[72px]',
@@ -307,7 +307,7 @@ export function Sidebar() {
                     <Avatar
                       name={user?.name || 'User'}
                       src={user?.avatar}
-                      size={26}
+                      size={30}
                       className={cn(
                         'ring-2 transition-all',
                         isActive

@@ -2,6 +2,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, MoreVertical 
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { IconButton } from '../components/ui/IconButton';
+import { PdfViewer } from '../components/ui/PdfViewer';
 import { SignupPromptModal } from '../components/ui/SignupPromptModal';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
@@ -79,7 +80,7 @@ export function ReaderPage() {
           </IconButton>
         </header>
 
-        <div className="relative flex flex-1 items-center justify-center overflow-auto bg-surface-container-lowest p-4">
+        <div className="relative flex flex-1 items-center justify-center overflow-auto bg-surface-container-lowest p-1 sm:p-4">
           {!material ? (
             <div className="flex flex-col items-center gap-3">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -146,11 +147,13 @@ export function ReaderPage() {
               </div>
             )
           ) : (
-            <iframe
-              title={material.title}
-              src={`${material.fileUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-              className="h-full w-full max-w-6xl rounded-lg border-0 bg-white shadow-xl"
-            />
+            <div className="h-full w-full max-w-5xl rounded-xl bg-white shadow-xl overflow-hidden">
+              <PdfViewer
+                fileUrl={material.fileUrl}
+                title={material.title}
+                className="h-full w-full"
+              />
+            </div>
           )}
         </div>
       </div>

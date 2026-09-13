@@ -18,7 +18,7 @@ export function Modal({ open, onClose, title, description, className, children }
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -33,12 +33,12 @@ export function Modal({ open, onClose, title, description, className, children }
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            initial={{ opacity: 0, scale: 0.97, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            exit={{ opacity: 0, scale: 0.97, y: 16 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className={cn(
-              'relative w-full max-w-md rounded-2xl bg-surface border border-card-border p-5 sm:p-6 shadow-xl z-10',
+              'relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-surface border border-card-border p-4 sm:p-6 shadow-xl z-10 max-h-[90vh] overflow-y-auto',
               className,
             )}
           >

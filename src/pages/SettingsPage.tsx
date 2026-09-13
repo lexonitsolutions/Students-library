@@ -5,6 +5,7 @@ import {
   CircleHelp,
   Clock,
   Info,
+  KeyRound,
   LogOut,
   Moon,
   Palette,
@@ -25,12 +26,14 @@ import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { AccountSettingsModal } from '../components/settings/AccountSettingsModal';
+import { ModifyPasswordModal } from '../components/settings/ModifyPasswordModal';
 
 const settingsSections = [
   {
     heading: 'General',
     items: [
       { label: 'Account', icon: UserCog },
+      { label: 'Modify Password', icon: KeyRound },
     ],
   },
   {
@@ -56,8 +59,15 @@ export function SettingsPage() {
   const navigate = useNavigate();
 
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showModifyPasswordModal, setShowModifyPasswordModal] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const [deletePassword, setDeletePassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -160,7 +170,9 @@ export function SettingsPage() {
                 key={item.label}
                 type="button"
                 onClick={() => {
-                  if (item.label === 'Recent Activity') {
+                  if (item.label === 'Notifications') {
+                    navigate('/notifications');
+                  } else if (item.label === 'Recent Activity') {
                     navigate('/library?tab=activity');
                   } else if (item.label === 'Help & Support') {
                     navigate('/support');
@@ -169,6 +181,12 @@ export function SettingsPage() {
                       openSignupModal('/settings');
                     } else {
                       setShowAccountModal(true);
+                    }
+                  } else if (item.label === 'Modify Password') {
+                    if (isExploring) {
+                      openSignupModal('/settings');
+                    } else {
+                      setShowModifyPasswordModal(true);
                     }
                   }
                 }}
@@ -223,54 +241,30 @@ export function SettingsPage() {
         </div>
       ))}
 
-      {/* Session Management */}
-      <div className="mt-6">
-        <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/80">
-          Session
-        </p>
-        <div className="rounded-xl border border-card-border bg-surface p-3.5 shadow-2xs flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-on-surface">Sign Out</p>
-            <p className="text-xs text-on-surface-variant">Log out of your account on this device.</p>
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            icon={<LogOut size={13} />}
-            onClick={() => setShowLogoutAlert(true)}
-            className="h-8 px-3 rounded-lg text-xs font-medium shrink-0"
-          >
-            Log Out
-          </Button>
-        </div>
-      </div>
-
-      {/* Danger Zone */}
-      <div className="mt-6">
-        <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-error/80">
-          Danger Zone
-        </p>
-        <div className="rounded-xl border border-error/25 bg-error/5 p-3.5 shadow-2xs flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-error">Delete Account</p>
-            <p className="text-xs text-on-surface-variant">Permanently delete your account and all study materials.</p>
-          </div>
-          <Button
-            type="button"
-            variant="danger"
-            size="sm"
-            icon={<Trash2 size={13} />}
-            onClick={() => {
-              setDeletePassword('');
-              setPasswordError('');
-              setShowDeleteModal(true);
-            }}
-            className="h-8 px-3 rounded-lg text-xs font-medium bg-error hover:bg-error/90 text-white shrink-0"
-          >
-            Delete Account
-          </Button>
-        </div>
+      {/* Account Actions */}
+      <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
+        <Button
+          type="button"
+          variant="secondary"
+          icon={<LogOut size={15} />}
+          onClick={() => setShowLogoutAlert(true)}
+          className="w-full sm:flex-1 h-10 rounded-xl text-sm font-medium"
+        >
+          Log Out
+        </Button>
+        <Button
+          type="button"
+          variant="danger"
+          icon={<Trash2 size={15} />}
+          onClick={() => {
+            setDeletePassword('');
+            setPasswordError('');
+            setShowDeleteModal(true);
+          }}
+          className="w-full sm:flex-1 h-10 rounded-xl text-sm font-medium"
+        >
+          Delete Account
+        </Button>
       </div>
 
       {/* Designed Logout Alert Modal */}
@@ -407,6 +401,24 @@ export function SettingsPage() {
         open={showAccountModal} 
         onClose={() => setShowAccountModal(false)} 
       />
+
+      <ModifyPasswordModal
+        open={showModifyPasswordModal}
+        onClose={() => setShowModifyPasswordModal(false)}
+        onSuccess={() => showToast('Password modified successfully!')}
+      />
+
+      {toastMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl bg-surface border border-card-border px-4 py-3 shadow-xl text-sm font-medium text-on-surface"
+        >
+          <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>{toastMessage}</span>
+        </motion.div>
+      )}
     </div>
   );
 }

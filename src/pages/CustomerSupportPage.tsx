@@ -86,7 +86,7 @@ export function CustomerSupportPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-20">
+    <div className="mx-auto max-w-3xl w-full px-4 sm:px-6 pb-20">
       {/* ── Top Navigation / Back ── */}
       <div className="mb-6 pt-2">
         <button
@@ -111,33 +111,47 @@ export function CustomerSupportPage() {
       </div>
 
       {/* ── Segmented Tab Switcher ── */}
-      <div className="mb-8 flex border-b border-card-border">
+      <div className="mb-6 flex w-full border-b border-card-border overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab('ticket')}
           className={cn(
-            'flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-all cursor-pointer',
+            'relative flex flex-1 sm:flex-initial items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-3 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0',
             activeTab === 'ticket'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-on-surface-variant hover:text-on-surface'
+              ? 'text-primary'
+              : 'text-on-surface-variant hover:text-on-surface'
           )}
         >
           <Send size={15} />
-          <span>Feedback & Queries</span>
+          <span>Feedback &amp; Queries</span>
+          {activeTab === 'ticket' && (
+            <motion.div
+              layoutId="support-tab-underline"
+              className="absolute inset-x-0 -bottom-px h-0.5 bg-primary"
+              transition={{ duration: 0.2 }}
+            />
+          )}
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('faq')}
           className={cn(
-            'flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-all cursor-pointer',
+            'relative flex flex-1 sm:flex-initial items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-3 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0',
             activeTab === 'faq'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-on-surface-variant hover:text-on-surface'
+              ? 'text-primary'
+              : 'text-on-surface-variant hover:text-on-surface'
           )}
         >
           <HelpCircle size={15} />
           <span>Student FAQs</span>
+          {activeTab === 'faq' && (
+            <motion.div
+              layoutId="support-tab-underline"
+              className="absolute inset-x-0 -bottom-px h-0.5 bg-primary"
+              transition={{ duration: 0.2 }}
+            />
+          )}
         </button>
       </div>
 

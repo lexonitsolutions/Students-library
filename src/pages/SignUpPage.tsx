@@ -51,12 +51,7 @@ export function SignUpPage() {
       return;
     }
 
-    if (!googleUser && password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    if (googleUser && password && password.length < 6) {
+    if (password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
     }
@@ -69,8 +64,9 @@ export function SignUpPage() {
     if (googleUser) {
       setIsSubmitting(true);
       try {
-        if (password) {
-          await supabase.auth.updateUser({ password }).catch(() => {});
+        const { error: passwordError } = await supabase.auth.updateUser({ password });
+        if (passwordError) {
+          throw new Error(passwordError.message || 'Failed to set password. Please try again.');
         }
         await updateUser({
           name: nameTrimmed,
@@ -378,7 +374,12 @@ export function SignUpPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
-                  Password {googleUser && <span className="text-on-surface-variant font-normal">(Optional for Google sign-in)</span>}
+                  Studexa Password <span className="text-error">*</span>
+                  {googleUser && (
+                    <span className="text-on-surface-variant font-normal ml-1.5 text-[11px]">
+                      (Set your password to secure your Studexa account)
+                    </span>
+                  )}
                 </label>
               </div>
               <div className="relative">
@@ -387,10 +388,10 @@ export function SignUpPage() {
                   id="password"
                   icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
                   className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  placeholder={googleUser ? 'Set optional password for email login' : 'At least 6 characters'}
+                  placeholder="Create your password (min 6 characters)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required={!googleUser}
+                  required
                 />
                 <button
                   type="button"

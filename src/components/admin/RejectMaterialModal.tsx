@@ -76,7 +76,7 @@ export function RejectMaterialModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 12 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="relative w-full max-w-lg rounded-2xl bg-surface-container-low dark:bg-[#0f141c] border border-card-border p-6 shadow-2xl z-10"
+          className="relative w-full max-w-[min(90vw,512px)] rounded-2xl bg-surface-container-low dark:bg-[#0f141c] border border-card-border p-6 shadow-2xl z-10"
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-3">

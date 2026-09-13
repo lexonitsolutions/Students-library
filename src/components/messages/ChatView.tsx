@@ -253,7 +253,7 @@ export function ChatView({
   };
 
   return (
-    <div className="flex h-full flex-col bg-surface overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-surface overflow-hidden justify-between">
       {/* ── Top Header ── */}
       <div className="flex shrink-0 items-center justify-between border-b border-card-border/70 px-4 sm:px-5 py-3 bg-surface-container-low/90 backdrop-blur-sm relative z-20">
         <div className="flex items-center gap-3 min-w-0">
@@ -366,7 +366,7 @@ export function ChatView({
       {/* ── Messages Stream ── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-3.5 bg-surface"
+        className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5 space-y-3.5 bg-surface"
       >
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
@@ -462,7 +462,7 @@ export function ChatView({
       </div>
 
       {/* ── Modern Floating Composer ── */}
-      <div className="shrink-0 p-3 sm:p-4 bg-surface border-t border-card-border/70">
+      <div className="shrink-0 p-3 sm:p-4 bg-surface border-t border-card-border/70 mt-auto">
         <div className="rounded-2xl border border-card-border bg-surface-container-low p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 transition-all shadow-xs">
           <div className="flex items-end gap-2 px-1">
             <textarea

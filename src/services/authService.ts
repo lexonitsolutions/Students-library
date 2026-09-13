@@ -1,4 +1,5 @@
-import { supabase } from '../lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
+import { supabase, supabaseUrl, supabaseKey } from '../lib/supabaseClient';
 
 export interface SignUpParams {
   readonly name: string;
@@ -227,6 +228,53 @@ export async function deleteOwnAccount() {
     if (profileError) {
       return { error: new Error(formatAuthErrorMessage(profileError)) };
     }
+  }
+
+  return { error: null };
+}
+
+export async function verifyCurrentPassword(password: string, userEmail?: string): Promise<{ error: Error | null }> {
+  let email = userEmail?.trim();
+  if (!email) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    email = sessionData?.session?.user?.email;
+  }
+  if (!email) {
+    const { data: userData } = await supabase.auth.getUser();
+    email = userData?.user?.email;
+  }
+  if (!email) {
+    return { error: new Error('User session not found. Please log in again.') };
+  }
+
+  // Create an isolated auth client that does NOT mutate the active user session or trigger onAuthStateChange
+  const verifyClient = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const result = await verifyClient.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (result.error) {
+    return { error: new Error('Incorrect current password. Please try again.') };
+  }
+
+  return { error: null };
+}
+
+export async function updatePassword(newPassword: string): Promise<{ error: Error | null }> {
+  const result = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (result.error) {
+    return { error: new Error(formatAuthErrorMessage(result.error)) };
   }
 
   return { error: null };

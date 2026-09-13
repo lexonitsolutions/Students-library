@@ -1,6 +1,6 @@
 import { ArrowRight, Eye, EyeOff, BookOpen, CheckCircle2, Lock, Mail, Award, Sparkles } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { type FormEvent, useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 import { useAuth } from '../hooks/useAuth';
@@ -10,10 +10,28 @@ import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { Logo } from '../components/ui/Logo';
 
 export function SignInPage() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const emailFromStorage = sessionStorage.getItem('studexa_prefill_email');
+  const wasPasswordChanged = sessionStorage.getItem('studexa_password_changed') === 'true';
+
+  useEffect(() => {
+    if (wasPasswordChanged) {
+      sessionStorage.removeItem('studexa_password_changed');
+      sessionStorage.removeItem('studexa_prefill_email');
+    }
+  }, [wasPasswordChanged]);
+
+  const [email, setEmail] = useState(
+    (location.state as any)?.prefillEmail || emailFromStorage || '',
+  );
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const successMessage =
+    ((location.state as any)?.message as string | undefined) ||
+    (wasPasswordChanged
+      ? 'Password changed successfully! Please sign in with your new password.'
+      : undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [noAccountEmail, setNoAccountEmail] = useState<string | null>(null);
@@ -85,7 +103,7 @@ export function SignInPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white text-on-surface">
+    <div className="flex min-h-screen bg-white text-on-surface overflow-x-hidden">
       {/* ── LEFT BRANDING PANEL (Desktop only) ── */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-slate-200/90 bg-gradient-to-br from-slate-100 via-[#EDF2F9] to-slate-100 relative overflow-hidden">
         {/* Subtle tinted grid pattern */}
@@ -190,6 +208,14 @@ export function SignInPage() {
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Sign in</h2>
             <p className="mt-1 text-sm text-on-surface-variant">Welcome back. Enter your credentials to access your library.</p>
           </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>{successMessage}</span>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (

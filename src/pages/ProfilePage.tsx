@@ -386,7 +386,7 @@ export function ProfilePage() {
           </div>
 
           {/* Stat Counters */}
-          <div className="mt-5 pt-4 border-t border-card-border/60 flex items-center gap-7 sm:gap-9">
+          <div className="mt-5 pt-4 border-t border-card-border/60 flex flex-wrap items-center gap-x-6 gap-y-2 sm:gap-9">
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-bold text-on-surface">{totalLikes}</span>
               <span className="text-xs text-on-surface-variant font-medium">Likes</span>
@@ -837,12 +837,9 @@ export function ProfilePage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-on-surface">
-                  Username <span className="text-error">*</span>
-                </label>
-                <span className="text-[11px] text-on-surface-variant/70 font-mono">quicklearnit.com/@{editUsername || 'handle'}</span>
-              </div>
+              <label className="text-xs font-semibold text-on-surface">
+                Username <span className="text-error">*</span>
+              </label>
               <div className="flex rounded-lg border border-card-border bg-surface-container-lowest shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/25 overflow-hidden transition-colors">
                 <span className="inline-flex items-center px-3 bg-surface-container-low border-r border-card-border text-xs font-mono font-medium text-on-surface-variant select-none">
                   @

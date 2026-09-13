@@ -10,7 +10,6 @@ import {
   FolderCheck,
   Library,
   RefreshCw,
-  RotateCcw,
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -342,55 +341,6 @@ export function AdminDashboardPage() {
       showToast('Batch action failed. Please try again.', 'error');
     } finally {
       setIsResolvingBatch(false);
-    }
-  };
-
-  const handleRestoreRejected = async (rejectedItem: adminService.RecentRejectionItem) => {
-    try {
-      const adminInfo = {
-        id: user?.id,
-        name: currentAdminName,
-        email: user?.email,
-        avatar: user?.avatar,
-      };
-      const metaStr = adminService.encodeApprovalMeta({
-        adminId: user?.id,
-        adminEmail: user?.email,
-        adminName: currentAdminName,
-        adminAvatar: adminInfo.avatar,
-        approvedAt: new Date().toISOString(),
-      });
-      await updateMaterialStatus(rejectedItem.id, 'approved', metaStr);
-      adminService.removeStoredRejection(rejectedItem.id);
-      setRecentRejections((prev) => prev.filter((r) => r.id !== rejectedItem.id));
-
-      adminService.recordApproval(rejectedItem, adminInfo);
-      setRecentApprovals((prev) => [
-        {
-          id: rejectedItem.id,
-          title: rejectedItem.title,
-          subject: rejectedItem.subject,
-          course: rejectedItem.course,
-          uploaderName: rejectedItem.uploaderName,
-          uploaderDetails: rejectedItem.uploaderDetails,
-          approvedAt: new Date().toISOString(),
-          approvedByAdminId: adminInfo.id,
-          approvedByAdminName: adminInfo.name,
-          approvedByAdminAvatar: adminInfo.avatar,
-          approvedByAdminEmail: adminInfo.email,
-          filePath: rejectedItem.filePath,
-          fileUrl: rejectedItem.fileUrl,
-          description: rejectedItem.description,
-          fileSizeMb: rejectedItem.fileSizeMb,
-          pages: rejectedItem.pages,
-          type: rejectedItem.type,
-        },
-        ...prev.filter((p) => p.id !== rejectedItem.id),
-      ]);
-      adminService.getAdminStats().then(setStats);
-      showToast('Material restored & published successfully.', 'success');
-    } catch {
-      showToast('Failed to restore material. Please try again.', 'error');
     }
   };
 
@@ -733,14 +683,14 @@ export function AdminDashboardPage() {
           <Card padded={false} hoverable={false} className="relative overflow-hidden">
             {/* Batch Toolbar if items selected */}
             {selectedItemIds.size > 0 && (
-              <div className="flex items-center justify-between px-5 py-2.5 bg-primary/10 border-b border-primary/20 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 bg-primary/10 border-b border-primary/20 text-xs">
                 <div className="flex items-center gap-2 text-on-surface font-semibold">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-on-primary text-[11px]">
                     {selectedItemIds.size}
                   </span>
                   <span>{selectedItemIds.size} document{selectedItemIds.size > 1 ? 's' : ''} selected</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     disabled={isResolvingBatch}
@@ -941,9 +891,9 @@ export function AdminDashboardPage() {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center flex-wrap gap-2.5">
               {/* Search input */}
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none" />
                 <input
                   type="text"
@@ -955,7 +905,7 @@ export function AdminDashboardPage() {
               </div>
 
               {/* Segmented control: All Approvals vs My Approvals vs Rejected */}
-              <div className="relative flex items-center p-0.5 rounded-xl bg-surface-container border border-card-border select-none">
+              <div className="relative flex items-center p-0.5 rounded-xl bg-surface-container border border-card-border select-none overflow-x-auto">
                 <button
                   type="button"
                   onClick={() => setApprovalFilter('all')}
@@ -1205,15 +1155,6 @@ export function AdminDashboardPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleRestoreRejected(item)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
-                            title="Restore & approve document"
-                          >
-                            <RotateCcw size={12} />
-                            Restore
-                          </button>
-                          <button
-                            type="button"
                             onClick={() => handleDeleteSingleRejection(item)}
                             className="inline-flex items-center justify-center p-1.5 rounded-lg border border-card-border bg-surface-container hover:bg-rose-500/15 hover:text-rose-600 text-on-surface-variant transition-colors cursor-pointer"
                             title="Delete this record"
@@ -1426,29 +1367,9 @@ export function AdminDashboardPage() {
         onNavigate={(item) => setPreviewItem(item)}
         onClose={() => setPreviewItem(null)}
         onApprove={
-          previewItem?.status === 'rejected'
-            ? () => {
-                if (previewItem) {
-                  handleRestoreRejected({
-                    id: previewItem.id,
-                    title: previewItem.title,
-                    subject: previewItem.subject,
-                    course: previewItem.course,
-                    uploaderName: previewItem.uploader,
-                    uploaderDetails: previewItem.uploaderDetails,
-                    rejectedAt: new Date().toISOString(),
-                    filePath: previewItem.filePath,
-                    fileUrl: previewItem.fileUrl,
-                    description: previewItem.description,
-                    fileSizeMb: previewItem.fileSizeMb,
-                    pages: previewItem.pages,
-                    type: previewItem.type,
-                  });
-                }
-              }
-            : !isApprovedPreview
-              ? (id) => resolve(id, 'approved')
-              : undefined
+          !isApprovedPreview && previewItem?.status !== 'rejected'
+            ? (id) => resolve(id, 'approved')
+            : undefined
         }
         onReject={
           !isApprovedPreview && previewItem?.status !== 'rejected'

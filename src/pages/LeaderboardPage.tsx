@@ -463,7 +463,98 @@ function BackgroundFoliage() {
   );
 }
 
-// ─── Podium Card Props & Config ───────────────────────────────────────────────
+// ─── Top 3 Mobile Row Card (< md screens) ─────────────────────────────────────
+
+interface Top3RowCardProps {
+  student: LeaderboardEntry;
+  rank: 1 | 2 | 3;
+  onSelect?: (student: LeaderboardEntry) => void;
+}
+
+function Top3MobileRowCard({ student, rank, onSelect }: Top3RowCardProps) {
+  const isFirst = rank === 1;
+  const isSecond = rank === 2;
+  const isThird = rank === 3;
+
+  return (
+    <motion.div
+      onClick={() => onSelect?.(student)}
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.22, delay: rank * 0.06 }}
+      className={cn(
+        'relative flex items-center justify-between gap-3 rounded-2xl p-3 sm:p-3.5 border transition-all cursor-pointer shadow-xs active:scale-[0.99] select-none',
+        isFirst && 'bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-surface border-amber-300/90 dark:from-amber-950/40 dark:to-surface dark:border-amber-500/30 shadow-amber-500/5',
+        isSecond && 'bg-gradient-to-r from-slate-200/80 via-slate-100/40 to-surface border-slate-300/90 dark:from-slate-800/40 dark:to-surface dark:border-slate-600/40',
+        isThird && 'bg-gradient-to-r from-orange-500/15 via-orange-500/5 to-surface border-orange-300/90 dark:from-orange-950/40 dark:to-surface dark:border-orange-500/30 shadow-orange-500/5'
+      )}
+    >
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        {/* Place Badge */}
+        <div className="relative shrink-0 flex items-center justify-center">
+          {isFirst ? (
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white font-black text-xs shadow-xs ring-2 ring-amber-200 dark:ring-amber-500/40">
+              1st
+            </div>
+          ) : isSecond ? (
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-slate-300 to-slate-500 text-white font-black text-xs shadow-xs ring-2 ring-slate-200 dark:ring-slate-500/40">
+              2nd
+            </div>
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 text-white font-black text-xs shadow-xs ring-2 ring-orange-200 dark:ring-orange-500/40">
+              3rd
+            </div>
+          )}
+        </div>
+
+        {/* Avatar */}
+        <Avatar
+          src={student.avatar}
+          name={student.name}
+          size={38}
+          className={cn(
+            'shrink-0 ring-2 shadow-xs',
+            isFirst && 'ring-amber-400',
+            isSecond && 'ring-slate-300',
+            isThird && 'ring-orange-400'
+          )}
+        />
+
+        {/* Student Info */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h4 className="font-bold text-sm text-on-surface truncate">
+              {student.name}
+            </h4>
+            {isFirst && (
+              <span className="shrink-0 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-md border border-amber-500/20">
+                Top 1
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-on-surface-variant truncate mt-0.5">
+            {isFirst ? '1st Place Champion' : isSecond ? '2nd Place Contributor' : '3rd Place Contributor'}
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Box */}
+      <div className="flex items-center gap-2 shrink-0 bg-surface/80 dark:bg-surface-container/60 backdrop-blur-xs border border-card-border/60 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-on-surface">
+        <div className="flex items-center gap-1" title="Likes">
+          <Heart size={12} className={cn('fill-current', isFirst ? 'text-amber-500' : isSecond ? 'text-indigo-500' : 'text-orange-500')} />
+          <span className="tabular-nums font-bold text-[12px]">{student.totalLikes ?? 0}</span>
+        </div>
+        <div className="h-3 w-px bg-card-border" />
+        <div className="flex items-center gap-1" title="Views">
+          <Eye size={12} className={cn(isFirst ? 'text-amber-500' : isSecond ? 'text-indigo-500' : 'text-orange-500')} />
+          <span className="tabular-nums font-bold text-[12px]">{student.totalViews.toLocaleString()}</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Podium Card Props & Config (iPad & Desktop, md+) ─────────────────────────
 
 interface PodiumCardProps {
   student: LeaderboardEntry;
@@ -482,7 +573,7 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
       onClick={() => onSelect?.(student)}
       className={cn(
         'flex flex-col items-center flex-1 min-w-0 z-10 cursor-pointer group',
-        isFirst ? 'sm:-translate-y-4 max-w-[340px]' : 'max-w-[280px]'
+        isFirst ? 'md:-translate-y-3.5 lg:-translate-y-5 max-w-[260px] lg:max-w-[320px]' : 'max-w-[220px] lg:max-w-[270px]'
       )}
       initial={{ opacity: 0, y: 35, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -491,10 +582,10 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
       {/* ── Main White Card ── */}
       <div
         className={cn(
-          'w-full bg-white rounded-2xl sm:rounded-[22px] border relative flex flex-col items-center text-center shadow-[0_12px_28px_-6px_rgba(0,0,0,0.08)] select-none transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-xl',
-          isFirst && 'border-amber-200/90 shadow-[0_16px_36px_-8px_rgba(245,158,11,0.18)] pt-7 pb-4 px-3 sm:px-5 dark:bg-[#332B19] dark:border-[#D6A84F]/40 dark:shadow-[0_4px_12px_rgba(0,0,0,0.25)]',
-          isSecond && 'border-slate-200/90 shadow-[0_12px_28px_-6px_rgba(100,116,139,0.15)] pt-6 pb-4 px-3 sm:px-4 dark:bg-[#27303A] dark:border-[#AEB7C4]/40 dark:shadow-[0_4px_12px_rgba(0,0,0,0.25)]',
-          isThird && 'border-orange-200/90 shadow-[0_12px_28px_-6px_rgba(234,88,12,0.14)] pt-6 pb-4 px-3 sm:px-4 dark:bg-[#33251F] dark:border-[#B8794A]/40 dark:shadow-[0_4px_12px_rgba(0,0,0,0.25)]'
+          'w-full bg-white rounded-2xl md:rounded-[22px] border relative flex flex-col items-center text-center shadow-[0_12px_28px_-6px_rgba(0,0,0,0.08)] select-none transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-xl',
+          isFirst && 'border-amber-200/90 shadow-[0_16px_36px_-8px_rgba(245,158,11,0.18)] pt-5 md:pt-6 lg:pt-7 pb-3 md:pb-3.5 lg:pb-4 px-2.5 md:px-3.5 lg:px-5 dark:bg-[#332B19] dark:border-[#D6A84F]/40 dark:shadow-[0_4px_12px_rgba(0,0,0,0.25)]',
+          isSecond && 'border-slate-200/90 shadow-[0_12px_28px_-6px_rgba(100,116,139,0.15)] pt-4 md:pt-5 lg:pt-6 pb-3 md:pb-3.5 lg:pb-4 px-2 md:px-3 lg:px-4 dark:bg-[#27303A] dark:border-[#AEB7C4]/40 dark:shadow-[0_4px_12px_rgba(0,0,0,0.25)]',
+          isThird && 'border-orange-200/90 shadow-[0_12px_28px_-6px_rgba(234,88,12,0.14)] pt-4 md:pt-5 lg:pt-6 pb-3 md:pb-3.5 lg:pb-4 px-2 md:px-3 lg:px-4 dark:bg-[#33251F] dark:border-[#B8794A]/40 dark:shadow-[0_4px_12px_rgba(0,0,0,0.25)]'
         )}
       >
         {/* Rosette Medal for 2nd & 3rd */}
@@ -509,7 +600,7 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
           <Avatar
             src={student.avatar}
             name={student.name}
-            size={isFirst ? 68 : 58}
+            size={isFirst ? 62 : 52}
             className={cn(
               'shrink-0',
               isFirst && 'ring-4 ring-[#f59e0b] dark:ring-[#D6A84F] shadow-md',
@@ -522,8 +613,7 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
         {/* Contributor Name */}
         <h3
           className={cn(
-            'font-bold text-slate-800 dark:text-[#F3F4F6] tracking-tight line-clamp-1 w-full mt-1',
-            isFirst ? 'text-base sm:text-lg' : 'text-sm sm:text-base'
+            'font-bold text-slate-800 dark:text-[#F3F4F6] tracking-tight line-clamp-1 w-full mt-1 text-sm md:text-base'
           )}
         >
           {student.name}
@@ -532,7 +622,7 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
         {/* Stats Pill Box */}
         <div
           className={cn(
-            'w-full rounded-xl mt-3 flex items-center justify-around py-2 px-2 border',
+            'w-full rounded-xl mt-2.5 md:mt-3 flex items-center justify-around py-1.5 md:py-2 px-1.5 md:px-2 border',
             isFirst && 'bg-[#fffbeb] border-amber-200/70 dark:bg-[#282113] dark:border-[#D6A84F]/30',
             isSecond && 'bg-[#f8fafc] border-slate-200/70 dark:bg-[#1E252D] dark:border-[#AEB7C4]/30',
             isThird && 'bg-[#fff7ed] border-orange-200/70 dark:bg-[#261B16] dark:border-[#B8794A]/30'
@@ -554,7 +644,7 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
                 Likes
               </span>
             </div>
-            <span className="text-sm sm:text-base font-extrabold text-slate-800 dark:text-[#F3F4F6] tabular-nums leading-tight mt-0.5">
+            <span className="text-xs md:text-sm lg:text-base font-extrabold text-slate-800 dark:text-[#F3F4F6] tabular-nums leading-tight mt-0.5">
               {student.totalLikes ?? 0}
             </span>
           </div>
@@ -584,7 +674,7 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
                 Views
               </span>
             </div>
-            <span className="text-sm sm:text-base font-extrabold text-slate-800 dark:text-[#F3F4F6] tabular-nums leading-tight mt-0.5">
+            <span className="text-xs md:text-sm lg:text-base font-extrabold text-slate-800 dark:text-[#F3F4F6] tabular-nums leading-tight mt-0.5">
               {student.totalViews.toLocaleString()}
             </span>
           </div>
@@ -595,13 +685,13 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
       <div
         className={cn(
           'w-full flex items-center justify-center gap-1.5 shadow-md relative overflow-hidden',
-          isFirst && 'h-14 rounded-b-2xl bg-gradient-to-b from-[#fbbf24] to-[#d97706] shadow-amber-500/25 border-t border-amber-300/40 dark:from-[#3D331E] dark:to-[#2B2313] dark:border-[#D6A84F]/30 dark:shadow-none',
-          isSecond && 'h-11 rounded-b-2xl bg-gradient-to-b from-[#94a3b8] to-[#64748b] shadow-slate-500/20 border-t border-slate-200/40 dark:from-[#2F3A46] dark:to-[#212932] dark:border-[#AEB7C4]/30 dark:shadow-none',
-          isThird && 'h-9 rounded-b-2xl bg-gradient-to-b from-[#ea580c] to-[#9a3412] shadow-orange-500/20 border-t border-orange-300/40 dark:from-[#3D2C24] dark:to-[#2B1E19] dark:border-[#B8794A]/30 dark:shadow-none'
+          isFirst && 'h-12 md:h-13 lg:h-14 rounded-b-2xl bg-gradient-to-b from-[#fbbf24] to-[#d97706] shadow-amber-500/25 border-t border-amber-300/40 dark:from-[#3D331E] dark:to-[#2B2313] dark:border-[#D6A84F]/30 dark:shadow-none',
+          isSecond && 'h-9 md:h-10 lg:h-11 rounded-b-2xl bg-gradient-to-b from-[#94a3b8] to-[#64748b] shadow-slate-500/20 border-t border-slate-200/40 dark:from-[#2F3A46] dark:to-[#212932] dark:border-[#AEB7C4]/30 dark:shadow-none',
+          isThird && 'h-8 md:h-8.5 lg:h-9 rounded-b-2xl bg-gradient-to-b from-[#ea580c] to-[#9a3412] shadow-orange-500/20 border-t border-orange-300/40 dark:from-[#3D2C24] dark:to-[#2B1E19] dark:border-[#B8794A]/30 dark:shadow-none'
         )}
       >
         <LaurelSprig />
-        <span className="text-xs sm:text-sm font-bold text-white tracking-wide drop-shadow-xs">
+        <span className="text-xs md:text-sm font-bold text-white tracking-wide drop-shadow-xs">
           {isFirst ? '1st Place' : isSecond ? '2nd Place' : '3rd Place'}
         </span>
         <LaurelSprig flip />
@@ -677,7 +767,7 @@ export function LeaderboardPage() {
   const top3 = sortedStudents.slice(0, 3);
 
   return (
-    <div className="flex flex-col gap-8 pb-12">
+    <div className="flex flex-col gap-6 sm:gap-8 pb-12 w-full min-w-0">
       {/* ── Page Header with Filter ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-card-border pb-5">
         <div>
@@ -781,7 +871,7 @@ export function LeaderboardPage() {
           {/* ── Celebration Top 3 Banner ── */}
           {top3.length >= 2 && (
             <div
-              className="relative rounded-3xl overflow-hidden pt-8 pb-0 px-3 sm:px-8 border border-amber-100/70"
+              className="relative rounded-3xl overflow-hidden pt-6 md:pt-8 pb-4 md:pb-0 px-3 sm:px-6 md:px-8 border border-amber-100/70 dark:border-amber-900/30"
               style={{
                 background: 'linear-gradient(180deg, #fffdf8 0%, #fef8ed 60%, #fef3df 100%)',
               }}
@@ -794,18 +884,25 @@ export function LeaderboardPage() {
               <BackgroundFoliage />
 
               {/* Header: Trophy, Title & Subtitle */}
-              <div className="relative flex flex-col items-center text-center mb-8 sm:mb-10 z-10">
+              <div className="relative flex flex-col items-center text-center mb-5 md:mb-8 lg:mb-10 z-10">
                 <TrophyBannerIcon />
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight mt-1">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#0f172a] tracking-tight mt-1">
                   Top 3 Contributors
                 </h2>
-                <p className="text-xs sm:text-sm text-[#64748b] mt-1 font-medium">
+                <p className="text-xs sm:text-sm text-[#64748b] mt-0.5 sm:mt-1 font-medium">
                   Your support keeps the community growing!
                 </p>
               </div>
 
-              {/* Podium row: #2 (left), #1 (center), #3 (right) aligned to bottom */}
-              <div className="relative flex items-end justify-center gap-2.5 sm:gap-6 px-1 sm:px-4 z-10">
+              {/* ── MOBILE: ROWS FORMAT (< md screens) ── */}
+              <div className="relative flex flex-col gap-2.5 pb-2 z-10 md:hidden">
+                {top3[0] && <Top3MobileRowCard student={top3[0]} rank={1} onSelect={handleOpenProfile} />}
+                {top3[1] && <Top3MobileRowCard student={top3[1]} rank={2} onSelect={handleOpenProfile} />}
+                {top3[2] && <Top3MobileRowCard student={top3[2]} rank={3} onSelect={handleOpenProfile} />}
+              </div>
+
+              {/* ── TABLET / IPAD / DESKTOP: PODIUM FORMAT (md+) ── */}
+              <div className="relative hidden md:flex items-end justify-center gap-3 md:gap-4 lg:gap-6 px-1 md:px-4 z-10 max-w-4xl mx-auto">
                 {top3[1] && <PodiumCard student={top3[1]} rank={2} delay={0.1} onSelect={handleOpenProfile} />}
                 {top3[0] && <PodiumCard student={top3[0]} rank={1} delay={0} onSelect={handleOpenProfile} />}
                 {top3[2] && <PodiumCard student={top3[2]} rank={3} delay={0.2} onSelect={handleOpenProfile} />}
@@ -814,85 +911,87 @@ export function LeaderboardPage() {
           )}
 
           {/* ── Full Rankings Table ── */}
-          <Card padded={false} hoverable={false} className="overflow-hidden mt-2">
-            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-card-border bg-surface-container">
-              <span className="w-10 shrink-0" />
-              <span className="w-9 shrink-0" />
-              <span className="flex-1 text-xs font-medium text-on-surface-variant">Student</span>
-              <div className="flex items-center gap-5 shrink-0">
-                <span className="flex items-center gap-1 text-xs font-medium text-on-surface-variant w-[4.5rem] justify-end">
-                  <Heart size={11} className="text-rose-500 fill-current" /> Likes
-                </span>
-                <span className="flex items-center gap-1 text-xs font-medium text-on-surface-variant w-[4.5rem] justify-end">
-                  <Eye size={11} /> Views
-                </span>
-                <span className="hidden sm:flex items-center gap-1 text-xs font-medium text-on-surface-variant w-20 justify-end">
-                  <Download size={11} /> Downloads
-                </span>
+          <Card padded={false} hoverable={false} className="w-full min-w-0 overflow-hidden mt-2">
+            <div className="w-full min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 py-2.5 border-b border-card-border bg-surface-container">
+                <span className="w-7 sm:w-10 shrink-0 text-center text-xs font-semibold text-on-surface-variant">#</span>
+                <span className="w-7 sm:w-8 shrink-0" />
+                <span className="flex-1 min-w-0 text-xs font-medium text-on-surface-variant">Student</span>
+                <div className="flex items-center gap-2.5 sm:gap-5 shrink-0">
+                  <span className="flex items-center gap-1 text-xs font-medium text-on-surface-variant w-11 sm:w-[4.5rem] justify-end">
+                    <Heart size={11} className="text-rose-500 fill-current" /> <span className="hidden sm:inline">Likes</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-xs font-medium text-on-surface-variant w-11 sm:w-[4.5rem] justify-end">
+                    <Eye size={11} /> <span className="hidden sm:inline">Views</span>
+                  </span>
+                  <span className="hidden sm:flex items-center gap-1 text-xs font-medium text-on-surface-variant w-20 justify-end">
+                    <Download size={11} /> Downloads
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div className="divide-y divide-card-border">
-              {sortedStudents.map((student, index) => {
-                const rank = index + 1;
-                const isTop3 = rank <= 3;
-                const isCurrentUser = !!(user && student.id === user.id);
+              <div className="divide-y divide-card-border">
+                {sortedStudents.map((student, index) => {
+                  const rank = index + 1;
+                  const isTop3 = rank <= 3;
+                  const isCurrentUser = !!(user && student.id === user.id);
 
-                return (
-                  <motion.div
-                    key={student.id}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.16, delay: Math.min(index * 0.035, 0.35) }}
-                    onClick={() => handleOpenProfile(student)}
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-3.5 transition-colors cursor-pointer group',
-                      isCurrentUser
-                        ? 'bg-primary/[0.04] border-l-2 border-l-primary'
-                        : 'hover:bg-surface-container'
-                    )}
-                  >
-                    <div
+                  return (
+                    <motion.div
+                      key={student.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.16, delay: Math.min(index * 0.035, 0.35) }}
+                      onClick={() => handleOpenProfile(student)}
                       className={cn(
-                        'w-10 shrink-0 flex items-center justify-center h-7 rounded-md text-xs font-semibold tabular-nums',
-                        rank === 1 && 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-                        rank === 2 && 'bg-slate-500/10 text-slate-500',
-                        rank === 3 && 'bg-orange-500/10 text-orange-500',
-                        !isTop3 && 'text-on-surface-variant'
+                        'flex items-center gap-1.5 sm:gap-3 px-3 sm:px-4 py-3 transition-colors cursor-pointer group',
+                        isCurrentUser
+                          ? 'bg-primary/[0.04] border-l-2 border-l-primary'
+                          : 'hover:bg-surface-container'
                       )}
                     >
-                      {isTop3 ? rankLabel(rank) : rank}
-                    </div>
-
-                    <Avatar src={student.avatar} name={student.name} size={34} className="shrink-0 transition-transform group-hover:scale-105" />
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="text-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
-                          {student.name}
-                        </p>
-                        {isCurrentUser && (
-                          <span className="rounded bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary shrink-0 leading-4">
-                            you
-                          </span>
+                      <div
+                        className={cn(
+                          'w-7 sm:w-10 shrink-0 flex items-center justify-center h-6 sm:h-7 rounded-md text-[11px] sm:text-xs font-semibold tabular-nums',
+                          rank === 1 && 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+                          rank === 2 && 'bg-slate-500/10 text-slate-500',
+                          rank === 3 && 'bg-orange-500/10 text-orange-500',
+                          !isTop3 && 'text-on-surface-variant'
                         )}
+                      >
+                        {isTop3 ? rankLabel(rank) : rank}
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-5 shrink-0">
-                      <span className="text-sm font-semibold text-on-surface tabular-nums w-[4.5rem] text-right">
-                        {student.totalLikes ?? 0}
-                      </span>
-                      <span className="text-sm font-semibold text-on-surface tabular-nums w-[4.5rem] text-right">
-                        {student.totalViews.toLocaleString()}
-                      </span>
-                      <span className="text-sm font-semibold text-on-surface tabular-nums w-20 text-right hidden sm:block">
-                        {student.totalDownloads.toLocaleString()}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                      <Avatar src={student.avatar} name={student.name} size={28} className="shrink-0 transition-transform group-hover:scale-105 sm:w-8 sm:h-8" />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+                            {student.name}
+                          </p>
+                          {isCurrentUser && (
+                            <span className="rounded bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary shrink-0 leading-4">
+                              you
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 sm:gap-5 shrink-0">
+                        <span className="text-xs sm:text-sm font-semibold text-on-surface tabular-nums w-11 sm:w-[4.5rem] text-right">
+                          {student.totalLikes ?? 0}
+                        </span>
+                        <span className="text-xs sm:text-sm font-semibold text-on-surface tabular-nums w-11 sm:w-[4.5rem] text-right">
+                          {student.totalViews.toLocaleString()}
+                        </span>
+                        <span className="text-sm font-semibold text-on-surface tabular-nums w-20 text-right hidden sm:block">
+                          {student.totalDownloads.toLocaleString()}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="px-4 py-2 border-t border-card-border bg-surface-container">
