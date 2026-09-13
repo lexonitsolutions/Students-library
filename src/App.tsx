@@ -26,6 +26,7 @@ import { CustomerSupportPage } from './pages/CustomerSupportPage';
 import { UploadPage } from './pages/UploadPage';
 import { AdminRoute } from './routes/AdminRoute';
 import { HomeGate } from './routes/HomeGate';
+import { RootGate } from './routes/RootGate';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { PublicOnlyRoute } from './routes/PublicOnlyRoute';
 
@@ -37,6 +38,8 @@ function App() {
           <WorkspaceProvider>
             <SignupRedirectProvider>
               <Routes>
+                <Route path="/" element={<RootGate />} />
+
                 <Route element={<PublicOnlyRoute />}>
                   <Route path="/get-started" element={<GetStartedPage />} />
                   <Route path="/onboarding" element={<GetStartedPage />} />
@@ -47,7 +50,6 @@ function App() {
 
                 <Route element={<ProtectedRoute />}>
                   <Route element={<AppShell />}>
-                    <Route index element={<HomeGate />} />
                     <Route path="/dashboard" element={<HomeGate />} />
                     <Route path="/messages" element={<MessagesPage />} />
                     <Route path="/leaderboard" element={<LeaderboardPage />} />
