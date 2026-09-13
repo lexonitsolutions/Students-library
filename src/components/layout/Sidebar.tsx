@@ -29,7 +29,7 @@ export function Sidebar() {
 
   const visibleNavItems = (
     isExploring
-      ? navItems.filter((item) => ['/', '/leaderboard', '/upload', '/library'].includes(item.to))
+      ? navItems.filter((item) => ['/dashboard', '/leaderboard', '/upload', '/library'].includes(item.to))
       : navItems
   ).filter((item) => item.to !== '/profile');
 

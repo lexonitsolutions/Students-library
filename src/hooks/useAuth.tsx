@@ -68,7 +68,8 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const ONBOARDED_KEY = 'quicklearnit.hasOnboarded';
+export const HAS_ACCOUNT_KEY = 'quicklearnit.has_account';
+export const ONBOARDED_KEY = 'quicklearnit.hasOnboarded';
 export const WORKSPACE_KEY = 'lexon.workspace';
 const EXPLORING_KEY = 'quicklearnit.isExploring';
 const GUEST_USER_KEY = 'quicklearnit.guest_user';
@@ -146,6 +147,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           if (!exchangeError && exchangeData?.session && active) {
             const sess = exchangeData.session;
             setSession(sess);
+            localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
             localStorage.setItem(ONBOARDED_KEY, 'true');
             setHasOnboarded(true);
             stopExploring();
@@ -163,6 +165,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         const currentSession = data.session;
         if (currentSession && isSessionVerified(currentSession)) {
           setSession(currentSession);
+          localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
+          localStorage.setItem(ONBOARDED_KEY, 'true');
           await loadProfile(currentSession.user.id);
           if (active) setLoading(false);
         } else {
@@ -184,6 +188,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (nextSession && isSessionVerified(nextSession)) {
         setSession(nextSession);
+        localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
+        localStorage.setItem(ONBOARDED_KEY, 'true');
         stopExploring();
         setLoading(true);
         loadProfile(nextSession.user.id).finally(() => setLoading(false));
@@ -215,6 +221,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const signIn = useCallback(async (params: authService.SignInParams) => {
     const { data, error } = await authService.signInWithPassword(params);
     if (!error) {
+      localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
       stopExploring();
@@ -231,6 +238,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const signInWithGoogle = useCallback(async (redirectTo?: string) => {
     const { error } = await authService.signInWithGoogle(redirectTo);
     if (!error) {
+      localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
       stopExploring();
@@ -246,6 +254,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const verifySignupOtp = useCallback(async (email: string, token: string) => {
     const { data, error } = await authService.verifySignupOtp(email, token);
     if (!error) {
+      localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
       stopExploring();
@@ -267,6 +276,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const verifyMobileOtp = useCallback(async (phone: string, token: string) => {
     const { data, error } = await authService.verifyMobileOtp(phone, token);
     if (!error) {
+      localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
       localStorage.setItem(ONBOARDED_KEY, 'true');
       setHasOnboarded(true);
       stopExploring();

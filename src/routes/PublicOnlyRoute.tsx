@@ -35,6 +35,11 @@ export function PublicOnlyRoute() {
     return <Navigate to={target} replace />;
   }
 
+  // If in guest explore mode and hitting the landing page, go directly to dashboard
+  if (isExploring && (location.pathname === '/get-started' || location.pathname === '/onboarding')) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <Outlet />;
 }
 
