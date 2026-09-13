@@ -5,7 +5,7 @@ import type { Material } from '../../data/types';
 import { cn } from '../../lib/cn';
 import { cleanDocumentTitle } from '../../lib/materialMapper';
 import { Avatar } from './Avatar';
-import { getLocalLikesCount, getLocalSharesCount, getLocalDownloadsCount } from '../../services/likesService';
+import { getLocalLikesCount, getLocalSharesCount, getLocalDownloadsCount, getLocalStorageLikedIds, toggleLike } from '../../services/likesService';
 import { useAuth } from '../../hooks/useAuth';
 import { useSignupRedirect } from '../../hooks/useSignupRedirect';
 
@@ -18,12 +18,16 @@ export interface DocumentPreviewCardProps {
 
 export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, className }: Readonly<DocumentPreviewCardProps>) {
   const navigate = useNavigate();
-  const { isExploring } = useAuth();
+  const { user, isExploring } = useAuth();
   const { openSignupModal } = useSignupRedirect();
   const [likesCount, setLikesCount] = useState(material.likes ?? 0);
   const [sharesCount, setSharesCount] = useState(material.shares ?? 0);
   const [downloadsCount, setDownloadsCount] = useState(material.downloads ?? 0);
   const [lazyPages, setLazyPages] = useState<number | undefined>(material.pages);
+  const [isLiked, setIsLiked] = useState(() => {
+    if (!user?.id) return false;
+    return getLocalStorageLikedIds(user.id).has(material.id);
+  });
 
   const handleDocumentClick = (e: React.MouseEvent) => {
     if (isExploring) {
@@ -33,11 +37,53 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
     }
   };
 
+  const handleLikeClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isExploring) {
+      openSignupModal(`/materials/${material.id}`);
+      return;
+    }
+    if (!user) {
+      navigate('/signin');
+      return;
+    }
+    try {
+      const res = await toggleLike(user.id, material.id, likesCount);
+      setIsLiked(res.isLiked);
+      setLikesCount(res.likesCount);
+    } catch (err) {
+      console.error('Failed to toggle like:', err);
+    }
+  };
+
   useEffect(() => {
     setLikesCount(getLocalLikesCount(material.id, material.likes ?? 0));
     setSharesCount(getLocalSharesCount(material.id, material.shares ?? 0));
     setDownloadsCount(getLocalDownloadsCount(material.id, material.downloads ?? 0));
-  }, [material.id, material.downloads, material.likes, material.shares]);
+    if (user?.id) {
+      setIsLiked(getLocalStorageLikedIds(user.id).has(material.id));
+    }
+  }, [material.id, material.downloads, material.likes, material.shares, user?.id]);
+
+  useEffect(() => {
+    const handleCountUpdate = (e: any) => {
+      if (e.detail?.materialId === material.id && typeof e.detail.count === 'number') {
+        setLikesCount(e.detail.count);
+      }
+    };
+    const handleLikesUpdate = (e: any) => {
+      if (user?.id && Array.isArray(e.detail?.ids)) {
+        setIsLiked(e.detail.ids.includes(material.id));
+      }
+    };
+    window.addEventListener('quicklearnit_likes_count_updated', handleCountUpdate);
+    window.addEventListener('quicklearnit_likes_updated', handleLikesUpdate);
+    return () => {
+      window.removeEventListener('quicklearnit_likes_count_updated', handleCountUpdate);
+      window.removeEventListener('quicklearnit_likes_updated', handleLikesUpdate);
+    };
+  }, [material.id, user?.id]);
 
   useEffect(() => {
     if (!material.pages && material.fileUrl) {
@@ -225,10 +271,27 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
         {/* Stats & Uploader Avatar */}
         <div className="mt-2 flex items-center justify-between gap-1.5 text-label-sm text-on-surface-variant font-medium">
           <div className="flex items-center gap-2.5 opacity-80">
-            <div className="flex items-center gap-1" title="Likes">
-              <Heart size={14} className={likesCount > 0 ? 'fill-primary text-primary' : ''} />
-              <span className="text-[12px] font-semibold">{likesCount > 0 ? likesCount.toLocaleString() : '0'}</span>
-            </div>
+            <button
+              type="button"
+              onClick={handleLikeClick}
+              className="flex items-center gap-1 hover:text-rose-500 transition-colors cursor-pointer group/like focus:outline-none"
+              title={isLiked ? 'Unlike' : 'Like'}
+            >
+              <Heart
+                size={14}
+                className={cn(
+                  'transition-all',
+                  isLiked
+                    ? 'fill-rose-500 text-rose-500 scale-110'
+                    : likesCount > 0
+                      ? 'fill-rose-500/20 text-rose-500'
+                      : 'text-on-surface-variant group-hover/like:text-rose-500'
+                )}
+              />
+              <span className={cn('text-[12px] font-semibold transition-colors', isLiked && 'text-rose-500 font-bold')}>
+                {likesCount > 0 ? likesCount.toLocaleString() : '0'}
+              </span>
+            </button>
             <div className="flex items-center gap-1" title="Downloads">
               <Download size={14} />
               <span className="text-[12px] font-semibold">{downloadsCount > 0 ? downloadsCount.toLocaleString() : '0'}</span>

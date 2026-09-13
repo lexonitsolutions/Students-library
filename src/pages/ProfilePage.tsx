@@ -141,11 +141,25 @@ export function ProfilePage() {
       }
     };
 
+    const handleLikesSync = (e: any) => {
+      if (user?.id) {
+        if (typeof e.detail?.count === 'number' && e.detail?.userId === user.id) {
+          setUserLikedCount(e.detail.count);
+        } else {
+          setUserLikedCount(getLocalStorageLikedIds(user.id).size);
+        }
+      }
+    };
+
     window.addEventListener('storage', handleSync);
     window.addEventListener('focus', handleSync);
+    window.addEventListener('quicklearnit_likes_updated', handleLikesSync);
+    window.addEventListener('quicklearnit_likes_count_updated', handleSync);
     return () => {
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('focus', handleSync);
+      window.removeEventListener('quicklearnit_likes_updated', handleLikesSync);
+      window.removeEventListener('quicklearnit_likes_count_updated', handleSync);
     };
   }, [user]);
 
@@ -273,23 +287,30 @@ export function ProfilePage() {
   }, 0);
 
   // 2. Count of materials liked by this user or likes received on uploads
-  const totalLikes = Math.max(uploadLikesReceived, userLikedCount);
+  const likedActivityCount = activityItems.filter((item) => (item as any).type === 'liked').length;
+  const totalLikes = Math.max(uploadLikesReceived, userLikedCount, likedActivityCount);
 
-  // 3. Original total views on user's uploads
-  const totalViews = uploads.reduce((acc, item) => acc + (item.views || 0), 0);
+  // 3. Total views: Views received on user's uploads OR materials viewed by the user
+  const viewedCount = activityItems.filter((item) => item.type === 'viewed').length;
+  const uploadViews = uploads.reduce((acc, item) => acc + (item.views || 0), 0);
+  const totalViews = Math.max(uploadViews, viewedCount);
 
-  // 4. Original total uploads (from database profile_stats, user.stats, or uploads array)
+  // 4. Total uploads (from database profile_stats, user.stats, uploads array, or activity)
+  const uploadedCount = activityItems.filter((item) => item.type === 'uploaded').length;
   const totalUploads = Math.max(
     user?.stats?.uploads ?? 0,
     dbStats?.uploads ?? 0,
-    uploads.length
+    uploads.length,
+    uploadedCount
   );
 
-  // 5. Original total saved (from database profile_stats, bookmarksService, and user.stats)
+  // 5. Total saved (from database profile_stats, bookmarksService, user.stats, or activity)
+  const savedActivityCount = activityItems.filter((item) => item.type === 'saved').length;
   const totalSaved = Math.max(
     user?.stats?.saved ?? 0,
     dbStats?.saved ?? 0,
-    savedCount
+    savedCount,
+    savedActivityCount
   );
 
   return (
