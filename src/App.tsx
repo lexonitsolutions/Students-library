@@ -39,6 +39,7 @@ function App() {
             <SignupRedirectProvider>
               <Routes>
                 <Route element={<PublicOnlyRoute />}>
+                  <Route path="/" element={<GetStartedPage />} />
                   <Route path="/get-started" element={<GetStartedPage />} />
                   <Route path="/onboarding" element={<GetStartedPage />} />
                   <Route path="/signin" element={<SignInPage />} />
@@ -48,7 +49,6 @@ function App() {
 
                 <Route element={<ProtectedRoute />}>
                   <Route element={<AppShell />}>
-                    <Route index element={<HomeGate />} />
                     <Route path="/dashboard" element={<HomeGate />} />
                     <Route path="/messages" element={<MessagesPage />} />
                     <Route path="/leaderboard" element={<LeaderboardPage />} />

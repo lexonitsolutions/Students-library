@@ -8,7 +8,7 @@ export interface NavItem {
 }
 
 export const navItems: readonly NavItem[] = [
-  { label: 'Home', to: '/', icon: Home },
+  { label: 'Home', to: '/dashboard', icon: Home },
   { label: 'Messages', to: '/messages', icon: MessageCircle },
   { label: 'Leaderboard', to: '/leaderboard', icon: Trophy },
   { label: 'Upload', to: '/upload', icon: UploadCloud },
