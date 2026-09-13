@@ -77,7 +77,7 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     views: row.views_count,
     downloads: row.downloads_count,
     saves: row.saves_count,
-    likes: row.likes_count ?? 0,
+    likes: row.saves_count ?? 0,
     shares: row.shares_count ?? 0,
     status: row.status,
     accentColor: accentColorFor(row.id),

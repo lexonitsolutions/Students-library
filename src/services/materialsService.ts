@@ -410,7 +410,7 @@ export async function listLeaderboardForUI(currentUserId?: string): Promise<Lead
     // Fetch views, likes, and types by counting materials
     const { data: materialsData } = await supabase
       .from('materials')
-      .select('id, uploader_id, views_count, likes_count, saves_count, downloads_count, type')
+      .select('id, uploader_id, views_count, saves_count, downloads_count, type')
       .in('uploader_id', userIds)
       .eq('status', 'approved');
 
@@ -424,7 +424,7 @@ export async function listLeaderboardForUI(currentUserId?: string): Promise<Lead
         viewsByUser.set(row.uploader_id, (viewsByUser.get(row.uploader_id) ?? 0) + (row.views_count ?? 0));
         downloadsByUser.set(row.uploader_id, (downloadsByUser.get(row.uploader_id) ?? 0) + (row.downloads_count ?? 0));
         
-        const baseLikes = (row.likes_count ?? 0) > 0 ? row.likes_count : (row.saves_count ?? 0);
+        const baseLikes = row.saves_count ?? 0;
         const local = typeof window !== 'undefined' ? getLocalLikesCount(row.id, baseLikes) : baseLikes;
         likesByUser.set(row.uploader_id, (likesByUser.get(row.uploader_id) ?? 0) + local);
 
