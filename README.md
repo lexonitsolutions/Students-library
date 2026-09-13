@@ -1,6 +1,6 @@
-# 📚 QuickLearnit
+# 📚 Studexa
 
-**QuickLearnit** is a modern, feature-rich digital library and study material sharing platform designed specifically for students and educators. It streamlines the sharing of academic resources such as lecture notes, textbooks, previous year question papers, lab manuals, and syllabus guides across different departments and semesters.
+**Studexa** is a modern, feature-rich digital library and study material sharing platform designed specifically for students and educators. It streamlines the sharing of academic resources such as lecture notes, textbooks, previous year question papers, lab manuals, and syllabus guides across different departments and semesters.
 
 ---
 
@@ -38,8 +38,8 @@ Ensure you have the following installed on your machine:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/lexonitsolutions/quicklearnit.git
-cd quicklearnit
+git clone https://github.com/lexonitsolutions/studexa.git
+cd studexa
 ```
 
 ### 2. Install Dependencies

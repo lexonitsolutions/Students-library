@@ -48,8 +48,8 @@ export function ProfileUploadsPage() {
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">My Uploads</h1>
-          <p className="mt-1 text-body-md font-medium text-on-surface-variant">Manage your contributed study materials.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">My Uploads</h1>
+          <p className="mt-1 text-xs sm:text-sm text-on-surface-variant">Manage your contributed study materials.</p>
         </div>
         <Link
           to="/upload"

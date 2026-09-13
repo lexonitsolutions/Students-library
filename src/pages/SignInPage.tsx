@@ -1,23 +1,41 @@
-import { ArrowRight, Eye, EyeOff, Smartphone, BookOpen, CheckCircle2, Lock, Mail, Award, Sparkles } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Eye, EyeOff, BookOpen, CheckCircle2, Lock, Mail, Award, Sparkles } from 'lucide-react';
+import { type FormEvent, useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../hooks/useWorkspace';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { AnimatedInput } from '../components/ui/AnimatedInput';
+import { Logo } from '../components/ui/Logo';
 
 export function SignInPage() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const emailFromStorage = sessionStorage.getItem('studexa_prefill_email');
+  const wasPasswordChanged = sessionStorage.getItem('studexa_password_changed') === 'true';
+
+  useEffect(() => {
+    if (wasPasswordChanged) {
+      sessionStorage.removeItem('studexa_password_changed');
+      sessionStorage.removeItem('studexa_prefill_email');
+    }
+  }, [wasPasswordChanged]);
+
+  const [email, setEmail] = useState(
+    (location.state as any)?.prefillEmail || emailFromStorage || '',
+  );
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showMobileInput, setShowMobileInput] = useState(false);
-  const [mobileNumber, setMobileNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const successMessage =
+    ((location.state as any)?.message as string | undefined) ||
+    (wasPasswordChanged
+      ? 'Password changed successfully! Please sign in with your new password.'
+      : undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [noAccountEmail, setNoAccountEmail] = useState<string | null>(null);
-  const { signIn, signInWithGoogle, sendMobileOtp, checkAccountStatus } = useAuth();
+  const { signIn, signInWithGoogle, checkAccountStatus } = useAuth();
   const { chooseWorkspace } = useWorkspace();
   const { getAndClearRedirectPath } = useSignupRedirect();
   const navigate = useNavigate();
@@ -70,13 +88,22 @@ export function SignInPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    setError(null);
-    const { error: googleError } = await signInWithGoogle();
-    if (googleError) setError(googleError);
+    try {
+      setIsGoogleLoading(true);
+      setError(null);
+      const { error: googleError } = await signInWithGoogle();
+      if (googleError) {
+        setError(googleError);
+        setIsGoogleLoading(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed');
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
-    <div className="flex min-h-screen bg-white text-on-surface">
+    <div className="flex min-h-screen bg-white text-on-surface overflow-x-hidden">
       {/* ── LEFT BRANDING PANEL (Desktop only) ── */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-slate-200/90 bg-gradient-to-br from-slate-100 via-[#EDF2F9] to-slate-100 relative overflow-hidden">
         {/* Subtle tinted grid pattern */}
@@ -86,13 +113,8 @@ export function SignInPage() {
 
         {/* Brand Header */}
         <div className="flex items-center gap-3 relative z-10">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-on-primary font-black text-lg shadow-sm">
-              Q
-            </div>
-            <span className="font-bold text-xl tracking-tight text-on-surface">
-              Quick<span className="text-primary">Learnit</span>
-            </span>
+          <Link to="/" className="flex items-center">
+            <Logo height={36} />
           </Link>
         </div>
 
@@ -166,11 +188,8 @@ export function SignInPage() {
       <div className="flex flex-1 flex-col justify-between p-6 sm:p-12 bg-white">
         {/* Mobile-only brand link */}
         <div className="flex items-center justify-between lg:hidden mb-6">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-on-primary font-black text-sm">
-              Q
-            </div>
-            <span className="font-bold text-lg text-on-surface">QuickLearnit</span>
+          <Link to="/" className="flex items-center">
+            <Logo height={30} />
           </Link>
           <Link to="/signup" className="text-xs font-semibold text-primary hover:underline">
             Sign up
@@ -189,6 +208,14 @@ export function SignInPage() {
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Sign in</h2>
             <p className="mt-1 text-sm text-on-surface-variant">Welcome back. Enter your credentials to access your library.</p>
           </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>{successMessage}</span>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -219,77 +246,33 @@ export function SignInPage() {
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs"
+              disabled={isGoogleLoading}
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              <span>Continue with Google</span>
+              {isGoogleLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
+                </svg>
+              )}
+              <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
             </button>
-
-            {showMobileInput ? (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setError(null);
-                  const phone = `+91${mobileNumber}`;
-                  const { error: otpError } = await sendMobileOtp(phone);
-                  if (otpError) {
-                    setError(otpError);
-                    return;
-                  }
-                  navigate('/verify-otp', { state: { target: phone, type: 'mobile' } });
-                }}
-                className="flex w-full items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/40 p-1.5 transition-all focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
-              >
-                <div className="flex items-center pl-2">
-                  <Smartphone className="h-4 w-4 text-primary" />
-                  <span className="ml-2 text-on-surface-variant text-xs font-semibold border-r border-indigo-200 pr-2">+91</span>
-                </div>
-                <AnimatedInput
-                  type="tel"
-                  className="flex-1 bg-transparent px-2 py-1 text-sm text-on-surface outline-none w-full placeholder:text-on-surface-variant/50"
-                  placeholder="98765 43210"
-                  pattern="[0-9]{10}"
-                  maxLength={10}
-                  inputMode="numeric"
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                  required
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="rounded-lg bg-primary hover:bg-primary-hover px-3 py-1.5 text-xs font-semibold text-on-primary transition-colors cursor-pointer"
-                >
-                  Verify
-                </button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowMobileInput(true)}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-indigo-200/90 bg-indigo-50/70 hover:bg-indigo-100/80 px-4 py-2.5 text-sm font-semibold text-indigo-700 transition-all cursor-pointer shadow-xs"
-              >
-                <Smartphone className="h-4 w-4 text-indigo-600" />
-                <span>Continue with Mobile</span>
-              </button>
-            )}
           </div>
 
           {/* Divider */}
@@ -374,7 +357,7 @@ export function SignInPage() {
 
         {/* Legal Footer */}
         <div className="text-center text-[11px] text-on-surface-variant">
-          Protected by university-grade encryption. QuickLearnit Academic Platform.
+          Protected by university-grade encryption. Studexa Academic Platform.
         </div>
       </div>
     </div>

@@ -94,32 +94,50 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
     const leftChars = leftPart.split('');
     const rightChars = rightPart.split('');
 
+    // Determine left padding to align overlay with native input
     let paddingLeft = 'pl-3';
-    if (className.includes('pl-12')) paddingLeft = 'pl-12';
-    else if (className.includes('pl-11')) paddingLeft = 'pl-11';
-    else if (className.includes('pl-10')) paddingLeft = 'pl-10';
-    else if (className.includes('pl-9')) paddingLeft = 'pl-9';
-    else if (className.includes('pl-8')) paddingLeft = 'pl-8';
-    else if (className.includes('pl-7')) paddingLeft = 'pl-7';
-    else if (className.includes('pl-6')) paddingLeft = 'pl-6';
-    else if (className.includes('px-4') || className.includes('p-4')) paddingLeft = 'pl-4';
-    else if (className.includes('px-3') || className.includes('p-3')) paddingLeft = 'pl-3';
-    else if (icon) paddingLeft = 'pl-10';
+    if (icon) {
+      paddingLeft = 'pl-10';
+    } else if (/\bpl-12\b/.test(className)) paddingLeft = 'pl-12';
+    else if (/\bpl-11\b/.test(className)) paddingLeft = 'pl-11';
+    else if (/\bpl-10\b/.test(className)) paddingLeft = 'pl-10';
+    else if (/\bpl-9\b/.test(className)) paddingLeft = 'pl-9';
+    else if (/\bpl-8\b/.test(className)) paddingLeft = 'pl-8';
+    else if (/\bpl-7\b/.test(className)) paddingLeft = 'pl-7';
+    else if (/\bpl-6\b/.test(className)) paddingLeft = 'pl-6';
+    else if (/\bpl-5\b/.test(className)) paddingLeft = 'pl-5';
+    else if (/\bpl-4\b|\bpx-4\b|\bp-4\b/.test(className)) paddingLeft = 'pl-4';
+    else if (/\bpl-3\.5\b|\bpx-3\.5\b/.test(className)) paddingLeft = 'pl-3.5';
+    else if (/\bpl-3\b|\bpx-3\b|\bp-3\b/.test(className)) paddingLeft = 'pl-3';
+    else if (/\bpl-2\.5\b|\bpx-2\.5\b/.test(className)) paddingLeft = 'pl-2.5';
+    else if (/\bpl-2\b|\bpx-2\b|\bp-2\b/.test(className)) paddingLeft = 'pl-2';
+    else if (/\bpl-1\.5\b|\bpx-1\.5\b/.test(className)) paddingLeft = 'pl-1.5';
+    else if (/\bpl-1\b|\bpx-1\b|\bp-1\b/.test(className)) paddingLeft = 'pl-1';
+    else if (/\bpl-0\.5\b|\bpx-0\.5\b/.test(className)) paddingLeft = 'pl-0.5';
+    else if (/\bpl-0\b|\bpx-0\b|\bp-0\b/.test(className)) paddingLeft = 'pl-0';
 
-    const paddingRight = className.includes('pr-10')
-      ? 'pr-10'
-      : className.includes('pr-12')
-      ? 'pr-12'
-      : className.includes('pr-8')
-      ? 'pr-8'
-      : className.includes('px-4') || className.includes('p-4')
-      ? 'pr-4'
-      : className.includes('px-3') || className.includes('p-3')
-      ? 'pr-3'
-      : 'pr-3';
+    // Determine right padding
+    let paddingRight = 'pr-3';
+    if (/\bpr-12\b/.test(className)) paddingRight = 'pr-12';
+    else if (/\bpr-10\b/.test(className)) paddingRight = 'pr-10';
+    else if (/\bpr-9\b/.test(className)) paddingRight = 'pr-9';
+    else if (/\bpr-8\b/.test(className)) paddingRight = 'pr-8';
+    else if (/\bpr-6\b/.test(className)) paddingRight = 'pr-6';
+    else if (/\bpr-5\b/.test(className)) paddingRight = 'pr-5';
+    else if (/\bpr-4\b|\bpx-4\b|\bp-4\b/.test(className)) paddingRight = 'pr-4';
+    else if (/\bpr-3\.5\b|\bpx-3\.5\b/.test(className)) paddingRight = 'pr-3.5';
+    else if (/\bpr-3\b|\bpx-3\b|\bp-3\b/.test(className)) paddingRight = 'pr-3';
+    else if (/\bpr-2\.5\b|\bpx-2\.5\b/.test(className)) paddingRight = 'pr-2.5';
+    else if (/\bpr-2\b|\bpx-2\b|\bp-2\b/.test(className)) paddingRight = 'pr-2';
+    else if (/\bpr-1\.5\b|\bpx-1\.5\b/.test(className)) paddingRight = 'pr-1.5';
+    else if (/\bpr-1\b|\bpx-1\b|\bp-1\b/.test(className)) paddingRight = 'pr-1';
+    else if (/\bpr-0\.5\b|\bpx-0\.5\b/.test(className)) paddingRight = 'pr-0.5';
+    else if (/\bpr-0\b|\bpx-0\b|\bp-0\b/.test(className)) paddingRight = 'pr-0';
+
+    const isFlex1 = /\bflex-1\b/.test(className);
 
     return (
-      <div className="relative w-full flex items-center text-on-surface">
+      <div className={`relative ${isFlex1 ? 'flex-1 min-w-0' : 'w-full'} flex items-center text-on-surface`}>
         {icon && (
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 dark:text-slate-500 z-[1]">
             {icon}

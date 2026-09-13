@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, BookMarked, History, Moon, Settings, Sun, User } from 'lucide-react';
+import { Bell, History, Menu, Moon, Settings, Sun, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,11 +9,16 @@ import { useIsDesktop } from '../../hooks/useMediaQuery';
 import type { AppNotification } from '../../data/types';
 import * as notificationsService from '../../services/notificationsService';
 import { Avatar } from '../ui/Avatar';
+import { Logo } from '../ui/Logo';
 import { IconButton } from '../ui/IconButton';
 import { NotificationList } from './NotificationList';
 import { GlobalSearch } from './GlobalSearch';
 
-export function TopBar() {
+interface TopBarProps {
+  readonly onMenuOpen?: () => void;
+}
+
+export function TopBar({ onMenuOpen }: TopBarProps) {
   const { user, isExploring } = useAuth();
   const { openSignupModal } = useSignupRedirect();
   const navigate = useNavigate();
@@ -74,27 +79,32 @@ export function TopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 flex h-16 items-center gap-4 border-b border-card-border bg-surface-container-low px-4 sm:px-6 lg:px-4 shadow-xs">
-      {/* Brand & Logo on Left */}
-      <div
-        className="flex items-center gap-3 w-56 shrink-0 cursor-pointer select-none"
-        onClick={() => navigate('/')}
+    <header className="sticky top-0 z-30 shrink-0 flex h-16 items-center gap-2 sm:gap-4 border-b border-card-border bg-surface-container-low px-3 sm:px-4 lg:px-5 shadow-xs">
+      {/* Hamburger button – mobile and tablet screens */}
+      <button
+        type="button"
+        onClick={onMenuOpen}
+        aria-label="Open navigation menu"
+        className="xl:hidden flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white font-bold shadow-xs">
-          <BookMarked size={20} />
-        </div>
-        <div>
-          <p className="text-body-md font-bold tracking-tight text-on-surface">QuickLearnit</p>
-          <p className="text-[11px] font-medium text-on-surface-variant">Student Learning Platform</p>
-        </div>
+        <Menu size={20} />
+      </button>
+
+      {/* Brand & Logo */}
+      <div
+        className="flex items-center shrink-0 cursor-pointer select-none transition-transform hover:opacity-95 active:scale-[0.98]"
+        onClick={() => navigate('/')}
+        title="Studexa Home"
+      >
+        <Logo imgClassName="h-[34px] sm:h-[38px] w-auto object-contain" />
       </div>
 
-      {/* ── Centered Global Search ── */}
+      {/* Centered Global Search – desktop only */}
       <div className="hidden flex-1 justify-center lg:flex">
         <GlobalSearch />
       </div>
 
-      <div className="relative ml-auto flex items-center gap-1.5 sm:gap-2">
+      <div className="relative ml-auto flex items-center gap-1 sm:gap-2">
         {/* Theme toggle (desktop only) - 2-state Light / Dark */}
         <button
           onClick={cycleTheme}
@@ -237,18 +247,24 @@ export function TopBar() {
             onClick={() => openSignupModal()}
             aria-label="Guest User"
             title="Guest Mode — Click to Sign Up"
-            className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer"
+            className="ml-1 sm:ml-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary border-2 border-primary/30 hover:bg-primary/20 hover:border-primary transition-all cursor-pointer shadow-xs"
           >
-            <User size={18} />
+            <User size={20} />
           </button>
         ) : (
           <button
             type="button"
             onClick={() => navigate('/profile')}
             aria-label="View profile"
-            className="ml-1 cursor-pointer"
+            title={user?.name ? `${user.name} — View Profile` : 'View Profile'}
+            className="ml-1 sm:ml-1.5 shrink-0 flex items-center justify-center rounded-full p-[2px] ring-2 ring-primary/40 hover:ring-primary dark:ring-primary/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer active:scale-95 group bg-surface-container-low"
           >
-            <Avatar name={user?.name ?? 'User'} src={user?.avatar} size={36} />
+            <Avatar
+              name={user?.name ?? 'User'}
+              src={user?.avatar}
+              size={38}
+              className="ring-1 ring-black/15 dark:ring-white/20 shadow-2xs group-hover:brightness-105 transition-all"
+            />
           </button>
         )}
       </div>

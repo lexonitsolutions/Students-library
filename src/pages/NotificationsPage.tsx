@@ -43,10 +43,10 @@ export function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface">
               {showHistory ? 'Notification History' : 'Notifications'}
             </h1>
             {showHistory && (
@@ -55,7 +55,7 @@ export function NotificationsPage() {
               </span>
             )}
           </div>
-          <p className="mt-1 text-body-md font-medium text-on-surface-variant">
+          <p className="mt-1 text-sm text-on-surface-variant">
             {showHistory
               ? 'Showing all notification history from the past 7 days.'
               : 'Stay updated with your latest academic activities.'}
@@ -67,7 +67,7 @@ export function NotificationsPage() {
           onClick={() => setShowHistory((prev) => !prev)}
           title={showHistory ? 'Show all notifications' : 'View past week notification history'}
           aria-label="Notification history"
-          className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-label-sm font-semibold transition-all shadow-xs cursor-pointer ${
+          className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-label-sm font-semibold transition-all shadow-xs cursor-pointer shrink-0 ${
             showHistory
               ? 'border-primary bg-primary text-white shadow-primary/20'
               : 'border-card-border bg-surface-container-low text-on-surface hover:border-primary/50 hover:text-primary'

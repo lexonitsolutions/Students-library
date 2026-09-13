@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion';
-import { Search, FileText, X, Upload } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, FileText, X, Upload, ChevronDown, Check } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
@@ -43,6 +43,19 @@ export function DashboardPage() {
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!categoryDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [categoryDropdownOpen]);
 
   const setSelectedCategory = (categoryType: string) => {
     setSelectedCategoryState(categoryType);
@@ -154,66 +167,168 @@ export function DashboardPage() {
       </div>
 
       {/* Materials Category Segmented Control Tabs */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base sm:text-lg font-bold tracking-tight text-on-surface">Categories & Materials</h2>
-        </div>
+      {(() => {
+        const currentCat = categories.find((c) => c.type === selectedCategory) || categories[0];
+        const CurrentCatIcon = categoryIcon[currentCat.icon] || FileText;
+        const currentCatCount = getCategoryCount(currentCat.type);
 
-        {/* Modern Elevated Segmented Control */}
-        <div className="inline-flex w-full sm:w-auto p-1 rounded-xl bg-surface-container-high/60 border border-card-border/70 backdrop-blur-xs shadow-2xs">
-          {categories.map((category) => {
-            const Icon = categoryIcon[category.icon] || FileText;
-            const count = getCategoryCount(category.type);
-            const isSelected = selectedCategory === category.type;
+        return (
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base sm:text-lg font-bold tracking-tight text-on-surface">Categories & Materials</h2>
+            </div>
 
-            return (
+            {/* Mobile Dropdown Selector (sm:hidden) */}
+            <div className="relative sm:hidden" ref={categoryDropdownRef}>
               <button
-                key={category.id}
                 type="button"
-                onClick={() => {
-                  setSelectedCategory(category.type);
-                  setSearchQuery(''); // Reset section search on category change
-                }}
-                className={cn(
-                  'group relative flex flex-1 sm:flex-initial items-center justify-center gap-2.5 rounded-lg px-4 py-2.5 text-[13.5px] font-medium transition-all duration-200 cursor-pointer select-none',
-                  isSelected
-                    ? 'text-on-surface font-semibold'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container/60'
-                )}
+                onClick={() => setCategoryDropdownOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-card-border/80 bg-surface-container-high/60 px-3.5 py-2.5 shadow-2xs backdrop-blur-xs transition-all active:scale-[0.99] cursor-pointer"
+                aria-expanded={categoryDropdownOpen}
+                aria-label="Select category"
               >
-                {isSelected && (
-                  <motion.div
-                    layoutId="activeSegmentedPill"
-                    className="absolute inset-0 rounded-lg bg-surface-bright shadow-xs border border-card-border/80"
-                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-2">
-                  <Icon
-                    size={17}
-                    strokeWidth={isSelected ? 2.2 : 1.8}
-                    className={cn(
-                      'transition-colors',
-                      isSelected ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface'
-                    )}
-                  />
-                  <span>{category.label}</span>
-                </span>
-                <span
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <CurrentCatIcon size={16} strokeWidth={2.2} />
+                  </div>
+                  <span className="truncate text-xs font-semibold text-on-surface">
+                    {currentCat.label}
+                  </span>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary ring-1 ring-primary/20">
+                    {loading ? '...' : currentCatCount}
+                  </span>
+                </div>
+
+                <ChevronDown
+                  size={17}
                   className={cn(
-                    'relative z-10 rounded-full px-2 py-0.5 text-[11.5px] font-semibold transition-colors duration-200',
-                    isSelected
-                      ? 'bg-primary/10 text-primary font-bold ring-1 ring-primary/20'
-                      : 'bg-surface-container-highest/80 text-on-surface-variant'
+                    'text-on-surface-variant transition-transform duration-200 shrink-0',
+                    categoryDropdownOpen && 'rotate-180 text-primary'
                   )}
-                >
-                  {loading ? '...' : count}
-                </span>
+                />
               </button>
-            );
-          })}
-        </div>
-      </div>
+
+              <AnimatePresence>
+                {categoryDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute left-0 right-0 top-full z-40 mt-1.5 overflow-hidden rounded-2xl border border-card-border bg-surface-container-low p-1.5 shadow-xl backdrop-blur-md"
+                  >
+                    <div className="space-y-1">
+                      {categories.map((category) => {
+                        const Icon = categoryIcon[category.icon] || FileText;
+                        const count = getCategoryCount(category.type);
+                        const isSelected = selectedCategory === category.type;
+
+                        return (
+                          <button
+                            key={category.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(category.type);
+                              setSearchQuery('');
+                              setCategoryDropdownOpen(false);
+                            }}
+                            className={cn(
+                              'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-medium transition-colors cursor-pointer',
+                              isSelected
+                                ? 'bg-primary/10 text-primary font-semibold'
+                                : 'text-on-surface hover:bg-surface-container hover:text-on-surface'
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Icon
+                                size={16}
+                                strokeWidth={isSelected ? 2.2 : 1.8}
+                                className={cn('shrink-0', isSelected ? 'text-primary' : 'text-on-surface-variant')}
+                              />
+                              <span className="truncate">{category.label}</span>
+                              <span
+                                className={cn(
+                                  'rounded-full px-1.5 py-0.5 text-[10px] font-bold shrink-0',
+                                  isSelected
+                                    ? 'bg-primary/20 text-primary'
+                                    : 'bg-surface-container-high text-on-surface-variant'
+                                )}
+                              >
+                                {loading ? '...' : count}
+                              </span>
+                            </div>
+
+                            {isSelected && (
+                              <Check size={16} className="text-primary shrink-0 ml-2" strokeWidth={2.5} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Tablet & Desktop Segmented Control Tabs (hidden sm:block) */}
+            <div className="hidden sm:block">
+              <div className="inline-flex min-w-max items-center p-1 rounded-xl bg-surface-container-high/60 border border-card-border/70 backdrop-blur-xs shadow-2xs gap-1">
+                {categories.map((category) => {
+                  const Icon = categoryIcon[category.icon] || FileText;
+                  const count = getCategoryCount(category.type);
+                  const isSelected = selectedCategory === category.type;
+
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(category.type);
+                        setSearchQuery(''); // Reset section search on category change
+                      }}
+                      className={cn(
+                        'group relative flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-[13.5px] font-medium transition-all duration-200 cursor-pointer select-none whitespace-nowrap shrink-0',
+                        isSelected
+                          ? 'text-on-surface font-semibold'
+                          : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container/60'
+                      )}
+                    >
+                      {isSelected && (
+                        <motion.div
+                          layoutId="activeSegmentedPill"
+                          className="absolute inset-0 rounded-lg bg-surface-bright shadow-xs border border-card-border/80"
+                          transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                        />
+                      )}
+                      <span className="relative z-10 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0">
+                        <Icon
+                          size={15}
+                          strokeWidth={isSelected ? 2.2 : 1.8}
+                          className={cn(
+                            'transition-colors shrink-0',
+                            isSelected ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface'
+                          )}
+                        />
+                        <span className="whitespace-nowrap">{category.label}</span>
+                      </span>
+                      <span
+                        className={cn(
+                          'relative z-10 rounded-full px-1.5 sm:px-2 py-0.5 text-[11px] font-semibold transition-colors duration-200 shrink-0',
+                          isSelected
+                            ? 'bg-primary/10 text-primary font-bold ring-1 ring-primary/20'
+                            : 'bg-surface-container-highest/80 text-on-surface-variant'
+                        )}
+                      >
+                        {loading ? '...' : count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Filtered Materials Display Section with Section-Specific Search Box */}
       <section>

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { createStudentQuery } from './queryService';
 
 export interface SupportTicket {
   id: string;
@@ -6,6 +7,7 @@ export interface SupportTicket {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhone?: string;
   category: string;
   priority: 'low' | 'normal' | 'urgent';
   subject: string;
@@ -77,7 +79,7 @@ export const FAQ_LIST: FAQItem[] = [
 ];
 
 function getTicketsKey(userId: string) {
-  return `quicklearnit.support_tickets_${userId}`;
+  return `studexa.support_tickets_${userId}`;
 }
 
 export function listUserTickets(userId: string): SupportTicket[] {
@@ -94,6 +96,7 @@ export async function createSupportTicket(params: {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhone?: string;
   category: string;
   priority: 'low' | 'normal' | 'urgent';
   subject: string;
@@ -108,6 +111,7 @@ export async function createSupportTicket(params: {
     userId: params.userId,
     userName: params.userName,
     userEmail: params.userEmail,
+    userPhone: params.userPhone,
     category: params.category,
     priority: params.priority,
     subject: params.subject.trim(),
@@ -116,7 +120,24 @@ export async function createSupportTicket(params: {
     createdAt: new Date().toISOString(),
   };
 
-  // 1. Save to local storage
+  // 1. Save to database student_queries table for Admin Query Management
+  try {
+    if (params.userId && params.userId !== 'guest') {
+      await createStudentQuery({
+        studentId: params.userId,
+        studentName: params.userName || 'Student',
+        studentEmail: params.userEmail || '',
+        studentPhone: params.userPhone || '',
+        category: params.category,
+        subject: params.subject,
+        description: params.message,
+      });
+    }
+  } catch (queryErr) {
+    console.warn('Failed to insert into student_queries:', queryErr);
+  }
+
+  // 2. Save to local storage
   if (params.userId) {
     const existing = listUserTickets(params.userId);
     existing.unshift(ticket);
@@ -127,12 +148,12 @@ export async function createSupportTicket(params: {
     }
   }
 
-  // 2. Add notification for user confirming receipt
+  // 3. Add notification for user confirming receipt
   try {
     await supabase.from('notifications').insert({
       user_id: params.userId,
       type: 'system',
-      title: `Support Ticket Received (#${ticketNumber})`,
+      title: `Query Received (#${ticketNumber})`,
       description: `Your inquiry regarding "${ticket.subject}" has been received. Our team will review it shortly.`,
       read: false,
     });

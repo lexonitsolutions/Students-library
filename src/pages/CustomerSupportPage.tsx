@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ChevronDown,
   HelpCircle,
+  Phone,
   Search,
   Send,
   UserCheck,
@@ -30,6 +31,7 @@ export function CustomerSupportPage() {
 
   // Form state
   const [category, setCategory] = useState<string>(SUPPORT_CATEGORIES[0]);
+  const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,7 +54,7 @@ export function CustomerSupportPage() {
 
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject.trim() || !message.trim()) return;
+    if (!subject.trim() || !message.trim() || !phone.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -60,6 +62,7 @@ export function CustomerSupportPage() {
         userId: user?.id || 'guest',
         userName: user?.name || 'Student',
         userEmail: user?.email || '',
+        userPhone: phone.trim(),
         category,
         priority: 'normal',
         subject,
@@ -69,6 +72,7 @@ export function CustomerSupportPage() {
       setSubmittedTicket(ticket);
       setSubject('');
       setMessage('');
+      setPhone('');
       setCategory(SUPPORT_CATEGORIES[0]);
     } catch (err) {
       console.error('Failed to create ticket:', err);
@@ -82,7 +86,7 @@ export function CustomerSupportPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-20">
+    <div className="mx-auto max-w-3xl w-full px-4 sm:px-6 pb-20">
       {/* ── Top Navigation / Back ── */}
       <div className="mb-6 pt-2">
         <button
@@ -107,73 +111,90 @@ export function CustomerSupportPage() {
       </div>
 
       {/* ── Segmented Tab Switcher ── */}
-      <div className="mb-8 flex border-b border-card-border">
+      <div className="mb-6 flex w-full border-b border-card-border overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab('ticket')}
           className={cn(
-            'flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-all cursor-pointer',
+            'relative flex flex-1 sm:flex-initial items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-3 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0',
             activeTab === 'ticket'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-on-surface-variant hover:text-on-surface'
+              ? 'text-primary'
+              : 'text-on-surface-variant hover:text-on-surface'
           )}
         >
           <Send size={15} />
-          <span>Submit a Ticket</span>
+          <span>Feedback &amp; Queries</span>
+          {activeTab === 'ticket' && (
+            <motion.div
+              layoutId="support-tab-underline"
+              className="absolute inset-x-0 -bottom-px h-0.5 bg-primary"
+              transition={{ duration: 0.2 }}
+            />
+          )}
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('faq')}
           className={cn(
-            'flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-all cursor-pointer',
+            'relative flex flex-1 sm:flex-initial items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-3 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0',
             activeTab === 'faq'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-on-surface-variant hover:text-on-surface'
+              ? 'text-primary'
+              : 'text-on-surface-variant hover:text-on-surface'
           )}
         >
           <HelpCircle size={15} />
           <span>Student FAQs</span>
+          {activeTab === 'faq' && (
+            <motion.div
+              layoutId="support-tab-underline"
+              className="absolute inset-x-0 -bottom-px h-0.5 bg-primary"
+              transition={{ duration: 0.2 }}
+            />
+          )}
         </button>
       </div>
 
-      {/* ── Tab 1: Submit Ticket ── */}
+      {/* ── Tab 1: Feedback & Queries ── */}
       {activeTab === 'ticket' && (
         <div>
           {submittedTicket ? (
-            /* Success confirmation card */
-            <Card className="p-6 sm:p-8 text-center border-card-border shadow-xs">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-4">
-                <CheckCircle2 size={28} />
+            /* Clean Developer-Style Confirmation Card */
+            <Card className="p-8 sm:p-10 text-center border-card-border shadow-xs bg-surface-container-low/40">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 mb-4 shadow-2xs">
+                <CheckCircle2 size={24} strokeWidth={2.2} />
               </div>
-              <h2 className="text-lg font-bold text-on-surface">Support Ticket Received</h2>
-              <p className="mt-1 text-xs sm:text-sm text-on-surface-variant max-w-md mx-auto">
-                Thank you! Your ticket has been logged and assigned reference ID{' '}
-                <span className="font-mono font-bold text-primary">#{submittedTicket.ticketNumber}</span>.
-                Our team will review your inquiry and follow up shortly.
+
+              <h2 className="text-xl font-bold tracking-tight text-on-surface">
+                Query Received
+              </h2>
+
+              <p className="mt-2 text-xs sm:text-sm text-on-surface-variant max-w-sm mx-auto leading-relaxed">
+                Thanks for reaching out! Our team has received your query and will review it shortly.
               </p>
 
-              <div className="mt-6 mx-auto max-w-md rounded-xl border border-card-border bg-surface-container p-4 text-left text-xs space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Ticket ID:</span>
-                  <span className="font-mono font-semibold text-on-surface">#{submittedTicket.ticketNumber}</span>
+              {/* Minimal summary pill card */}
+              <div className="mt-6 mx-auto max-w-sm rounded-xl border border-card-border/70 bg-surface-container/60 p-3.5 text-left text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-on-surface-variant font-medium">Category</span>
+                  <span className="font-semibold text-on-surface">{submittedTicket.category}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Category:</span>
-                  <span className="font-medium text-on-surface">{submittedTicket.category}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Subject:</span>
-                  <span className="font-medium text-on-surface truncate max-w-[220px]">{submittedTicket.subject}</span>
+                {submittedTicket.userPhone && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-on-surface-variant font-medium">Contact Mobile</span>
+                    <span className="font-semibold text-on-surface font-mono">{submittedTicket.userPhone}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-on-surface-variant font-medium">Subject</span>
+                  <span className="font-semibold text-on-surface truncate max-w-[200px]">{submittedTicket.subject}</span>
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-center gap-3">
-                <Button variant="primary" size="sm" onClick={handleResetForm}>
-                  Submit Another Ticket
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => setActiveTab('faq')}>
-                  Browse FAQs
+              {/* Single clean action button */}
+              <div className="mt-7 flex justify-center">
+                <Button variant="primary" size="sm" onClick={handleResetForm} className="px-6 py-2.5 text-xs font-semibold">
+                  Submit Another Query
                 </Button>
               </div>
             </Card>
@@ -181,7 +202,7 @@ export function CustomerSupportPage() {
             <Card className="p-6 sm:p-8 border-card-border shadow-xs">
               <form onSubmit={handleSubmitTicket} className="space-y-6">
                 <div>
-                  <h2 className="text-base font-semibold text-on-surface">Submit Support Ticket</h2>
+                  <h2 className="text-base font-semibold text-on-surface">Feedback & Queries</h2>
                   <p className="text-xs text-on-surface-variant mt-0.5">
                     Fill out the details below and an academic moderator or admin will review your inquiry.
                   </p>
@@ -198,6 +219,31 @@ export function CustomerSupportPage() {
                   <span className="text-on-surface-variant font-mono text-[11px]">
                     {user?.email || 'Registered Student'}
                   </span>
+                </div>
+
+                {/* Mobile Number */}
+                <div>
+                  <label htmlFor="ticket-phone" className="block text-xs font-semibold text-on-surface mb-1.5">
+                    Mobile Number <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Phone
+                      size={14}
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant"
+                    />
+                    <input
+                      id="ticket-phone"
+                      type="tel"
+                      required
+                      placeholder="e.g., +91 98765 43210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full rounded-xl border border-card-border bg-surface-container pl-9 pr-3.5 py-2.5 text-xs text-on-surface placeholder:text-outline focus:border-primary focus:outline-none transition-colors font-mono"
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-on-surface-variant">
+                    Admins will contact you directly via this mobile number or email regarding your query.
+                  </p>
                 </div>
 
                 {/* Category select */}
@@ -262,11 +308,11 @@ export function CustomerSupportPage() {
                   <Button
                     type="submit"
                     variant="primary"
-                    disabled={isSubmitting || !subject.trim() || !message.trim()}
+                    disabled={isSubmitting || !subject.trim() || !message.trim() || !phone.trim()}
                     className="px-6 py-2.5 text-xs font-semibold"
                   >
                     <Send size={14} className="mr-1.5" />
-                    <span>{isSubmitting ? 'Submitting Ticket...' : 'Submit Support Ticket'}</span>
+                    <span>{isSubmitting ? 'Submitting Query...' : 'Submit Query'}</span>
                   </Button>
                 </div>
               </form>

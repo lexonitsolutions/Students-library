@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Avatar } from '../ui/Avatar';
+import { PdfViewer } from '../ui/PdfViewer';
 import { cleanDocumentTitle } from '../../lib/materialMapper';
 import { parseRejectionMeta, type ModerationItem } from '../../services/adminService';
 
@@ -112,7 +113,7 @@ export function AdminMaterialViewerModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97, y: 12 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-6xl h-[90vh] max-h-[860px] flex flex-col rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 shadow-2xl shadow-slate-950/30 overflow-hidden z-10"
+          className="relative w-full max-w-[min(90vw,1152px)] h-[90vh] max-h-[860px] flex flex-col rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 shadow-2xl shadow-slate-950/30 overflow-hidden z-10"
         >
           {/* Top Bar Header */}
           <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-zinc-800 px-5 py-2.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shrink-0">
@@ -171,7 +172,7 @@ export function AdminMaterialViewerModal({
           {/* 2-Column Workstation Layout */}
           <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
             {/* Left Column: Dedicated Document Canvas */}
-            <div className="flex-1 flex flex-col bg-slate-950 dark:bg-[#080a0f] relative overflow-hidden min-h-[360px] lg:min-h-0">
+            <div className="flex-1 flex flex-col bg-slate-950 dark:bg-[#080a0f] relative overflow-hidden min-h-[240px] sm:min-h-[360px] lg:min-h-0">
               {/* Document Stage Viewport */}
               <div className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-hidden relative">
                 {isImageFile ? (
@@ -210,12 +211,13 @@ export function AdminMaterialViewerModal({
                     </div>
                   )
                 ) : item.fileUrl ? (
-                  <iframe
-                    title={item.title}
-                    src={`${item.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                    scrolling="no"
-                    className="h-full w-full rounded-lg border border-white/10 shadow-2xl overflow-hidden bg-white"
-                  />
+                  <div className="h-full w-full rounded-lg border border-white/10 shadow-2xl overflow-hidden bg-white">
+                    <PdfViewer
+                      fileUrl={item.fileUrl}
+                      title={item.title}
+                      className="h-full w-full"
+                    />
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-2 text-zinc-500">
                     <FileText size={42} strokeWidth={1.5} />
@@ -251,7 +253,7 @@ export function AdminMaterialViewerModal({
             </div>
 
             {/* Right Column: Sleek Inspection Panel */}
-            <div className="w-full lg:w-[380px] bg-slate-50/70 dark:bg-zinc-900/90 border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-zinc-800 flex flex-col justify-between overflow-y-auto p-5 sm:p-6 space-y-6 shrink-0">
+            <div className="w-full lg:w-[380px] bg-slate-50/70 dark:bg-zinc-900/90 border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-zinc-800 flex flex-col justify-between max-h-[50vh] lg:max-h-none overflow-y-auto p-5 sm:p-6 space-y-6 shrink-0">
               <div className="space-y-5">
                 {/* Subject & Category Pills */}
                 <div className="flex flex-wrap items-center gap-2">

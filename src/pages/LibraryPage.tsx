@@ -301,19 +301,19 @@ export function LibraryPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           <Button
             variant="primary"
             size="sm"
             onClick={() => navigate('/upload')}
-            className="gap-1.5 text-xs"
+            className="gap-1.5 text-xs shadow-2xs"
           >
             <Plus size={15} />
             <span>Upload Material</span>
           </Button>
 
           {activeTab !== 'Recent Activity' && (
-            <div className="flex items-center rounded-xl border border-card-border bg-surface-container-low p-0.5">
+            <div className="flex items-center rounded-xl border border-card-border bg-surface-container-low p-0.5 shadow-2xs">
               <button
                 type="button"
                 title="Grid View"
@@ -346,7 +346,7 @@ export function LibraryPage() {
       </div>
 
       {/* ── Tabs Navigation ── */}
-      <div className="flex items-center gap-2 border-b border-card-border overflow-x-auto">
+      <div className="flex w-full items-center border-b border-card-border overflow-x-auto no-scrollbar">
         {tabs.map((tab) => {
           const isActive = tab === activeTab;
           const count =
@@ -362,15 +362,27 @@ export function LibraryPage() {
               type="button"
               onClick={() => setActiveTab(tab)}
               className={cn(
-                'relative flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
+                'relative flex flex-1 sm:flex-initial items-center justify-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0',
                 isActive ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface',
               )}
             >
-              <span>{tab}</span>
+              <span>
+                {tab === 'Manage Uploads' ? (
+                  <>
+                    <span className="hidden sm:inline">Manage </span>Uploads
+                  </>
+                ) : tab === 'Recent Activity' ? (
+                  <>
+                    Recent<span className="hidden sm:inline"> Activity</span>
+                  </>
+                ) : (
+                  tab
+                )}
+              </span>
               {count !== null && (
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors',
+                    'rounded-full px-1.5 sm:px-2 py-0.5 text-[10px] font-bold transition-colors',
                     isActive
                       ? 'bg-primary/10 text-primary'
                       : 'bg-surface-container text-on-surface-variant',
@@ -394,7 +406,7 @@ export function LibraryPage() {
       {/* ── Sub-header: Search & Status Filters ── */}
       {activeTab !== 'Recent Activity' && items.length > 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative w-full sm:flex-1 sm:max-w-sm">
             <Search
               size={15}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none"

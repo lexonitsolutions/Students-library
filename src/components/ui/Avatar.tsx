@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { cn } from '../../lib/cn';
 
 export interface AvatarProps {
@@ -8,6 +9,12 @@ export interface AvatarProps {
 }
 
 export function Avatar({ src, name, size = 40, className }: Readonly<AvatarProps>) {
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [src]);
+
   const safeName = (name && typeof name === 'string' ? name.trim() : '') || 'User';
 
   const initials = safeName
@@ -18,18 +25,19 @@ export function Avatar({ src, name, size = 40, className }: Readonly<AvatarProps
     .join('')
     .toUpperCase() || '?';
 
-  if (src && typeof src === 'string' && src.trim()) {
+  if (src && typeof src === 'string' && src.trim() && !imageError) {
     return (
       <img
         src={src}
         alt={safeName}
         width={size}
         height={size}
+        referrerPolicy="no-referrer"
         className={cn('rounded-full object-cover bg-surface-container shrink-0', className)}
         style={{ width: size, height: size }}
-        onError={(e) => {
+        onError={() => {
           // If image fails to load, gracefully fall back to initials
-          e.currentTarget.style.display = 'none';
+          setImageError(true);
         }}
       />
     );

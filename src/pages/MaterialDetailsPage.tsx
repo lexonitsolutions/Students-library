@@ -18,6 +18,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { DocumentPreviewCard } from '../components/ui/DocumentPreviewCard';
+import { PdfViewer } from '../components/ui/PdfViewer';
 import { SignupPromptModal } from '../components/ui/SignupPromptModal';
 import { UserProfilePanel, type UploaderProfile } from '../components/ui/UserProfilePanel';
 import type { Material } from '../data/types';
@@ -246,7 +247,7 @@ export function MaterialDetailsPage() {
       if (navigator.share) {
         await navigator.share({
           title: material?.title,
-          text: `Check out ${material?.title} on QuickLearnit!`,
+          text: `Check out ${material?.title} on Studexa!`,
           url: window.location.href,
         });
       } else {
@@ -410,7 +411,7 @@ export function MaterialDetailsPage() {
           <div className="lg:col-span-8 flex flex-col gap-4">
             <div className="overflow-hidden rounded-2xl border border-card-border bg-surface-container-low shadow-card">
               
-              {/* Top Chrome / Toolbar (WITHOUT PAGE 1 OF 1 & FULLSCREEN) */}
+              {/* Top Chrome / Toolbar */}
               <div className="flex items-center justify-between gap-3 border-b border-card-border bg-surface-container px-4 py-2.5 select-none">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs">
@@ -420,17 +421,28 @@ export function MaterialDetailsPage() {
                     <span className="rounded bg-surface-container-high px-1.5 py-0.5 text-[10px] font-bold text-on-surface tracking-wider">
                       {fileExt}
                     </span>
-                    <span className="text-xs font-medium text-on-surface-variant truncate max-w-[280px] sm:max-w-[450px]">
+                    <span className="text-xs font-medium text-on-surface-variant truncate max-w-[200px] sm:max-w-[450px]">
                       {cleanTitle}
                     </span>
                   </div>
                 </div>
+
+                {/* Direct quick fullscreen reader button */}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/reader/${material.id}`)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all cursor-pointer shrink-0"
+                  title="Open full screen reader"
+                >
+                  <BookOpen size={13} />
+                  <span>Reader</span>
+                </button>
               </div>
 
               {/* Document Canvas Stage */}
-              <div className="relative flex min-h-[580px] sm:min-h-[660px] lg:min-h-[720px] w-full items-center justify-center bg-slate-100/60 dark:bg-slate-900/40 p-3 sm:p-6 overflow-hidden">
+              <div className="relative flex min-h-[440px] sm:min-h-[560px] lg:min-h-[700px] w-full items-center justify-center bg-slate-100/60 dark:bg-slate-900/40 p-2 sm:p-6">
                 {isImageFile ? (
-                  <div className="relative flex h-[580px] sm:h-[640px] w-full items-center justify-center">
+                  <div className="relative flex h-[440px] sm:h-[540px] lg:h-[640px] w-full items-center justify-center overflow-auto">
                     <img
                       src={material.fileUrl}
                       alt={cleanTitle}
@@ -439,15 +451,20 @@ export function MaterialDetailsPage() {
                   </div>
                 ) : isOfficeDocument ? (
                   isPublicUrl ? (
-                    <div className="h-[620px] sm:h-[680px] w-full rounded-xl bg-white shadow-md border border-card-border/80 overflow-hidden">
+                    <div
+                      className="h-[440px] sm:h-[580px] lg:h-[680px] w-full rounded-xl bg-white shadow-md border border-card-border/80 overflow-y-auto overflow-x-auto"
+                      style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+                    >
                       <iframe
                         title={cleanTitle}
                         src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.fileUrl)}`}
-                        className="h-full w-full border-0"
+                        className="h-full w-full border-0 min-h-full min-w-full"
+                        scrolling="yes"
+                        style={{ touchAction: 'pan-y' }}
                       />
                     </div>
                   ) : (
-                    <div className="flex h-[420px] w-full flex-col items-center justify-center gap-4 rounded-xl bg-surface p-6 text-center border border-card-border">
+                    <div className="flex h-[360px] sm:h-[420px] w-full flex-col items-center justify-center gap-4 rounded-xl bg-surface p-6 text-center border border-card-border">
                       <FileText size={48} className="text-primary/60" />
                       <div>
                         <h3 className="text-base font-bold text-on-surface">Local Document Preview</h3>
@@ -461,15 +478,28 @@ export function MaterialDetailsPage() {
                     </div>
                   )
                 ) : (
-                  /* High Quality PDF Viewport */
-                  <div className="h-[600px] sm:h-[660px] lg:h-[700px] w-full max-w-3xl rounded-xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-card-border/80 overflow-hidden">
-                    <iframe
+                  /* High Quality Native Touch-Scrollable PDF Viewport */
+                  <div className="h-[460px] sm:h-[580px] lg:h-[700px] w-full max-w-3xl rounded-xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-card-border/80 overflow-hidden">
+                    <PdfViewer
+                      fileUrl={material.fileUrl}
                       title={cleanTitle}
-                      src={`${material.fileUrl}#view=FitH&toolbar=0&navpanes=0`}
-                      className="h-full w-full border-0"
+                      className="h-full w-full"
                     />
                   </div>
                 )}
+              </div>
+
+              {/* Mobile Quick Helper Bar */}
+              <div className="sm:hidden flex items-center justify-between px-3.5 py-2 bg-surface-container-high/40 border-t border-card-border text-[11px] text-on-surface-variant">
+                <span>Swipe inside document to scroll</span>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/reader/${material.id}`)}
+                  className="font-semibold text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  <span>Full screen</span>
+                  <ChevronRight size={13} />
+                </button>
               </div>
             </div>
           </div>

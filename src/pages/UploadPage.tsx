@@ -249,7 +249,7 @@ export function UploadPage() {
       </div>
 
       {/* Segmented Category Selector */}
-      <div className="flex p-1 rounded-xl bg-surface-container-high/60 border border-card-border/70 relative">
+      <div className="flex p-1 rounded-xl bg-surface-container-high/60 border border-card-border/70 relative overflow-x-auto">
         {uploadCategories.map((cat) => {
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
@@ -259,7 +259,7 @@ export function UploadPage() {
               type="button"
               onClick={() => handleCategoryChange(cat.id)}
               className={cn(
-                'relative flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-colors duration-150 cursor-pointer select-none',
+                'relative flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 py-2 px-1.5 sm:px-3 rounded-lg text-[11px] sm:text-xs font-semibold transition-colors duration-150 cursor-pointer select-none',
                 isActive
                   ? 'text-primary font-bold'
                   : 'text-on-surface-variant hover:text-on-surface'
@@ -272,9 +272,9 @@ export function UploadPage() {
                   transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                 />
               )}
-              <span className="relative z-10 flex items-center gap-2">
-                <Icon size={15} />
-                <span>{cat.badge}</span>
+              <span className="relative z-10 flex items-center gap-1.5 min-w-0">
+                <Icon size={14} className="shrink-0" />
+                <span className="truncate">{cat.badge}</span>
               </span>
             </button>
           );

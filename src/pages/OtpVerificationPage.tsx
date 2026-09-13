@@ -151,7 +151,7 @@ export function OtpVerificationPage() {
   const isGmail = target.toLowerCase().includes('gmail.com');
 
   return (
-    <div className="flex min-h-screen flex-col justify-between bg-surface-container-lowest text-on-surface p-6 sm:p-10">
+    <div className="flex min-h-screen flex-col justify-between bg-surface-container-lowest text-on-surface p-4 sm:p-10">
       {/* Brand Header */}
       <div className="w-full max-w-5xl mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
@@ -165,18 +165,19 @@ export function OtpVerificationPage() {
 
         <Link
           to="/signup"
-          className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors bg-surface-container border border-card-border px-3.5 py-2 rounded-xl hover:bg-surface-container-high"
+          className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors bg-surface-container border border-card-border px-2.5 sm:px-3.5 py-2 rounded-xl hover:bg-surface-container-high"
         >
           <ArrowLeft size={14} />
-          <span>Back to Sign Up</span>
+          <span className="hidden sm:inline">Back to Sign Up</span>
+          <span className="sm:hidden">Back</span>
         </Link>
       </div>
 
       {/* Center Card */}
-      <div className="w-full max-w-md mx-auto my-auto py-8">
-        <div className="rounded-2xl border border-card-border bg-surface-container-low p-7 sm:p-9 shadow-md text-center">
+      <div className="w-full max-w-md mx-auto my-auto py-6 sm:py-8">
+        <div className="rounded-2xl border border-card-border bg-surface-container-low p-5 sm:p-8 shadow-md text-center">
           {/* Icon */}
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
+          <div className="mx-auto mb-5 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
             {type === 'mobile' ? (
               <Smartphone className="h-8 w-8" />
             ) : (
@@ -270,7 +271,7 @@ export function OtpVerificationPage() {
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-[11px]">
                     1
                   </span>
-                  <span>Check your email inbox for a message from <strong>QuickLearnit</strong>.</span>
+                  <span>Check your email inbox for a message from <strong>Studexa</strong>.</span>
                 </div>
                 <div className="flex items-start gap-2.5 text-xs text-on-surface">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-[11px]">
@@ -368,7 +369,7 @@ export function OtpVerificationPage() {
 
       {/* Bottom Footer note */}
       <div className="text-center text-xs text-on-surface-variant">
-        Protected by QuickLearnit Security • Academic Learning Platform
+        Protected by Studexa Security • Academic Learning Platform
       </div>
     </div>
   );

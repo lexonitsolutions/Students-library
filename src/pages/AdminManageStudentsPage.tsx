@@ -221,7 +221,7 @@ export function AdminManageStudentsPage() {
             />
           </div>
 
-          <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-surface-container border border-card-border select-none self-start sm:self-auto">
+          <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-surface-container border border-card-border select-none self-start sm:self-auto overflow-x-auto">
             <button
               type="button"
               onClick={() => setFilterType('all')}
