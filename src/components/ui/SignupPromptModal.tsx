@@ -4,10 +4,10 @@ import {
   ArrowRight, 
   Download, 
   Bookmark, 
-  ShieldCheck, 
-  GraduationCap 
+  ShieldCheck
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { Logo } from './Logo';
 
 export interface SignupPromptModalProps {
   readonly isOpen: boolean;
@@ -37,7 +37,7 @@ export function SignupPromptModal({ isOpen, onClose, onSignup }: Readonly<Signup
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="Sign up for Lexon"
+            aria-label="Sign up for Studexa"
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -58,15 +58,15 @@ export function SignupPromptModal({ isOpen, onClose, onSignup }: Readonly<Signup
 
             {/* Header / Brand Badge */}
             <div className="flex items-center gap-3 mb-4 pt-1">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/60 text-indigo-600 dark:text-indigo-400 shrink-0">
-                <GraduationCap size={22} strokeWidth={2.2} />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/60 shrink-0 p-2">
+                <Logo variant="icon" imgClassName="h-7 w-7 object-contain" />
               </div>
               <div>
                 <span className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                   Student Library
                 </span>
                 <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
-                  Get full access on Lexon
+                  Get full access on Studexa
                 </h2>
               </div>
             </div>
