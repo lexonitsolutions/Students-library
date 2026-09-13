@@ -7,23 +7,17 @@ const LOCAL_SHARES_COUNT_PREFIX = 'quicklearnit_shares_count_';
 const LOCAL_DOWNLOADS_COUNT_PREFIX = 'quicklearnit_downloads_count_';
 const LOCAL_DOWNLOADED_KEY_PREFIX = 'quicklearnit_downloaded_ids_';
 
-// In-memory set cache for current user's liked material IDs
-let cachedUserLikedIds = new Map<string, Set<string>>();
 // In-memory set cache for user's downloaded material IDs
 let cachedUserDownloadedIds = new Map<string, Set<string>>();
 
 export function getLocalStorageLikedIds(userId: string): Set<string> {
-  if (cachedUserLikedIds.has(userId)) {
-    return cachedUserLikedIds.get(userId)!;
-  }
+  if (!userId) return new Set();
   try {
     const raw = localStorage.getItem(`${LOCAL_LIKED_KEY_PREFIX}${userId}`);
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) {
-        const set = new Set<string>(arr);
-        cachedUserLikedIds.set(userId, set);
-        return set;
+        return new Set<string>(arr);
       }
     }
   } catch {
@@ -32,24 +26,32 @@ export function getLocalStorageLikedIds(userId: string): Set<string> {
   return new Set();
 }
 
-function saveLocalStorageLikedIds(userId: string, ids: Set<string>): void {
-  cachedUserLikedIds.set(userId, ids);
+export function saveLocalStorageLikedIds(userId: string, ids: Set<string>): void {
+  if (!userId) return;
   try {
     localStorage.setItem(`${LOCAL_LIKED_KEY_PREFIX}${userId}`, JSON.stringify([...ids]));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('quicklearnit_likes_updated', {
+          detail: { userId, count: ids.size, ids: [...ids] },
+        })
+      );
+    }
   } catch {
     // Ignore storage errors
   }
 }
 
-/** Fetch all material IDs liked by the specified user from Supabase */
+/** Fetch all material IDs liked by the specified user */
 export async function fetchUserLikedIds(userId: string): Promise<Set<string>> {
+  if (!userId) return new Set();
   try {
     const { data, error } = await supabase
       .from('material_likes')
       .select('material_id')
       .eq('user_id', userId);
 
-    if (!error && data) {
+    if (!error && data && data.length > 0) {
       const ids = new Set<string>(data.map((row: { material_id: string }) => row.material_id));
       saveLocalStorageLikedIds(userId, ids);
       return ids;
@@ -76,6 +78,13 @@ export function getLocalLikesCount(materialId: string, initialDbValue: number = 
 export function setLocalLikesCount(materialId: string, count: number): void {
   try {
     localStorage.setItem(`${LOCAL_LIKES_COUNT_PREFIX}${materialId}`, count.toString());
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('quicklearnit_likes_count_updated', {
+          detail: { materialId, count },
+        })
+      );
+    }
   } catch {
     // Ignore
   }
