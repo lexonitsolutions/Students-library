@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { Bookmark, BookOpen, Calendar, Camera, ChevronRight, Download, Eye, Lock, School, Upload, User, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Bookmark, BookOpen, Calendar, Camera, ChevronRight, Download, Eye, Lock, School, Upload, User, CheckCircle, AlertCircle, X, Sparkles, Plus, Check } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
@@ -8,6 +8,12 @@ import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
+import {
+  INDIAN_COURSES,
+  getBranchesForCourse,
+  getStudyYearsForCourse,
+  getSubjectsForBranch,
+} from '../data/indianAcademics';
 import { universities } from '../data/mockData';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
@@ -15,7 +21,7 @@ import { materialTypeIcon } from '../lib/materialIcons';
 import { timeAgo } from '../lib/timeAgo';
 import { listRecentActivity, type ActivityItem } from '../services/activityService';
 import { listMyUploadsForUI } from '../services/materialsService';
-import { getLocalLikesCount, getLocalStorageLikedIds, fetchUserLikedIds } from '../services/likesService';
+import { getLocalLikesCount } from '../services/likesService';
 import { uploadAvatar, getProfileStats } from '../services/profileService';
 import { listBookmarkedMaterialIds } from '../services/bookmarksService';
 import { resizeImageFile } from '../lib/imageUtils';
@@ -58,10 +64,47 @@ export function ProfilePage() {
   const [editAvatar, setEditAvatar] = useState(user?.avatar ?? '');
   const [editCover, setEditCover] = useState(user?.coverImage ?? '');
 
+  const [editCourse, setEditCourse] = useState(user?.course || INDIAN_COURSES[0].name);
   const [editCollege, setEditCollege] = useState(user?.college || user?.university || collegesList[0]);
   const [editBranch, setEditBranch] = useState(user?.branch || user?.major || branchesList[0]);
   const [editYear, setEditYear] = useState(user?.year || yearsList[1]);
   const [editSemester, setEditSemester] = useState(user?.semester || semestersList[3]);
+  const [editPreferredSubjects, setEditPreferredSubjects] = useState<string[]>(user?.preferredSubjects || []);
+  const [customSubjectInput, setCustomSubjectInput] = useState('');
+
+  const currentCourseBranches = useMemo(() => {
+    const branches = getBranchesForCourse(editCourse);
+    return branches.map((b) => ({ value: b.name, label: b.name }));
+  }, [editCourse]);
+
+  const currentCourseYears = useMemo(() => {
+    const years = getStudyYearsForCourse(editCourse);
+    return years.map((y) => ({ value: y, label: y }));
+  }, [editCourse]);
+
+  const recommendedSubjects = useMemo(() => {
+    return getSubjectsForBranch(editCourse, editBranch);
+  }, [editCourse, editBranch]);
+
+  const togglePreferredSubject = (subj: string) => {
+    setEditPreferredSubjects((prev) =>
+      prev.includes(subj) ? prev.filter((s) => s !== subj) : [...prev, subj]
+    );
+  };
+
+  const handleAddCustomSubject = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = customSubjectInput.trim();
+    if (!trimmed) return;
+    if (!editPreferredSubjects.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
+      setEditPreferredSubjects((prev) => [...prev, trimmed]);
+    }
+    setCustomSubjectInput('');
+  };
+
+  const handleRemovePreferredSubject = (subj: string) => {
+    setEditPreferredSubjects((prev) => prev.filter((s) => s !== subj));
+  };
 
   const [uploads, setUploads] = useState<Material[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
@@ -77,11 +120,6 @@ export function ProfilePage() {
       navigate('/', { replace: true });
     }
   }, [isExploring, navigate]);
-
-  const [userLikedCount, setUserLikedCount] = useState<number>(() => {
-    if (typeof window === 'undefined' || !user?.id) return 0;
-    return getLocalStorageLikedIds(user.id).size;
-  });
 
   const [dbStats, setDbStats] = useState<{ uploads: number; downloads: number; saved: number } | null>(() => {
     if (user?.stats) {
@@ -110,10 +148,6 @@ export function ProfilePage() {
     listMyUploadsForUI(user.id).then(setUploads);
     listRecentActivity(user.id).then(setActivityItems);
 
-    fetchUserLikedIds(user.id).then((ids) => {
-      setUserLikedCount((prev) => Math.max(prev, ids.size));
-    });
-
     listBookmarkedMaterialIds(user.id).then((savedIds) => {
       setSavedCount((prev) => Math.max(prev, savedIds.size));
     });
@@ -130,7 +164,7 @@ export function ProfilePage() {
 
     const handleSync = () => {
       if (user?.id) {
-        setUserLikedCount(getLocalStorageLikedIds(user.id).size);
+        listMyUploadsForUI(user.id).then(setUploads);
         try {
           const raw = localStorage.getItem(`quicklearnit_saved_ids_${user.id}`);
           if (raw) {
@@ -141,24 +175,14 @@ export function ProfilePage() {
       }
     };
 
-    const handleLikesSync = (e: any) => {
-      if (user?.id) {
-        if (typeof e.detail?.count === 'number' && e.detail?.userId === user.id) {
-          setUserLikedCount(e.detail.count);
-        } else {
-          setUserLikedCount(getLocalStorageLikedIds(user.id).size);
-        }
-      }
-    };
-
     window.addEventListener('storage', handleSync);
     window.addEventListener('focus', handleSync);
-    window.addEventListener('quicklearnit_likes_updated', handleLikesSync);
+    window.addEventListener('quicklearnit_likes_updated', handleSync);
     window.addEventListener('quicklearnit_likes_count_updated', handleSync);
     return () => {
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('focus', handleSync);
-      window.removeEventListener('quicklearnit_likes_updated', handleLikesSync);
+      window.removeEventListener('quicklearnit_likes_updated', handleSync);
       window.removeEventListener('quicklearnit_likes_count_updated', handleSync);
     };
   }, [user]);
@@ -175,10 +199,13 @@ export function ProfilePage() {
   };
 
   const handleOpenAcademicModal = () => {
+    setEditCourse(user.course || INDIAN_COURSES[0].name);
     setEditCollege(user.college || user.university || collegesList[0]);
     setEditBranch(user.branch || user.major || branchesList[0]);
     setEditYear(user.year || yearsList[1]);
     setEditSemester(user.semester || semestersList[3]);
+    setEditPreferredSubjects(user.preferredSubjects || []);
+    setCustomSubjectInput('');
     setAcademicError(null);
     setIsAcademicModalOpen(true);
   };
@@ -247,12 +274,14 @@ export function ProfilePage() {
     setAcademicError(null);
     try {
       await updateUser({
+        course: editCourse,
         college: editCollege,
         university: editCollege,
         branch: editBranch,
         major: editBranch,
         year: editYear,
         semester: editSemester,
+        preferredSubjects: editPreferredSubjects,
       });
       setIsAcademicModalOpen(false);
       showToast('Academic details updated successfully!');
@@ -279,16 +308,15 @@ export function ProfilePage() {
   // Original interaction counts:
   // 1. Live likes received on uploaded materials (database counts + local interaction updates)
   const uploadLikesReceived = uploads.reduce((acc, item) => {
-    const fallbackDb = Number(item.likes ?? (item as any).likes_count ?? (item as any).saves_count ?? item.saves ?? 0);
+    const fallbackDb = Number(item.likes ?? (item as any).likes_count ?? 0);
     const local = typeof window !== 'undefined'
       ? getLocalLikesCount(item.id, fallbackDb)
       : fallbackDb;
     return acc + local;
   }, 0);
 
-  // 2. Count of materials liked by this user or likes received on uploads
-  const likedActivityCount = activityItems.filter((item) => (item as any).type === 'liked').length;
-  const totalLikes = Math.max(uploadLikesReceived, userLikedCount, likedActivityCount);
+  // 2. Exact likes received on uploads matching database and leaderboard truth
+  const totalLikes = uploadLikesReceived;
 
   // 3. Total views: Views received on user's uploads OR materials viewed by the user
   const viewedCount = activityItems.filter((item) => item.type === 'viewed').length;
@@ -678,6 +706,10 @@ export function ProfilePage() {
                 <span className="font-semibold text-on-surface">{user.college || user.university || 'Not specified'}</span>
               </div>
               <div className="flex flex-col gap-0.5">
+                <span className="text-[11px] text-on-surface-variant/70 font-medium">Course / Program</span>
+                <span className="font-semibold text-on-surface">{user.course || 'Not specified'}</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
                 <span className="text-[11px] text-on-surface-variant/70 font-medium">Branch / Department</span>
                 <span className="font-semibold text-on-surface">{user.branch || user.major || 'Not specified'}</span>
               </div>
@@ -690,6 +722,37 @@ export function ProfilePage() {
                   <span className="text-[11px] text-on-surface-variant/70 font-medium">Semester</span>
                   <p className="font-semibold text-on-surface">{user.semester || 'Not specified'}</p>
                 </div>
+              </div>
+
+              {/* Preferred Subjects Display */}
+              <div className="pt-2 border-t border-card-border/60">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] text-on-surface-variant/70 font-medium flex items-center gap-1">
+                    <Sparkles size={12} className="text-primary" />
+                    Preferred Subjects
+                  </span>
+                  {user.preferredSubjects && user.preferredSubjects.length > 0 && (
+                    <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.2 rounded-full">
+                      {user.preferredSubjects.length}
+                    </span>
+                  )}
+                </div>
+                {user.preferredSubjects && user.preferredSubjects.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {user.preferredSubjects.map((s) => (
+                      <span
+                        key={s}
+                        className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px] font-medium"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-on-surface-variant/60 italic">
+                    None selected. Click Edit to prioritize subjects on your dashboard.
+                  </p>
+                )}
               </div>
             </div>
           </Card>
@@ -915,19 +978,35 @@ export function ProfilePage() {
         open={isAcademicModalOpen}
         onClose={() => setIsAcademicModalOpen(false)}
         title="Edit Academic Details"
-        description="Update your institution, branch, and current semester."
+        description="Update your course, college, branch, and preferred subjects."
+        className="max-w-xl max-h-[90vh] overflow-y-auto"
       >
         <form onSubmit={handleSaveAcademic} className="flex flex-col gap-3.5">
+          <Select
+            label="Course / Degree Program (India)"
+            options={INDIAN_COURSES.map((c) => ({ value: c.name, label: c.name }))}
+            value={editCourse}
+            onChange={(e) => {
+              const newCourse = e.target.value;
+              setEditCourse(newCourse);
+              const b = getBranchesForCourse(newCourse);
+              if (b.length > 0) setEditBranch(b[0].name);
+              const y = getStudyYearsForCourse(newCourse);
+              if (y.length > 0) setEditYear(y[0]);
+            }}
+          />
+
           <CollegeAutocomplete
             label="College / University"
             placeholder="Type your college or university name"
             value={editCollege}
             onChange={setEditCollege}
+            onSelect={(col) => setEditCollege(col.name)}
           />
 
           <Select
             label="Branch / Major"
-            options={branchesList}
+            options={currentCourseBranches.length > 0 ? currentCourseBranches : branchesList.map((b) => ({ value: b, label: b }))}
             value={editBranch}
             onChange={(e) => setEditBranch(e.target.value)}
           />
@@ -936,7 +1015,7 @@ export function ProfilePage() {
             <Select
               label="Student Year"
               placeholder="Select Year"
-              options={yearsList}
+              options={currentCourseYears.length > 0 ? currentCourseYears : yearsList.map((y) => ({ value: y, label: y }))}
               value={editYear}
               onChange={(e) => setEditYear(e.target.value)}
             />
@@ -947,6 +1026,98 @@ export function ProfilePage() {
               value={editSemester}
               onChange={(e) => setEditSemester(e.target.value)}
             />
+          </div>
+
+          {/* Preferred Subjects */}
+          <div className="pt-2 border-t border-card-border/60">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-on-surface flex items-center gap-1.5">
+                <Sparkles size={14} className="text-primary" />
+                Preferred Subjects
+              </label>
+              <span className="text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                {editPreferredSubjects.length} selected
+              </span>
+            </div>
+
+            {/* Custom Subject Input */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={customSubjectInput}
+                onChange={(e) => setCustomSubjectInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomSubject();
+                  }
+                }}
+                placeholder="Add custom subject (press Enter)..."
+                className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-surface-container border border-card-border text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/60 transition-colors"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleAddCustomSubject}
+                disabled={!customSubjectInput.trim()}
+                className="shrink-0 flex items-center gap-1 text-xs px-2.5 py-1"
+              >
+                <Plus size={13} />
+                <span>Add</span>
+              </Button>
+            </div>
+
+            {/* Selected Subjects Badges */}
+            {editPreferredSubjects.length > 0 && (
+              <div className="mb-2.5">
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1.5 rounded-lg bg-surface-container/50 border border-card-border/40">
+                  {editPreferredSubjects.map((sub) => (
+                    <span
+                      key={sub}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-primary text-on-primary"
+                    >
+                      <Check size={11} />
+                      <span>{sub}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePreferredSubject(sub)}
+                        className="hover:opacity-75 cursor-pointer ml-0.5 p-0.5 rounded"
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommended Subjects */}
+            <div>
+              <div className="text-[11px] font-medium text-on-surface-variant mb-1">
+                Recommended for your course/branch:
+              </div>
+              <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 rounded-lg bg-surface-container/30 border border-card-border/40">
+                {recommendedSubjects.map((sub) => {
+                  const isSelected = editPreferredSubjects.includes(sub);
+                  return (
+                    <button
+                      key={sub}
+                      type="button"
+                      onClick={() => togglePreferredSubject(sub)}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium cursor-pointer transition-all border ${
+                        isSelected
+                          ? 'bg-primary/15 text-primary border-primary/40'
+                          : 'bg-surface hover:bg-surface-container border-card-border text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      {isSelected ? <Check size={10} className="text-primary" /> : <Plus size={10} className="opacity-50" />}
+                      <span>{sub}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {academicError && (

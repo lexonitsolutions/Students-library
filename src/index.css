@@ -74,7 +74,7 @@
      map 1:1 onto Tailwind's default numeric spacing (p-1/2/4/6/12), so no
      named overrides are defined here â€” that would shadow reserved keywords
      like max-w-md/sm/xl and silently break every max-w-* utility. */
-  --spacing-container-max: 1200px;
+  --spacing-container-max: 1680px;
   --spacing-gutter: 24px;
 
   /* Radius scale */

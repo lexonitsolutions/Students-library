@@ -6,7 +6,7 @@ import {
   ChevronDown,
   Download,
   Eye,
-  Heart,
+  ThumbsUp,
   Trophy,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -541,7 +541,7 @@ function Top3MobileRowCard({ student, rank, onSelect }: Top3RowCardProps) {
       {/* Stats Box */}
       <div className="flex items-center gap-2 shrink-0 bg-surface/80 dark:bg-surface-container/60 backdrop-blur-xs border border-card-border/60 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-on-surface">
         <div className="flex items-center gap-1" title="Likes">
-          <Heart size={12} className={cn('fill-current', isFirst ? 'text-amber-500' : isSecond ? 'text-indigo-500' : 'text-orange-500')} />
+          <ThumbsUp size={12} className={cn('fill-current', isFirst ? 'text-amber-500' : isSecond ? 'text-indigo-500' : 'text-orange-500')} />
           <span className="tabular-nums font-bold text-[12px]">{student.totalLikes ?? 0}</span>
         </div>
         <div className="h-3 w-px bg-card-border" />
@@ -631,7 +631,7 @@ function PodiumCard({ student, rank, delay = 0, onSelect }: PodiumCardProps) {
           {/* Likes */}
           <div className="flex flex-col items-center flex-1 min-w-0">
             <div className="flex items-center gap-1">
-              <Heart
+              <ThumbsUp
                 size={12}
                 className={cn(
                   'fill-current',
@@ -790,7 +790,7 @@ export function LeaderboardPage() {
               )}
             >
               {sortBy === 'likes' ? (
-                <><Heart size={13} className="text-rose-500 fill-current shrink-0" /> Most Liked</>
+                <><ThumbsUp size={13} className="text-primary fill-current shrink-0" /> Most Liked</>
               ) : (
                 <><Eye size={13} className="text-emerald-500 shrink-0" /> Most Viewed</>
               )}
@@ -816,11 +816,11 @@ export function LeaderboardPage() {
                       sortBy === 'likes' && 'bg-surface-container-high'
                     )}
                   >
-                    <Heart size={13} className="text-rose-500 fill-current shrink-0" />
+                    <ThumbsUp size={13} className="text-primary fill-current shrink-0" />
                     <span className={cn('font-medium flex-1', sortBy === 'likes' ? 'text-on-surface' : 'text-on-surface-variant')}>
                       Most Liked
                     </span>
-                    {sortBy === 'likes' && <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />}
+                    {sortBy === 'likes' && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
                   </button>
                   <div className="mx-3 h-px bg-card-border" />
                   <button
@@ -919,7 +919,7 @@ export function LeaderboardPage() {
                 <span className="flex-1 min-w-0 text-xs font-medium text-on-surface-variant">Student</span>
                 <div className="flex items-center gap-2.5 sm:gap-5 shrink-0">
                   <span className="flex items-center gap-1 text-xs font-medium text-on-surface-variant w-11 sm:w-[4.5rem] justify-end">
-                    <Heart size={11} className="text-rose-500 fill-current" /> <span className="hidden sm:inline">Likes</span>
+                    <ThumbsUp size={11} className="text-primary fill-current" /> <span className="hidden sm:inline">Likes</span>
                   </span>
                   <span className="flex items-center gap-1 text-xs font-medium text-on-surface-variant w-11 sm:w-[4.5rem] justify-end">
                     <Eye size={11} /> <span className="hidden sm:inline">Views</span>

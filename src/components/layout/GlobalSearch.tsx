@@ -193,7 +193,7 @@ export function GlobalSearch() {
   }, [query]);
 
   return (
-    <div ref={containerRef} className="relative flex-1 max-w-2xl">
+    <div ref={containerRef} className="relative flex-1 max-w-2xl 2xl:max-w-3xl">
       {/* Search Input Box */}
       <div
         className={`flex items-center rounded-xl border px-1 py-1 transition-all duration-200 bg-surface-container-low

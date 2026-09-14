@@ -32,6 +32,11 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
   const canvasRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
   const renderTasksRef = useRef<Map<number, any>>(new Map());
+  const onPageCountLoadedRef = useRef(onPageCountLoaded);
+
+  useEffect(() => {
+    onPageCountLoadedRef.current = onPageCountLoaded;
+  }, [onPageCountLoaded]);
 
   // 1. Load the PDF Document
   useEffect(() => {
@@ -55,7 +60,7 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
         pdfDocRef.current = pdf;
         const total = pdf.numPages;
         setNumPages(total);
-        onPageCountLoaded?.(total);
+        onPageCountLoadedRef.current?.(total);
 
         // Fetch dimension metadata for all pages
         const pageDataList: PageData[] = [];
@@ -89,7 +94,7 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
       isMounted = false;
       loadingTask.destroy().catch(() => {});
     };
-  }, [fileUrl, onPageCountLoaded]);
+  }, [fileUrl]);
 
   // 2. High-DPI Page Rendering
   const renderPage = useCallback(

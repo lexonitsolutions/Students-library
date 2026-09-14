@@ -236,7 +236,7 @@ export function AdminManageMaterialsPage() {
       </div>
 
       {/* ── 3 Core Sections KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 2xl:gap-5">
         {/* Total Documents */}
         <button
           type="button"
@@ -401,7 +401,7 @@ export function AdminManageMaterialsPage() {
 
         {/* Table Controls (Search & Status Filters) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-b border-card-border bg-surface-container-lowest">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative flex-1 max-w-sm 2xl:max-w-md">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none" />
             <input
               type="text"
@@ -516,12 +516,12 @@ export function AdminManageMaterialsPage() {
                                 downloads: mat.downloads,
                               });
                             }}
-                            className="font-semibold text-xs sm:text-sm text-on-surface hover:text-primary transition-colors text-left truncate block max-w-[220px] cursor-pointer"
+                            className="font-semibold text-xs sm:text-sm text-on-surface hover:text-primary transition-colors text-left truncate block max-w-[220px] sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl cursor-pointer"
                           >
                             {cleanDocumentTitle(mat.title)}
                           </button>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[11px] text-on-surface-variant truncate max-w-[130px]">
+                            <span className="text-[11px] text-on-surface-variant truncate max-w-[130px] xl:max-w-[220px] 2xl:max-w-xs">
                               {mat.subject}
                             </span>
                             <span className="inline-flex items-center rounded px-1.5 py-px text-[9px] font-semibold bg-surface-container text-on-surface-variant border border-card-border">
@@ -572,7 +572,7 @@ export function AdminManageMaterialsPage() {
                         size={28}
                         className="shrink-0 group-hover:ring-2 group-hover:ring-primary/40 transition-all"
                       />
-                      <span className="text-xs font-medium text-on-surface group-hover:text-primary transition-colors truncate max-w-[130px]">
+                      <span className="text-xs font-medium text-on-surface group-hover:text-primary transition-colors truncate max-w-[130px] xl:max-w-[180px] 2xl:max-w-xs">
                         {mat.uploaderName}
                       </span>
                     </button>

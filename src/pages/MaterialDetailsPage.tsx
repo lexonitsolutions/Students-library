@@ -9,11 +9,11 @@ import {
   FileQuestion,
   FileText,
   Flag,
-  Heart,
+  ThumbsUp,
   Share2,
   ShieldCheck,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
@@ -37,7 +37,7 @@ import {
   recordDownloadWithCount,
   toggleLike,
 } from '../services/likesService';
-import { getMaterialForUI, incrementViews, listApprovedMaterialsForUI } from '../services/materialsService';
+import { getMaterialForUI, incrementViews, listApprovedMaterialsForUI, updateMaterialDetails } from '../services/materialsService';
 import { reportMaterial } from '../services/reportsService';
 
 export function MaterialDetailsPage() {
@@ -51,6 +51,7 @@ export function MaterialDetailsPage() {
   const [material, setMaterial] = useState<Material | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [sharesCount, setSharesCount] = useState(0);
   const [downloadsCount, setDownloadsCount] = useState(0);
@@ -102,24 +103,6 @@ export function MaterialDetailsPage() {
               })
               .catch(() => {});
           }
-
-          // Auto-compute page count in DB if missing
-          if (!data.pages && data.fileUrl) {
-            const target = data.filePath || data.fileUrl || '';
-            const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
-            const ext = extMatch ? extMatch[1].toLowerCase() : '';
-            if (['pdf', 'docx', 'pptx'].includes(ext)) {
-              import('../lib/documentParser').then(({ getUrlPageCount }) => {
-                getUrlPageCount(data.fileUrl, ext).then((count) => {
-                  if (active && count) {
-                    import('../services/materialsService').then(({ updateMaterialDetails }) => {
-                      updateMaterialDetails(data.id, { pages: count } as any).catch(() => {});
-                    });
-                  }
-                });
-              });
-            }
-          }
         }
       } catch (err) {
         console.warn('Material load warning:', err);
@@ -144,6 +127,14 @@ export function MaterialDetailsPage() {
     sessionStorage.setItem(sessionKey, '1');
     incrementViews(id).catch(() => {});
   }, [id, material?.uploaderId, user?.id, isExploring]);
+
+  const handlePageCountLoaded = useCallback((count: number) => {
+    if (!material?.id || !count || count <= 0) return;
+    if (material.pages !== count) {
+      setMaterial((prev) => (prev ? { ...prev, pages: count } : prev));
+      updateMaterialDetails(material.id, { pages: count }).catch(() => {});
+    }
+  }, [material?.id, material?.pages]);
 
   const toggleSave = async () => {
     if (isExploring) {
@@ -227,6 +218,9 @@ export function MaterialDetailsPage() {
       alert('You must be signed in to like materials.');
       return;
     }
+    if (isLiking) return;
+
+    setIsLiking(true);
     try {
       const result = await toggleLike(user.id, material.id, likesCount);
       setIsLiked(result.isLiked);
@@ -234,6 +228,8 @@ export function MaterialDetailsPage() {
       setMaterial((prev) => (prev ? { ...prev, likes: result.likesCount, isLiked: result.isLiked } : null));
     } catch (err) {
       console.warn('Like toggle failed:', err);
+    } finally {
+      setIsLiking(false);
     }
   };
 
@@ -484,6 +480,7 @@ export function MaterialDetailsPage() {
                       fileUrl={material.fileUrl}
                       title={cleanTitle}
                       className="h-full w-full"
+                      onPageCountLoaded={handlePageCountLoaded}
                     />
                   </div>
                 )}
@@ -543,14 +540,17 @@ export function MaterialDetailsPage() {
                 <button
                   type="button"
                   onClick={handleLike}
-                  title="Like this document"
+                  disabled={isLiking}
+                  title={isLiked ? 'Unlike this document' : 'Like this document'}
                   className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-all cursor-pointer ${
+                    isLiking ? 'opacity-60 cursor-not-allowed' : ''
+                  } ${
                     isLiked
-                      ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                      ? 'bg-primary/10 text-primary border-primary/30 font-bold'
                       : 'bg-surface hover:bg-surface-container-high border-card-border text-on-surface'
                   }`}
                 >
-                  <Heart size={15} className={isLiked ? 'fill-current text-rose-500' : 'text-on-surface-variant'} />
+                  <ThumbsUp size={15} className={isLiked ? 'fill-primary text-primary' : 'text-on-surface-variant'} />
                   <span>{likesCount.toLocaleString()}</span>
                 </button>
 
@@ -674,7 +674,7 @@ export function MaterialDetailsPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1900px]:grid-cols-5 gap-5">
               {relatedMaterials.map((item) => (
                 <DocumentPreviewCard
                   key={item.id}

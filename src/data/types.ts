@@ -28,6 +28,10 @@ export interface Material {
   readonly filePath: string;
   readonly pages?: number;
   readonly fileSizeMb?: number;
+  readonly college?: string;
+  readonly branch?: string;
+  readonly year?: string;
+  readonly course?: string;
   readonly previewUrl?: string;
   readonly isSaved?: boolean;
   readonly likes?: number;
@@ -50,9 +54,11 @@ export interface User {
   readonly university: string;
   readonly major: string;
   readonly college?: string;
+  readonly course?: string;
   readonly branch?: string;
   readonly year?: string;
   readonly semester?: string;
+  readonly preferredSubjects?: string[];
   readonly role: 'student' | 'admin';
   readonly createdAt?: string;
   readonly stats: {

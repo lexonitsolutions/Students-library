@@ -1,5 +1,5 @@
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, MoreVertical } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { IconButton } from '../components/ui/IconButton';
 import { PdfViewer } from '../components/ui/PdfViewer';
@@ -7,7 +7,7 @@ import { SignupPromptModal } from '../components/ui/SignupPromptModal';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
-import { getMaterialForUI } from '../services/materialsService';
+import { getMaterialForUI, updateMaterialDetails } from '../services/materialsService';
 
 export function ReaderPage() {
   const { id } = useParams();
@@ -18,6 +18,14 @@ export function ReaderPage() {
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [material, setMaterial] = useState<Material | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const handlePageCountLoaded = useCallback((count: number) => {
+    if (!material?.id || !count || count <= 0) return;
+    if (material.pages !== count) {
+      setMaterial((prev) => (prev ? { ...prev, pages: count } : prev));
+      updateMaterialDetails(material.id, { pages: count }).catch(() => {});
+    }
+  }, [material?.id, material?.pages]);
 
   useEffect(() => {
     if (isExploring) {
@@ -152,6 +160,7 @@ export function ReaderPage() {
                 fileUrl={material.fileUrl}
                 title={material.title}
                 className="h-full w-full"
+                onPageCountLoaded={handlePageCountLoaded}
               />
             </div>
           )}

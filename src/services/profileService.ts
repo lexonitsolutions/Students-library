@@ -92,25 +92,30 @@ export async function getProfileStats(userId: string): Promise<ProfileStatsRow> 
 export async function updateProfile(userId: string, fields: ProfileUpdate): Promise<ProfileRow> {
   const { data, error } = await supabase.from('profiles').update(fields).eq('id', userId).select().single();
   if (error) {
-    // If Supabase database has not run the cover_image migration yet (PGRST204)
-    if (fields.cover_image !== undefined && (error.code === 'PGRST204' || error.message?.toLowerCase().includes('cover_image'))) {
-      const { cover_image, ...restFields } = fields;
-      if (Object.keys(restFields).length > 0) {
+    // Handle cases where new columns haven't been migrated yet (PGRST204)
+    if (error.code === 'PGRST204' || error.message?.toLowerCase().includes('column')) {
+      const { course, preferred_subjects, cover_image, ...safeFields } = fields;
+      if (Object.keys(safeFields).length > 0) {
         const { data: retryData, error: retryError } = await supabase
           .from('profiles')
-          .update(restFields)
+          .update(safeFields)
           .eq('id', userId)
           .select()
           .single();
-        if (retryError) throw retryError;
-        return {
-          ...retryData,
-          cover_image: cover_image ?? null,
-        };
+        if (!retryError && retryData) {
+          return {
+            ...retryData,
+            course: course ?? null,
+            preferred_subjects: preferred_subjects ?? null,
+            cover_image: cover_image ?? null,
+          };
+        }
       } else {
         const existing = await getProfile(userId);
         return {
           ...existing,
+          course: course ?? null,
+          preferred_subjects: preferred_subjects ?? null,
           cover_image: cover_image ?? null,
         };
       }

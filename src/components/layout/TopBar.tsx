@@ -40,7 +40,7 @@ export function TopBar({ onMenuOpen }: TopBarProps) {
 
     window.addEventListener('refresh_notifications', fetchNotifs);
     return () => window.removeEventListener('refresh_notifications', fetchNotifs);
-  }, [user, isExploring]);
+  }, [user?.id, isExploring]);
 
   useEffect(() => {
     if (!notificationsOpen) return;
@@ -79,7 +79,7 @@ export function TopBar({ onMenuOpen }: TopBarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 flex h-16 items-center gap-2 sm:gap-4 border-b border-card-border bg-surface-container-low px-3 sm:px-4 lg:px-5 shadow-xs">
+    <header className="sticky top-0 z-30 shrink-0 flex h-16 items-center gap-2 sm:gap-4 border-b border-card-border bg-surface-container-low px-3 sm:px-4 lg:px-6 2xl:px-8 shadow-xs">
       {/* Hamburger button – mobile and tablet screens */}
       <button
         type="button"

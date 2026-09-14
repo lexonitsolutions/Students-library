@@ -532,12 +532,12 @@ export function AdminDashboardPage() {
       )}
 
       {/* ── KPI Metric Tiles ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 2xl:gap-5">
         {/* Total Students */}
         <button
           type="button"
           onClick={() => navigate('/admin/students')}
-          className="group flex flex-col justify-between p-4 sm:p-5 rounded-2xl border border-card-border bg-surface-container-low hover:bg-surface-container hover:border-primary/50 hover:shadow-md transition-all text-left cursor-pointer"
+          className="group flex flex-col justify-between p-4 sm:p-5 2xl:p-6 rounded-2xl border border-card-border bg-surface-container-low hover:bg-surface-container hover:border-primary/50 hover:shadow-md transition-all text-left cursor-pointer"
         >
           <div className="flex items-center justify-between mb-3 w-full">
             <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -565,7 +565,7 @@ export function AdminDashboardPage() {
         <button
           type="button"
           onClick={() => navigate('/admin/documents')}
-          className="group flex flex-col justify-between p-4 sm:p-5 rounded-2xl border border-card-border bg-surface-container-low hover:bg-surface-container hover:border-indigo-500/50 hover:shadow-md transition-all text-left cursor-pointer"
+          className="group flex flex-col justify-between p-4 sm:p-5 2xl:p-6 rounded-2xl border border-card-border bg-surface-container-low hover:bg-surface-container hover:border-indigo-500/50 hover:shadow-md transition-all text-left cursor-pointer"
         >
           <div className="flex items-center justify-between mb-3 w-full">
             <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant group-hover:text-indigo-500 transition-colors flex items-center gap-1.5">
@@ -597,7 +597,7 @@ export function AdminDashboardPage() {
         </button>
 
         {/* Active Downloads */}
-        <div className="group flex flex-col justify-between p-4 sm:p-5 rounded-2xl border border-card-border bg-surface-container-low hover:bg-surface-container hover:border-card-border-high transition-all">
+        <div className="group flex flex-col justify-between p-4 sm:p-5 2xl:p-6 rounded-2xl border border-card-border bg-surface-container-low hover:bg-surface-container hover:border-card-border-high transition-all">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
               Downloads
@@ -617,7 +617,7 @@ export function AdminDashboardPage() {
         {/* Pending Queue */}
         <div
           className={cn(
-            'group flex flex-col justify-between p-4 sm:p-5 rounded-2xl border transition-all',
+            'group flex flex-col justify-between p-4 sm:p-5 2xl:p-6 rounded-2xl border transition-all',
             queue.length > 0
               ? 'border-amber-500/40 bg-amber-500/[0.04]'
               : 'border-card-border bg-surface-container-low hover:bg-surface-container hover:border-card-border-high'
@@ -773,7 +773,7 @@ export function AdminDashboardPage() {
                                   setPreviewItem(item);
                                   setIsApprovedPreview(false);
                                 }}
-                                className="font-semibold text-on-surface hover:text-primary transition-colors text-left truncate block max-w-xs cursor-pointer"
+                                className="font-semibold text-on-surface hover:text-primary transition-colors text-left truncate block max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl cursor-pointer"
                               >
                                 {cleanDocumentTitle(item.title)}
                               </button>
@@ -900,7 +900,7 @@ export function AdminDashboardPage() {
                   placeholder="Filter by title, student, or reason..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8 pl-8 pr-3 text-xs rounded-xl bg-surface-container border border-card-border focus:border-primary focus:outline-none w-full sm:w-56 placeholder:text-on-surface-variant/50 text-on-surface"
+                  className="h-8 pl-8 pr-3 text-xs rounded-xl bg-surface-container border border-card-border focus:border-primary focus:outline-none w-full sm:w-56 xl:w-72 2xl:w-80 placeholder:text-on-surface-variant/50 text-on-surface"
                 />
               </div>
 
@@ -1045,12 +1045,12 @@ export function AdminDashboardPage() {
                                 });
                                 setIsApprovedPreview(false);
                               }}
-                              className="font-semibold text-xs sm:text-sm text-on-surface hover:text-rose-500 transition-colors text-left truncate block max-w-[220px] cursor-pointer"
+                              className="font-semibold text-xs sm:text-sm text-on-surface hover:text-rose-500 transition-colors text-left truncate block max-w-[220px] sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl cursor-pointer"
                             >
                               {cleanDocumentTitle(item.title)}
                             </button>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[11px] text-on-surface-variant truncate max-w-[130px]">
+                              <span className="text-[11px] text-on-surface-variant truncate max-w-[130px] xl:max-w-[220px] 2xl:max-w-xs">
                                 {item.subject}
                               </span>
                               <span className="inline-flex items-center rounded px-1.5 py-px text-[9px] font-semibold bg-surface-container text-on-surface-variant border border-card-border">
@@ -1081,7 +1081,7 @@ export function AdminDashboardPage() {
                             size={24}
                             className="shrink-0 group-hover:ring-2 group-hover:ring-primary/40 transition-all"
                           />
-                          <span className="text-xs font-medium text-on-surface group-hover:text-primary transition-colors truncate max-w-[120px]">
+                          <span className="text-xs font-medium text-on-surface group-hover:text-primary transition-colors truncate max-w-[120px] xl:max-w-[180px] 2xl:max-w-xs">
                             {item.uploaderName}
                           </span>
                         </button>
@@ -1097,7 +1097,7 @@ export function AdminDashboardPage() {
                             className="shrink-0 ring-1 ring-rose-500/30"
                           />
                           <div className="min-w-0">
-                            <span className="text-xs font-semibold text-on-surface truncate block max-w-[130px]" title={item.rejectedByAdminName || 'Admin'}>
+                            <span className="text-xs font-semibold text-on-surface truncate block max-w-[130px] xl:max-w-[180px] 2xl:max-w-xs" title={item.rejectedByAdminName || 'Admin'}>
                               {item.rejectedByAdminName || 'Admin'}
                             </span>
                             <span className="text-[10px] text-rose-600 dark:text-rose-400 font-medium flex items-center gap-0.5">
@@ -1110,7 +1110,7 @@ export function AdminDashboardPage() {
 
                       {/* Rejection Reason Column */}
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 max-w-[180px] truncate" title={adminService.parseRejectionMeta(item.rejectionReason).reason || 'Did not meet guidelines'}>
+                        <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 max-w-[180px] xl:max-w-[280px] 2xl:max-w-md truncate" title={adminService.parseRejectionMeta(item.rejectionReason).reason || 'Did not meet guidelines'}>
                           {adminService.parseRejectionMeta(item.rejectionReason).reason || 'Did not meet guidelines'}
                         </span>
                       </td>
@@ -1223,12 +1223,12 @@ export function AdminDashboardPage() {
                                 });
                                 setIsApprovedPreview(true);
                               }}
-                              className="font-semibold text-xs sm:text-sm text-on-surface hover:text-primary transition-colors text-left truncate block max-w-[220px] cursor-pointer"
+                              className="font-semibold text-xs sm:text-sm text-on-surface hover:text-primary transition-colors text-left truncate block max-w-[220px] sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl cursor-pointer"
                             >
                               {cleanDocumentTitle(item.title)}
                             </button>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[11px] text-on-surface-variant truncate max-w-[130px]">
+                              <span className="text-[11px] text-on-surface-variant truncate max-w-[130px] xl:max-w-[220px] 2xl:max-w-xs">
                                 {item.subject}
                               </span>
                               <span className="inline-flex items-center rounded px-1.5 py-px text-[9px] font-semibold bg-surface-container text-on-surface-variant border border-card-border">
@@ -1259,7 +1259,7 @@ export function AdminDashboardPage() {
                             size={24}
                             className="shrink-0 group-hover:ring-2 group-hover:ring-primary/40 transition-all"
                           />
-                          <span className="text-xs font-medium text-on-surface group-hover:text-primary transition-colors truncate max-w-[120px]">
+                          <span className="text-xs font-medium text-on-surface group-hover:text-primary transition-colors truncate max-w-[120px] xl:max-w-[180px] 2xl:max-w-xs">
                             {item.uploaderName}
                           </span>
                         </button>
@@ -1274,7 +1274,7 @@ export function AdminDashboardPage() {
                             className="shrink-0 ring-1.5 ring-emerald-500/30"
                           />
                           <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-semibold text-on-surface truncate max-w-[110px]">
+                            <span className="text-xs font-semibold text-on-surface truncate max-w-[110px] xl:max-w-[160px] 2xl:max-w-xs">
                               {item.approvedByAdminName}
                             </span>
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">

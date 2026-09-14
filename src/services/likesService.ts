@@ -28,6 +28,7 @@ export function getLocalStorageLikedIds(userId: string): Set<string> {
 
 export function saveLocalStorageLikedIds(userId: string, ids: Set<string>): void {
   if (!userId) return;
+  userLikedCache.set(userId, { ids: new Set(ids), time: Date.now() });
   try {
     localStorage.setItem(`${LOCAL_LIKED_KEY_PREFIX}${userId}`, JSON.stringify([...ids]));
     if (typeof window !== 'undefined') {
@@ -42,24 +43,36 @@ export function saveLocalStorageLikedIds(userId: string, ids: Set<string>): void
   }
 }
 
+const userLikedCache = new Map<string, { ids: Set<string>; time: number }>();
+const LIKES_CACHE_TTL_MS = 30000; // 30 seconds
+
 /** Fetch all material IDs liked by the specified user */
 export async function fetchUserLikedIds(userId: string): Promise<Set<string>> {
   if (!userId) return new Set();
+
+  const cached = userLikedCache.get(userId);
+  if (cached && Date.now() - cached.time < LIKES_CACHE_TTL_MS) {
+    return new Set(cached.ids);
+  }
+
   try {
     const { data, error } = await supabase
       .from('material_likes')
       .select('material_id')
       .eq('user_id', userId);
 
-    if (!error && data && data.length > 0) {
+    if (!error && Array.isArray(data)) {
       const ids = new Set<string>(data.map((row: { material_id: string }) => row.material_id));
       saveLocalStorageLikedIds(userId, ids);
+      userLikedCache.set(userId, { ids: new Set(ids), time: Date.now() });
       return ids;
     }
   } catch {
     // Fall back to local storage
   }
-  return getLocalStorageLikedIds(userId);
+  const fallback = getLocalStorageLikedIds(userId);
+  userLikedCache.set(userId, { ids: new Set(fallback), time: Date.now() });
+  return fallback;
 }
 
 export function getLocalLikesCount(materialId: string, initialDbValue: number = 0): number {
@@ -339,50 +352,157 @@ export async function recordDownloadWithCount(
   return { newCount: fallback, alreadyDownloaded: false };
 }
 
+const inFlightLikeRequests = new Map<string, Promise<{ isLiked: boolean; likesCount: number }>>();
+
 export async function toggleLike(
   userId: string,
   materialId: string,
   currentCount?: number
 ): Promise<{ isLiked: boolean; likesCount: number }> {
-  try {
-    const { data, error } = await supabase.rpc('toggle_material_like', {
-      p_material_id: materialId,
-    });
+  if (!userId || !materialId) {
+    throw new Error('User and document IDs are required to like');
+  }
 
-    if (!error && data) {
-      const isLiked = !!data.is_liked;
-      const likesCount = typeof data.likes_count === 'number' ? data.likes_count : 0;
+  // Prevent duplicate concurrent in-flight requests for the same material
+  const inFlight = inFlightLikeRequests.get(materialId);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const promise = (async () => {
+    // Determine the baseline count from passed current count, local storage, and database
+    const localVal = getLocalLikesCount(materialId, 0);
+    const passedVal = typeof currentCount === 'number' && !isNaN(currentCount) ? currentCount : 0;
+    let baseCount = Math.max(passedVal, localVal);
+
+    try {
+      const { data: matRow } = await supabase
+        .from('materials')
+        .select('likes_count, saves_count')
+        .eq('id', materialId)
+        .maybeSingle();
+
+      if (matRow) {
+        const dbMax = Math.max(
+          Number((matRow as any).likes_count ?? 0),
+          Number((matRow as any).saves_count ?? 0)
+        );
+        baseCount = Math.max(baseCount, dbMax);
+      }
+    } catch {
+      // Ignore database read errors
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('toggle_material_like', {
+        p_material_id: materialId,
+      });
+
+      if (!error && data) {
+        const res = typeof data === 'string' ? JSON.parse(data) : data;
+        const isLiked = !!res.is_liked;
+        const returnedCount = typeof res.likes_count === 'number' ? res.likes_count : 0;
+
+        // If returnedCount was wiped out to 1 while baseCount was higher, preserve baseline
+        let finalCount = returnedCount;
+        if (isLiked) {
+          finalCount = Math.max(returnedCount, baseCount + 1);
+        } else {
+          finalCount = Math.max(0, Math.min(returnedCount, Math.max(0, baseCount - 1)));
+          if (finalCount === 0 && baseCount > 1) {
+            finalCount = Math.max(0, baseCount - 1);
+          }
+        }
+
+        const likedIds = getLocalStorageLikedIds(userId);
+        if (isLiked) {
+          likedIds.add(materialId);
+        } else {
+          likedIds.delete(materialId);
+        }
+        saveLocalStorageLikedIds(userId, likedIds);
+        setLocalLikesCount(materialId, finalCount);
+
+        // Keep materials table count synchronized with the preserved baseline
+        if (finalCount !== returnedCount) {
+          try {
+            await supabase.from('materials').update({ likes_count: finalCount }).eq('id', materialId);
+          } catch {
+            // Ignore
+          }
+        }
+
+        return { isLiked, likesCount: finalCount };
+      }
+      if (error) {
+        console.warn('toggle_material_like RPC returned error, attempting direct table toggle:', error);
+      }
+    } catch (err) {
+      console.warn('RPC toggle_material_like exception, attempting direct table toggle:', err);
+    }
+
+    // Fallback: direct table operations if RPC fails
+    try {
+      const { data: existing } = await supabase
+        .from('material_likes')
+        .select('material_id')
+        .eq('material_id', materialId)
+        .eq('user_id', userId)
+        .maybeSingle();
 
       const likedIds = getLocalStorageLikedIds(userId);
-      if (isLiked) {
-        likedIds.add(materialId);
-      } else {
+      const isCurrentlyLiked = !!existing || likedIds.has(materialId);
+      let isLikedNow = !isCurrentlyLiked;
+
+      if (isCurrentlyLiked) {
+        await supabase.from('material_likes').delete().eq('material_id', materialId).eq('user_id', userId);
+        isLikedNow = false;
         likedIds.delete(materialId);
+      } else {
+        await supabase.from('material_likes').upsert(
+          { material_id: materialId, user_id: userId },
+          { onConflict: 'material_id,user_id' }
+        );
+        isLikedNow = true;
+        likedIds.add(materialId);
       }
+
+      // Calculate final count preserving baseline
+      const finalCount = isLikedNow
+        ? baseCount + 1
+        : Math.max(0, baseCount - 1);
+
+      // Keep materials table count synchronized
+      await supabase.from('materials').update({ likes_count: finalCount }).eq('id', materialId);
+
       saveLocalStorageLikedIds(userId, likedIds);
-      setLocalLikesCount(materialId, likesCount);
-
-      return { isLiked, likesCount };
+      setLocalLikesCount(materialId, finalCount);
+      return { isLiked: isLikedNow, likesCount: finalCount };
+    } catch (directErr) {
+      console.warn('Direct database like toggle failed, falling back to local storage:', directErr);
     }
-  } catch (err) {
-    console.warn('RPC toggle_material_like failed, using fallback:', err);
-  }
 
-  // Fallback to local storage if RPC unavailable
-  const likedIds = getLocalStorageLikedIds(userId);
-  let likesCount = currentCount !== undefined ? currentCount : getLocalLikesCount(materialId);
-  const isCurrentlyLiked = likedIds.has(materialId);
+    // Pure local storage fallback
+    const likedIds = getLocalStorageLikedIds(userId);
+    const isCurrentlyLiked = likedIds.has(materialId);
+    let finalCount = baseCount;
 
-  if (isCurrentlyLiked) {
-    likedIds.delete(materialId);
-    likesCount = Math.max(0, likesCount - 1);
-  } else {
-    likedIds.add(materialId);
-    likesCount += 1;
-  }
+    if (isCurrentlyLiked) {
+      likedIds.delete(materialId);
+      finalCount = Math.max(0, baseCount - 1);
+    } else {
+      likedIds.add(materialId);
+      finalCount = baseCount + 1;
+    }
 
-  saveLocalStorageLikedIds(userId, likedIds);
-  setLocalLikesCount(materialId, likesCount);
+    saveLocalStorageLikedIds(userId, likedIds);
+    setLocalLikesCount(materialId, finalCount);
 
-  return { isLiked: !isCurrentlyLiked, likesCount };
+    return { isLiked: !isCurrentlyLiked, likesCount: finalCount };
+  })().finally(() => {
+    inFlightLikeRequests.delete(materialId);
+  });
+
+  inFlightLikeRequests.set(materialId, promise);
+  return promise;
 }
