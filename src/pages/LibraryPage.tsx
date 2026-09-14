@@ -11,7 +11,7 @@ import {
   Eye,
   FileText,
   Grid2x2,
-  Heart,
+  ThumbsUp,
   List,
   Plus,
   Search,
@@ -655,12 +655,10 @@ export function LibraryPage() {
                                 <Download size={13} className="text-outline" />
                                 <span>{item.downloads ?? 0}</span>
                               </span>
-                              {(item.likes ?? 0) > 0 && (
-                                <span className="flex items-center gap-1" title="Likes">
-                                  <Heart size={13} className="text-rose-500 fill-rose-500" />
-                                  <span>{item.likes}</span>
-                                </span>
-                              )}
+                              <span className="flex items-center gap-1" title="Likes">
+                                <ThumbsUp size={13} className={cn((item.likes ?? 0) > 0 ? "text-primary fill-primary" : "text-outline")} />
+                                <span>{item.likes ?? 0}</span>
+                              </span>
                             </div>
                           )}
 
@@ -744,7 +742,7 @@ export function LibraryPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 min-[1900px]:grid-cols-5"
               >
                 {filteredItems.map((item) => {
                   const TypeIcon = materialTypeIcon[item.type] || FileText;
@@ -798,12 +796,10 @@ export function LibraryPage() {
                               <Download size={12} className="text-outline" />
                               <span>{item.downloads ?? 0}</span>
                             </span>
-                            {(item.likes ?? 0) > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Heart size={12} className="text-rose-500 fill-rose-500" />
-                                <span>{item.likes}</span>
-                              </span>
-                            )}
+                            <span className="flex items-center gap-1">
+                              <ThumbsUp size={12} className={cn((item.likes ?? 0) > 0 ? "text-primary fill-primary" : "text-outline")} />
+                              <span>{item.likes ?? 0}</span>
+                            </span>
                             <span className="ml-auto text-[10px] text-outline">
                               {timeAgo(item.uploadedAt)}
                             </span>

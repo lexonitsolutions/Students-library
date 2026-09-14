@@ -51,7 +51,7 @@ export function AppShell() {
             <Outlet />
           </main>
         ) : (
-          <main className="flex-1 min-w-0 px-3.5 sm:px-6 pb-8 pt-4 sm:pt-6 lg:px-8 lg:pb-10 xl:overflow-y-auto">
+          <main className="flex-1 min-w-0 px-3.5 sm:px-6 pb-8 pt-4 sm:pt-6 lg:px-8 lg:pb-10 2xl:px-12 2xl:pb-12 xl:overflow-y-auto">
             <div className="mx-auto w-full min-w-0 max-w-(--spacing-container-max)">
               <Outlet />
             </div>

@@ -13,10 +13,12 @@ export interface ProfileRow {
   avatar_url: string | null;
   university: string | null;
   college: string | null;
+  course?: string | null;
   branch: string | null;
   major: string | null;
   year: string | null;
   semester: string | null;
+  preferred_subjects?: string[] | null;
   role: UserRole;
   created_at: string;
   updated_at: string;

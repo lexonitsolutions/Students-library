@@ -1,11 +1,11 @@
-import { Bookmark, Eye, Heart, Share2, Download } from 'lucide-react';
+import { Bookmark, Eye, ThumbsUp, Share2, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Material } from '../../data/types';
 import { cn } from '../../lib/cn';
 import { cleanDocumentTitle } from '../../lib/materialMapper';
 import { Avatar } from './Avatar';
-import { getLocalLikesCount, getLocalSharesCount, getLocalDownloadsCount, getLocalStorageLikedIds, toggleLike } from '../../services/likesService';
+import { getLocalLikesCount, getLocalSharesCount, getLocalDownloadsCount, getLocalStorageLikedIds } from '../../services/likesService';
 import { useAuth } from '../../hooks/useAuth';
 import { useSignupRedirect } from '../../hooks/useSignupRedirect';
 
@@ -37,25 +37,6 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
     }
   };
 
-  const handleLikeClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (isExploring) {
-      openSignupModal(`/materials/${material.id}`);
-      return;
-    }
-    if (!user) {
-      navigate('/signin');
-      return;
-    }
-    try {
-      const res = await toggleLike(user.id, material.id, likesCount);
-      setIsLiked(res.isLiked);
-      setLikesCount(res.likesCount);
-    } catch (err) {
-      console.error('Failed to toggle like:', err);
-    }
-  };
 
   useEffect(() => {
     setLikesCount(getLocalLikesCount(material.id, material.likes ?? 0));
@@ -86,30 +67,8 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
   }, [material.id, user?.id]);
 
   useEffect(() => {
-    if (!material.pages && material.fileUrl) {
-      let isMounted = true;
-      const target = material.filePath || material.fileUrl || '';
-      const extMatch = target.match(/\.([a-z0-9]+)($|\?)/i);
-      const ext = extMatch ? extMatch[1].toLowerCase() : '';
-      
-      if (['pdf', 'docx', 'pptx'].includes(ext)) {
-        import('../../lib/documentParser').then(({ getUrlPageCount }) => {
-          getUrlPageCount(material.fileUrl, ext).then((count) => {
-            if (isMounted && count) {
-              setLazyPages(count);
-              // Optimistically update DB without awaiting
-              import('../../services/materialsService').then(({ updateMaterialDetails }) => {
-                updateMaterialDetails(material.id, { pages: count } as any).catch(() => {});
-              });
-            }
-          });
-        });
-      }
-      return () => { isMounted = false; };
-    } else {
-      setLazyPages(material.pages);
-    }
-  }, [material.id, material.pages, material.fileUrl, material.filePath]);
+    setLazyPages(material.pages);
+  }, [material.pages]);
 
   const sizeMbStr = material.fileSizeMb ? material.fileSizeMb.toString() : material.fileSizeMb === 0 ? '<0.01' : '?';
   const isSaved = !!material.isSaved;
@@ -271,27 +230,26 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
         {/* Stats & Uploader Avatar */}
         <div className="mt-2 flex items-center justify-between gap-1.5 text-label-sm text-on-surface-variant font-medium">
           <div className="flex items-center gap-2.5 opacity-80">
-            <button
-              type="button"
-              onClick={handleLikeClick}
-              className="flex items-center gap-1 hover:text-rose-500 transition-colors cursor-pointer group/like focus:outline-none"
-              title={isLiked ? 'Unlike' : 'Like'}
+            <div
+              className={cn(
+                'flex items-center gap-1 select-none',
+                isLiked ? 'text-primary' : 'text-on-surface-variant'
+              )}
+              title={isLiked ? 'Liked' : 'Likes'}
             >
-              <Heart
+              <ThumbsUp
                 size={14}
                 className={cn(
                   'transition-all',
                   isLiked
-                    ? 'fill-rose-500 text-rose-500 scale-110'
-                    : likesCount > 0
-                      ? 'fill-rose-500/20 text-rose-500'
-                      : 'text-on-surface-variant group-hover/like:text-rose-500'
+                    ? 'fill-primary text-primary'
+                    : 'text-on-surface-variant'
                 )}
               />
-              <span className={cn('text-[12px] font-semibold transition-colors', isLiked && 'text-rose-500 font-bold')}>
+              <span className={cn('text-[12px] font-semibold transition-colors', isLiked && 'text-primary font-bold')}>
                 {likesCount > 0 ? likesCount.toLocaleString() : '0'}
               </span>
-            </button>
+            </div>
             <div className="flex items-center gap-1" title="Downloads">
               <Download size={14} />
               <span className="text-[12px] font-semibold">{downloadsCount > 0 ? downloadsCount.toLocaleString() : '0'}</span>

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, FileText, X, Upload, ChevronDown, Check } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { Search, FileText, X, Upload, ChevronDown, Check, Sparkles, SlidersHorizontal, Plus } from 'lucide-react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
@@ -9,19 +9,26 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { MaterialCard } from '../components/ui/MaterialCard';
 import { MaterialRow } from '../components/ui/MaterialRow';
 import { UserProfilePanel, type UploaderProfile } from '../components/ui/UserProfilePanel';
+import { AcademicOnboardingModal } from '../components/onboarding/AcademicOnboardingModal';
+import { DocumentFilterModal } from '../components/ui/DocumentFilterModal';
 import { categories } from '../data/mockData';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
+import { useDocumentFilter } from '../hooks/useDocumentFilter';
 import * as bookmarksService from '../services/bookmarksService';
+import { fetchUserLikedIds } from '../services/likesService';
 import { listApprovedMaterialsForUI } from '../services/materialsService';
 import { categoryIcon } from '../lib/materialIcons';
 import { cn } from '../lib/cn';
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isExploring } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedProfile, setSelectedProfile] = useState<UploaderProfile | null>(null);
+  const [showAcademicModal, setShowAcademicModal] = useState<boolean>(false);
+  const [filterModalOpen, setFilterModalOpen] = useState<boolean>(false);
+  const { filters, activeFilterCount, setFilters, clearFilters, removeFilterKey } = useDocumentFilter();
 
   // Start with empty array; data is loaded from DB
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -69,9 +76,13 @@ export function DashboardPage() {
       let savedIds: Set<string> | undefined;
       if (user) {
         try {
-          savedIds = await bookmarksService.listBookmarkedMaterialIds(user.id);
+          const [sIds] = await Promise.all([
+            bookmarksService.listBookmarkedMaterialIds(user.id),
+            fetchUserLikedIds(user.id),
+          ]);
+          savedIds = sIds;
         } catch (e) {
-          console.warn('Failed to load bookmarked IDs:', e);
+          console.warn('Failed to load user interaction state:', e);
         }
       }
       try {
@@ -88,7 +99,20 @@ export function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user?.id]);
+
+  // Check if authenticated user needs academic onboarding
+  useEffect(() => {
+    if (!isAuthenticated || isExploring || !user) return;
+    const forceOpen = searchParams.get('onboarding') === 'academic';
+    const isDismissed = sessionStorage.getItem(`academic_modal_dismissed_${user.id}`);
+    const isCompleted = localStorage.getItem(`quicklearnit.onboarded_academic_${user.id}`);
+
+    // If user has not set up course/branch/preferred subjects and hasn't dismissed this session
+    if (forceOpen || (!isCompleted && !isDismissed && (!user.course || !user.branch || !user.preferredSubjects?.length))) {
+      setShowAcademicModal(true);
+    }
+  }, [isAuthenticated, isExploring, user, searchParams]);
 
   const toggleSave = async (id: string) => {
     if (!user) return;
@@ -114,23 +138,94 @@ export function DashboardPage() {
     return materials.filter((m) => m.type === type).length;
   };
 
-  const filteredMaterials = materials.filter((material) => {
-    const matchesCategory =
-      selectedCategory === 'materials' || selectedCategory === 'pdf'
-        ? material.type === 'pdf' || material.type === 'notes'
-        : selectedCategory === 'doc'
-          ? material.type === 'doc' || material.type === 'slides'
-          : material.type === selectedCategory;
+  const preferredSubjectsList = useMemo(() => {
+    const raw = user?.preferredSubjects;
+    const arr = Array.isArray(raw) ? raw : typeof raw === 'string' ? (raw as string).split(',') : [];
+    return arr.map((s) => String(s).trim().toLowerCase()).filter(Boolean);
+  }, [user?.preferredSubjects]);
 
-    const query = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      !query ||
-      material.title.toLowerCase().includes(query) ||
-      material.subject.toLowerCase().includes(query) ||
-      material.uploaderName.toLowerCase().includes(query);
+  const filteredMaterials = useMemo(() => {
+    const list = materials.filter((material) => {
+      const matchesCategory =
+        selectedCategory === 'materials' || selectedCategory === 'pdf'
+          ? material.type === 'pdf' || material.type === 'notes'
+          : selectedCategory === 'doc'
+            ? material.type === 'doc' || material.type === 'slides'
+            : material.type === selectedCategory;
 
-    return matchesCategory && matchesSearch;
-  });
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !query ||
+        material.title.toLowerCase().includes(query) ||
+        material.subject.toLowerCase().includes(query) ||
+        material.uploaderName.toLowerCase().includes(query);
+
+      // Advanced filters matching
+      const matchesCollege =
+        !filters.college.trim() ||
+        Boolean(material.college && material.college.toLowerCase().includes(filters.college.trim().toLowerCase()));
+
+      const matchesCourse =
+        !filters.course.trim() ||
+        filters.course === 'All Courses' ||
+        Boolean(
+          (material.course && material.course.toLowerCase().includes(filters.course.trim().toLowerCase())) ||
+          (material.branch && material.branch.toLowerCase().includes(filters.course.trim().toLowerCase()))
+        );
+
+      const matchesBranch =
+        !filters.branch.trim() ||
+        filters.branch === 'All Branches' ||
+        Boolean(material.branch && material.branch.toLowerCase().includes(filters.branch.trim().toLowerCase()));
+
+      const matchesSubject =
+        !filters.subject.trim() ||
+        filters.subject === 'All Subjects' ||
+        Boolean(material.subject && material.subject.toLowerCase().includes(filters.subject.trim().toLowerCase()));
+
+      const matchesYear =
+        !filters.year.trim() ||
+        filters.year === 'All Years' ||
+        Boolean(
+          material.year &&
+            (material.year.toLowerCase().includes(filters.year.trim().toLowerCase()) ||
+              filters.year.trim().toLowerCase().includes(material.year.toLowerCase()))
+        );
+
+      return (
+        matchesCategory &&
+        matchesSearch &&
+        matchesCollege &&
+        matchesCourse &&
+        matchesBranch &&
+        matchesSubject &&
+        matchesYear
+      );
+    });
+
+    if (preferredSubjectsList.length === 0) {
+      return list;
+    }
+
+    // Prioritize documents matching the user's preferred subjects first
+    return [...list].sort((a, b) => {
+      const aSub = (a.subject || '').toLowerCase().trim();
+      const bSub = (b.subject || '').toLowerCase().trim();
+      const aTitle = (a.title || '').toLowerCase().trim();
+      const bTitle = (b.title || '').toLowerCase().trim();
+
+      const aMatches = preferredSubjectsList.some(
+        (p) => aSub.includes(p) || p.includes(aSub) || aTitle.includes(p)
+      );
+      const bMatches = preferredSubjectsList.some(
+        (p) => bSub.includes(p) || p.includes(bSub) || bTitle.includes(p)
+      );
+
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      return 0;
+    });
+  }, [materials, selectedCategory, searchQuery, preferredSubjectsList, filters]);
 
   const recent = [...materials].sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1)).slice(0, 5);
 
@@ -160,7 +255,7 @@ export function DashboardPage() {
           variant="primary"
           onClick={() => navigate('/upload')}
           icon={<Upload size={16} />}
-          className="self-start sm:self-auto shadow-sm text-xs sm:text-sm font-semibold cursor-pointer"
+          className="hidden sm:inline-flex self-start sm:self-auto shadow-sm text-xs sm:text-sm font-semibold cursor-pointer"
         >
           <span>Upload</span> 
         </Button>
@@ -270,6 +365,19 @@ export function DashboardPage() {
               </AnimatePresence>
             </div>
 
+            {/* Mobile Bigger Upload Button Under Categories Dropdown (sm:hidden) */}
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={() => navigate('/upload')}
+              className="sm:hidden mt-3 h-12 w-full justify-center gap-2 rounded-2xl text-sm font-bold shadow-xs active:scale-[0.99] cursor-pointer"
+            >
+              <Plus size={19} strokeWidth={2.6} className="shrink-0" />
+              <Upload size={16} strokeWidth={2} className="shrink-0" />
+              <span>Upload Document</span>
+            </Button>
+
             {/* Tablet & Desktop Segmented Control Tabs (hidden sm:block) */}
             <div className="hidden sm:block">
               <div className="inline-flex min-w-max items-center p-1 rounded-xl bg-surface-container-high/60 border border-card-border/70 backdrop-blur-xs shadow-2xs gap-1">
@@ -333,34 +441,174 @@ export function DashboardPage() {
       {/* Filtered Materials Display Section with Section-Specific Search Box */}
       <section>
         <div className="mb-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {/* Dedicated Section Search Box on the Left */}
-          <div className="relative w-full sm:w-80 md:w-96">
-            <AnimatedInput
-              type="search"
-              icon={<Search size={18} className="text-slate-400" />}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`Search in ${selectedLabel.toLowerCase()}...`}
-              aria-label={`Search in ${selectedLabel}`}
-              className="h-11 w-full rounded-xl border border-card-border bg-surface-container pl-10 pr-9 text-body-md text-on-surface shadow-xs placeholder:text-outline focus:border-primary focus:outline-none"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface cursor-pointer"
-                aria-label="Clear search"
-              >
-                <X size={16} />
-              </button>
-            )}
+          {/* Dedicated Section Search Box & Filter Button on the Left */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-80 md:w-96">
+              <AnimatedInput
+                type="search"
+                icon={<Search size={18} className="text-slate-400" />}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search in ${selectedLabel.toLowerCase()}...`}
+                aria-label={`Search in ${selectedLabel}`}
+                className="h-11 w-full rounded-xl border border-card-border bg-surface-container pl-10 pr-9 text-body-md text-on-surface shadow-xs placeholder:text-outline focus:border-primary focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Button beside the Search Bar */}
+            <button
+              type="button"
+              onClick={() => setFilterModalOpen(true)}
+              className={cn(
+                'relative flex items-center justify-center gap-1.5 h-11 px-3.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all cursor-pointer select-none shrink-0',
+                activeFilterCount > 0
+                  ? 'bg-primary text-on-primary border-primary shadow-xs'
+                  : 'bg-surface-container border-card-border text-on-surface hover:border-primary/40 hover:bg-surface-container-high'
+              )}
+              title="Filter documents by college, subject, year, course, branch"
+              aria-label="Filter documents"
+            >
+              <SlidersHorizontal size={17} />
+              <span className="hidden sm:inline">Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-primary text-[11px] font-bold shadow-xs">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
           </div>
 
-          {/* Section Heading on the Right with Increased Font Size */}
-          <h2 className="text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">
-            {selectedLabel}
-          </h2>
+          {/* Section Heading on the Right */}
+          <div className="flex flex-col items-start sm:items-end gap-1">
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">
+                {selectedLabel}
+              </h2>
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary ring-1 ring-primary/20">
+                {loading ? '...' : filteredMaterials.length}
+              </span>
+            </div>
+            {preferredSubjectsList.length > 0 && (
+              <div className="flex items-center gap-1.5 text-[11px] text-on-surface-variant font-medium">
+                <span className="inline-flex items-center gap-1 text-primary">
+                  <Sparkles size={12} />
+                  <span>Prioritizing your subjects</span>
+                </span>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() => setShowAcademicModal(true)}
+                  className="text-primary hover:underline font-semibold cursor-pointer"
+                >
+                  Edit preferences
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Active Filter Chips */}
+        {activeFilterCount > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-surface-container/60 border border-card-border/60">
+            <span className="text-xs font-semibold text-on-surface-variant flex items-center gap-1 shrink-0">
+              <SlidersHorizontal size={13} />
+              Active filters ({activeFilterCount}):
+            </span>
+
+            {filters.college && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
+                <span>College: <strong>{filters.college}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => removeFilterKey('college')}
+                  className="hover:text-primary/70 cursor-pointer"
+                  title="Remove college filter"
+                  aria-label="Remove college filter"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+
+            {filters.course && filters.course !== 'All Courses' && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
+                <span>Course: <strong>{filters.course}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => removeFilterKey('course')}
+                  className="hover:text-primary/70 cursor-pointer"
+                  title="Remove course filter"
+                  aria-label="Remove course filter"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+
+            {filters.branch && filters.branch !== 'All Branches' && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
+                <span>Branch: <strong>{filters.branch}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => removeFilterKey('branch')}
+                  className="hover:text-primary/70 cursor-pointer"
+                  title="Remove branch filter"
+                  aria-label="Remove branch filter"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+
+            {filters.subject && filters.subject !== 'All Subjects' && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
+                <span>Subject: <strong>{filters.subject}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => removeFilterKey('subject')}
+                  className="hover:text-primary/70 cursor-pointer"
+                  title="Remove subject filter"
+                  aria-label="Remove subject filter"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+
+            {filters.year && filters.year !== 'All Years' && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
+                <span>Year: <strong>{filters.year}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => removeFilterKey('year')}
+                  className="hover:text-primary/70 cursor-pointer"
+                  title="Remove year filter"
+                  aria-label="Remove year filter"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs font-semibold text-error hover:underline ml-auto cursor-pointer"
+            >
+              Clear All
+            </button>
+          </div>
+        )}
 
         {filteredMaterials.length === 0 ? (
           <EmptyState
@@ -384,7 +632,7 @@ export function DashboardPage() {
           />
 
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 min-[1900px]:grid-cols-5">
             {filteredMaterials.map((material) => (
               <MaterialCard key={material.id} material={material} onToggleSave={toggleSave} onUploaderClick={setSelectedProfile} />
             ))}
@@ -417,6 +665,30 @@ export function DashboardPage() {
 
       {/* User Profile Panel */}
       <UserProfilePanel profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
+
+      {/* Academic Onboarding & Preferences Modal */}
+      <AcademicOnboardingModal
+        open={showAcademicModal}
+        onClose={() => {
+          if (user?.id) {
+            sessionStorage.setItem(`academic_modal_dismissed_${user.id}`, 'true');
+          }
+          setShowAcademicModal(false);
+        }}
+        onCompleted={() => {
+          setShowAcademicModal(false);
+        }}
+      />
+
+      {/* Document Filter Modal */}
+      <DocumentFilterModal
+        open={filterModalOpen}
+        onClose={() => setFilterModalOpen(false)}
+        filters={filters}
+        onApply={setFilters}
+        onClear={clearFilters}
+        totalMatchesCount={filteredMaterials.length}
+      />
     </div>
   );
 }

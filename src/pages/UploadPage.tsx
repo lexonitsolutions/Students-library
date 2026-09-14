@@ -1,13 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, ClipboardList, FileQuestion, FileText, UploadCloud, X, AlertCircle } from 'lucide-react';
-import { type DragEvent, type FormEvent, useEffect, useRef, useState } from 'react';
+import { type DragEvent, type FormEvent, useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
-import { courses, engineeringBranches, degreeBranches, subjects, years } from '../data/mockData';
+import { CollegeAutocomplete } from '../components/ui/CollegeAutocomplete';
+import {
+  INDIAN_COURSES,
+  getBranchesForCourse,
+  getStudyYearsForCourse,
+  getSubjectsForBranch,
+} from '../data/indianAcademics';
 import { useAuth } from '../hooks/useAuth';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
 import { uploadMaterial } from '../services/materialsService';
@@ -52,6 +57,7 @@ function inferMaterialType(selectedType: MaterialType): MaterialType {
 }
 
 export function UploadPage() {
+  const { user, isExploring } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const paramType = searchParams.get('type');
 
@@ -61,8 +67,106 @@ export function UploadPage() {
 
   const currentCategory = uploadCategories.find((c) => c.id === activeCategory) || uploadCategories[0];
 
-  const [selectedCourse, setSelectedCourse] = useState<string>('Engineering');
-  const activeBranches = selectedCourse === 'Degree' ? degreeBranches : engineeringBranches;
+  const [selectedCourse, setSelectedCourse] = useState<string>(() => {
+    return user?.course || INDIAN_COURSES[0].name;
+  });
+
+  const [selectedBranch, setSelectedBranch] = useState<string>(() => {
+    return user?.branch || '';
+  });
+
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [customSubject, setCustomSubject] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>(() => {
+    return user?.year || '';
+  });
+
+  const [college, setCollege] = useState<string>(() => {
+    return user?.college || user?.university || '';
+  });
+
+  // Keep defaults updated when user profile loads
+  useEffect(() => {
+    if (user?.course && !selectedCourse) {
+      setSelectedCourse(user.course);
+    }
+    if (user?.branch && !selectedBranch) {
+      setSelectedBranch(user.branch);
+    }
+    if (user?.year && !selectedYear) {
+      setSelectedYear(user.year);
+    }
+    if ((user?.college || user?.university) && !college) {
+      setCollege(user.college || user.university || '');
+    }
+  }, [user]);
+
+  // Dynamic branch list for course
+  const branchOptions = useMemo(() => {
+    const branches = getBranchesForCourse(selectedCourse);
+    return branches.map((b) => ({ value: b.name, label: b.name }));
+  }, [selectedCourse]);
+
+  // Keep branch valid if course changes
+  useEffect(() => {
+    const branches = getBranchesForCourse(selectedCourse);
+    if (branches.length > 0) {
+      const match = branches.some((b) => b.name === selectedBranch);
+      if (!match) {
+        setSelectedBranch(branches[0].name);
+      }
+    }
+  }, [selectedCourse, selectedBranch]);
+
+  // Dynamic study years for course
+  const yearOptions = useMemo(() => {
+    const years = getStudyYearsForCourse(selectedCourse);
+    return years.map((y) => ({ value: y, label: y }));
+  }, [selectedCourse]);
+
+  useEffect(() => {
+    const years = getStudyYearsForCourse(selectedCourse);
+    if (years.length > 0 && (!selectedYear || !years.includes(selectedYear))) {
+      setSelectedYear(years[0]);
+    }
+  }, [selectedCourse, selectedYear]);
+
+  // Dynamic subjects for branch with preferred subjects prioritized
+  const subjectList = useMemo(() => {
+    return getSubjectsForBranch(selectedCourse, selectedBranch);
+  }, [selectedCourse, selectedBranch]);
+
+  const subjectOptions = useMemo(() => {
+    const userPreferred = user?.preferredSubjects || [];
+
+    const preferredMatched = subjectList.filter((s) =>
+      userPreferred.some((p) => p.toLowerCase() === s.toLowerCase())
+    );
+    const otherSubs = subjectList.filter(
+      (s) => !userPreferred.some((p) => p.toLowerCase() === s.toLowerCase())
+    );
+    const customPreferred = userPreferred.filter(
+      (p) => !subjectList.some((s) => s.toLowerCase() === p.toLowerCase())
+    );
+
+    const ordered = [...preferredMatched, ...customPreferred, ...otherSubs];
+    const items = ordered.map((s) => ({
+      value: s,
+      label: userPreferred.some((p) => p.toLowerCase() === s.toLowerCase()) ? `★ ${s}` : s,
+    }));
+
+    return [...items, { value: '__OTHER__', label: '✏️ Other / Custom Subject...' }];
+  }, [subjectList, user?.preferredSubjects]);
+
+  // Initialize selected subject if empty
+  useEffect(() => {
+    if (subjectList.length > 0 && !selectedSubject) {
+      const preferred = user?.preferredSubjects?.find((p) =>
+        subjectList.some((s) => s.toLowerCase() === p.toLowerCase())
+      );
+      setSelectedSubject(preferred || subjectList[0]);
+    }
+  }, [subjectList, user?.preferredSubjects, selectedSubject]);
 
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
@@ -74,7 +178,6 @@ export function UploadPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
-  const { user, isExploring } = useAuth();
   const { openSignupModal } = useSignupRedirect();
 
   useEffect(() => {
@@ -165,38 +268,38 @@ export function UploadPage() {
     const formData = new FormData(event.currentTarget);
     const title = String(formData.get('title') ?? '').trim();
     const course = String(formData.get('course') ?? selectedCourse).trim();
-    const branch = String(formData.get('branch') ?? '').trim();
-    const year = String(formData.get('year') ?? '').trim();
-    const college = String(formData.get('college') ?? '').trim();
+    const branch = String(formData.get('branch') ?? selectedBranch).trim();
+    const year = String(formData.get('year') ?? selectedYear).trim();
+    const collegeValue = (college || String(formData.get('college') ?? '')).trim();
     const description = String(formData.get('description') ?? '').trim();
     const pagesStr = String(formData.get('pages') ?? '').trim();
     const pages = pagesStr ? parseInt(pagesStr, 10) : files.length > 1 ? files.length : undefined;
+
+    const finalSubject = (selectedSubject === '__OTHER__' ? customSubject : selectedSubject).trim();
 
     if (!title) {
       setError('Title is required.');
       return;
     }
-
-    if (currentCategory.id === 'past-paper') {
-      if (!college) {
-        setError('College / University name is required.');
-        return;
-      }
-    } else if (currentCategory.id === 'doc') {
-      if (!year) {
-        setError('Student Year is required.');
-        return;
-      }
-    } else if (currentCategory.id === 'materials') {
-      const subject = String(formData.get('subject') ?? '').trim();
-      if (!subject) {
-        setError('Subject is required.');
-        return;
-      }
-      if (!year) {
-        setError('Student Year is required.');
-        return;
-      }
+    if (!course) {
+      setError('Course is required.');
+      return;
+    }
+    if (!branch) {
+      setError('Branch / Program is required.');
+      return;
+    }
+    if (!finalSubject) {
+      setError('Subject is required.');
+      return;
+    }
+    if (!year) {
+      setError('Student Year is required.');
+      return;
+    }
+    if (!collegeValue) {
+      setError('College / Institution is required.');
+      return;
     }
 
     setError(null);
@@ -205,18 +308,31 @@ export function UploadPage() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
 
+        let actualPages: number | undefined = undefined;
+        try {
+          const { getDocumentPageCount } = await import('../lib/documentParser');
+          actualPages = await getDocumentPageCount(file);
+        } catch (err) {
+          console.warn('Page detection warning for', file.name, err);
+        }
+
+        const resolvedPages =
+          pages ||
+          actualPages ||
+          (typeof detectedPages === 'number' && detectedPages > 0 ? detectedPages : undefined);
+
         await uploadMaterial({
           file,
           uploaderId: user.id,
           title,
           description: description || undefined,
-          subject: currentCategory.id === 'past-paper' ? title : String(formData.get('subject') ?? '') || branch || title,
-          semester: String(formData.get('semester') ?? '') || undefined,
-          college: String(formData.get('college') ?? '') || undefined,
+          subject: finalSubject,
+          semester: String(formData.get('semester') ?? '').trim() || undefined,
+          college: collegeValue,
           branch: branch ? `${course ? `${course} - ` : ''}${branch}` : undefined,
           year: year || undefined,
           type: inferMaterialType(currentCategory.type),
-          pages: pages || 1,
+          pages: resolvedPages,
         });
       }
 
@@ -421,92 +537,108 @@ export function UploadPage() {
             </div>
 
             {/* Optional Description */}
-            {!isPastPaper && (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-on-surface">Description</label>
-                  <span className="text-[11px] text-on-surface-variant/70">Optional</span>
-                </div>
-                <textarea
-                  name="description"
-                  rows={2}
-                  placeholder="What does this resource cover? Add any helpful details for students."
-                  className="w-full resize-none rounded-xl bg-surface-container-lowest border border-card-border/90 p-3 text-sm text-on-surface placeholder:text-outline/50 shadow-2xs transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                />
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-on-surface">Description</label>
+                <span className="text-[11px] text-on-surface-variant/70">Optional</span>
               </div>
-            )}
+              <textarea
+                name="description"
+                rows={2}
+                placeholder="What does this resource cover? Add any helpful details for students."
+                className="w-full resize-none rounded-xl bg-surface-container-lowest border border-card-border/90 p-3 text-sm text-on-surface placeholder:text-outline/50 shadow-2xs transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+              />
+            </div>
 
-            {/* Dynamic Metadata Form Fields */}
-            {isAssignment ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                <Select
-                  label="Course"
-                  placeholder="Select Course"
-                  options={courses}
-                  name="course"
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
-                />
-                <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
+            {/* Complete Academic Metadata Fields */}
+            {/* Row 1: Course & Branch */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <Select
+                label={
+                  <span>
+                    Course <span className="text-error">*</span>
+                  </span>
+                }
+                placeholder="Select Course *"
+                options={INDIAN_COURSES.map((c) => ({ value: c.name, label: c.name }))}
+                name="course"
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                required
+              />
+              <Select
+                label={
+                  <span>
+                    Branch / Program <span className="text-error">*</span>
+                  </span>
+                }
+                placeholder="Select Branch *"
+                options={branchOptions}
+                name="branch"
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Row 2: Subject & Student Year */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="flex flex-col gap-1.5">
                 <Select
                   label={
                     <span>
-                      Student Year <span className="text-error">*</span>
+                      Subject <span className="text-error">*</span>
                     </span>
                   }
-                  placeholder="Select Year *"
-                  options={years}
-                  name="year"
+                  placeholder="Select Subject *"
+                  options={subjectOptions}
+                  name="subject"
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
                   required
                 />
-              </div>
-            ) : isPastPaper ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <CollegeAutocomplete
-                  label="College / University *"
-                  name="college"
-                  placeholder="Enter your college or university name *"
-                />
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-on-surface">
-                    Pages <span className="text-[11px] font-normal text-on-surface-variant/70">(Optional)</span>
-                  </label>
+                {selectedSubject === '__OTHER__' && (
                   <input
-                    type="number"
-                    name="pages"
-                    min={1}
-                    value={detectedPages}
-                    onChange={(e) => setDetectedPages(e.target.value)}
-                    placeholder="e.g. 5"
-                    className="h-11 w-full rounded-xl bg-surface-container-lowest border border-card-border/90 px-3.5 text-sm font-medium text-on-surface placeholder:text-outline/50 shadow-2xs transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                    type="text"
+                    value={customSubject}
+                    onChange={(e) => setCustomSubject(e.target.value)}
+                    placeholder="Enter custom subject name *"
+                    required
+                    className="h-10 w-full rounded-lg bg-surface-container-lowest border border-card-border px-3 text-sm text-on-surface shadow-2xs focus:border-primary focus:outline-none transition-colors mt-1"
                   />
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <Select
-                  label="Course"
-                  placeholder="Select Course"
-                  options={courses}
-                  name="course"
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
-                />
-                <Select label="Branch / Program" placeholder="Select Branch" options={activeBranches} name="branch" />
-                <Select label="Subject *" placeholder="Select Subject *" options={subjects} name="subject" required />
-                <Select
-                  label={
-                    <span>
-                      Student Year <span className="text-error">*</span>
-                    </span>
-                  }
-                  placeholder="Select Year *"
-                  options={years}
-                  name="year"
-                  required
-                />
-              </div>
-            )}
+
+              <Select
+                label={
+                  <span>
+                    Student Year <span className="text-error">*</span>
+                  </span>
+                }
+                placeholder="Select Year *"
+                options={yearOptions}
+                name="year"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Row 3: College / Institution (Defaulted to user's college) */}
+            <div>
+              <CollegeAutocomplete
+                label={
+                  <span>
+                    College / Institution <span className="text-error">*</span>
+                  </span>
+                }
+                placeholder="Search or enter your college / university name *"
+                value={college}
+                onChange={setCollege}
+                onSelect={(col) => setCollege(col.name)}
+                required
+              />
+            </div>
           </motion.div>
         </AnimatePresence>
 

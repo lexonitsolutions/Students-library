@@ -26,9 +26,17 @@ function saveLocalStorageSavedIds(userId: string, ids: Set<string>): void {
 
 let inMemorySavedSet: Set<string> | null = null;
 let inMemoryUserId: string | null = null;
+let lastBookmarkFetchTime = 0;
+const BOOKMARK_CACHE_TTL_MS = 30000; // 30 seconds
 
 export async function listBookmarkedMaterialIds(userId: string): Promise<Set<string>> {
   const localSet = getLocalStorageSavedIds(userId);
+  const now = Date.now();
+
+  if (inMemorySavedSet && inMemoryUserId === userId && now - lastBookmarkFetchTime < BOOKMARK_CACHE_TTL_MS) {
+    return new Set(inMemorySavedSet);
+  }
+
   if (!inMemorySavedSet || inMemoryUserId !== userId) {
     inMemorySavedSet = new Set(localSet);
     inMemoryUserId = userId;
@@ -46,6 +54,7 @@ export async function listBookmarkedMaterialIds(userId: string): Promise<Set<str
         inMemorySavedSet.add(row.material_id);
       }
       saveLocalStorageSavedIds(userId, inMemorySavedSet);
+      lastBookmarkFetchTime = Date.now();
     }
   } catch (err) {
     console.warn('DB listBookmarkedMaterialIds notice:', err);

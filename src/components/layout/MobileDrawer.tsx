@@ -81,21 +81,6 @@ export function MobileDrawer({ isOpen, onClose, onLogout }: MobileDrawerProps) {
               </button>
             </div>
 
-            {!isExploring && user && (
-              <button
-                type="button"
-                onClick={() => handleNav(() => navigate("/profile"))}
-                className="flex items-center gap-3 px-4 py-3.5 border-b border-card-border/60 hover:bg-surface-container/50 transition-colors cursor-pointer w-full text-left group"
-              >
-                <div className="rounded-full p-[2px] ring-2 ring-primary/40 group-hover:ring-primary shadow-xs shrink-0 transition-all bg-surface-container-low">
-                  <Avatar name={user.name || "User"} src={user.avatar} size={40} className="ring-1 ring-black/10 dark:ring-white/15" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">{user.name || user.username}</p>
-                  <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
-                </div>
-              </button>
-            )}
 
             <div className="flex-1 overflow-y-auto px-3 py-3">
               {isAdmin && (

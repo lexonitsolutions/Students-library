@@ -1,10 +1,10 @@
 import { Search, X, School, Loader2 } from 'lucide-react';
-import { useEffect, useRef, useState, useCallback, useId } from 'react';
+import { useEffect, useRef, useState, useCallback, useId, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 import { searchColleges, type CollegeSuggestion } from '../../services/collegeService';
 
 export interface CollegeAutocompleteProps {
-  readonly label?: string;
+  readonly label?: ReactNode;
   readonly name?: string;
   readonly placeholder?: string;
   readonly required?: boolean;

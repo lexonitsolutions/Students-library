@@ -8,8 +8,40 @@ import type { ProfileRow, ProfileStatsRow } from '../types/database.types';
 
 import { generateQuickId } from '../lib/idUtils';
 
+function parsePreferredSubjects(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((s) => String(s)).filter(Boolean);
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.map((s) => String(s)).filter(Boolean);
+      } catch {}
+    }
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      return trimmed
+        .slice(1, -1)
+        .split(',')
+        .map((s) => s.replace(/^"|"$/g, '').trim())
+        .filter(Boolean);
+    }
+    return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 function toUser(profile: ProfileRow, stats: ProfileStatsRow | null, session?: Session | null): User {
   const localCover = typeof window !== 'undefined' ? localStorage.getItem(`quicklearnit.cover_${profile.id}`) : null;
+  let localAcademic: { course?: string; preferredSubjects?: string[] } = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`quicklearnit.academic_${profile.id}`);
+      if (raw) localAcademic = JSON.parse(raw);
+    } catch {}
+  }
   const googleAvatar =
     (session?.user?.user_metadata?.avatar_url as string) ||
     (session?.user?.user_metadata?.picture as string) ||
@@ -26,10 +58,12 @@ function toUser(profile: ProfileRow, stats: ProfileStatsRow | null, session?: Se
     coverImage: profile.cover_image || localCover || undefined,
     university: profile.university ?? '',
     major: profile.major ?? '',
+    course: (profile as any).course || localAcademic.course || undefined,
     college: profile.college ?? undefined,
     branch: profile.branch ?? undefined,
     year: profile.year ?? undefined,
     semester: profile.semester ?? undefined,
+    preferredSubjects: parsePreferredSubjects((profile as any).preferred_subjects ?? localAcademic.preferredSubjects),
     role: profile.role,
     createdAt: profile.created_at,
     stats: {
@@ -82,10 +116,12 @@ function toUserUpdate(fields: Partial<User>) {
     ...(fields.coverImage !== undefined && { cover_image: fields.coverImage || null }),
     ...(fields.university !== undefined && { university: fields.university }),
     ...(fields.major !== undefined && { major: fields.major }),
+    ...(fields.course !== undefined && { course: fields.course }),
     ...(fields.college !== undefined && { college: fields.college }),
     ...(fields.branch !== undefined && { branch: fields.branch }),
     ...(fields.year !== undefined && { year: fields.year }),
     ...(fields.semester !== undefined && { semester: fields.semester }),
+    ...(fields.preferredSubjects !== undefined && { preferred_subjects: fields.preferredSubjects }),
   };
 }
 
@@ -344,6 +380,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         }
       }
 
+      if (typeof window !== 'undefined' && (fields.course !== undefined || fields.preferredSubjects !== undefined)) {
+        try {
+          const currentRaw = localStorage.getItem(`quicklearnit.academic_${activeId}`);
+          const parsed = currentRaw ? JSON.parse(currentRaw) : {};
+          if (fields.course !== undefined) parsed.course = fields.course;
+          if (fields.preferredSubjects !== undefined) parsed.preferredSubjects = fields.preferredSubjects;
+          localStorage.setItem(`quicklearnit.academic_${activeId}`, JSON.stringify(parsed));
+        } catch {}
+      }
+
       if (!session) {
         if (guestUser) {
           const updatedGuest: User = {
@@ -358,7 +404,15 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       }
 
       const updated = await profileService.updateProfile(session.user.id, toUserUpdate(fields));
-      setProfile(updated);
+      setProfile((prev) => {
+        if (!prev) return updated;
+        return {
+          ...prev,
+          ...updated,
+          ...(fields.course !== undefined ? { course: fields.course } : {}),
+          ...(fields.preferredSubjects !== undefined ? { preferred_subjects: fields.preferredSubjects } : {}),
+        };
+      });
     },
     [session, guestUser],
   );

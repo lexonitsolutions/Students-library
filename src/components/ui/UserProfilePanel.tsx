@@ -6,7 +6,7 @@ import {
   Copy,
   Eye,
   FileText,
-  Heart,
+  ThumbsUp,
   Loader2,
   MessageSquare,
   Sparkles,
@@ -155,7 +155,7 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
           let likes = 0;
           materials.forEach((m) => {
             views += m.views_count || 0;
-            const localLikes = getLocalLikesCount(m.id, (m as any).saves_count || 0);
+            const localLikes = getLocalLikesCount(m.id, (m as any).likes_count ?? (m as any).saves_count ?? 0);
             likes += localLikes;
           });
 
@@ -436,9 +436,9 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
                 <span className="text-[11px] font-semibold text-on-surface-variant">Views</span>
               </div>
 
-              <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-surface-container-low border border-card-border/60 py-3 px-2 shadow-2xs hover:border-rose-500/30 transition-colors">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                  <Heart size={15} />
+              <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-surface-container-low border border-card-border/60 py-3 px-2 shadow-2xs hover:border-primary/30 transition-colors">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <ThumbsUp size={15} />
                 </div>
                 <span className="text-title-sm font-bold text-on-surface">
                   {isLoadingStats ? '-' : totalLikes}

@@ -2,9 +2,11 @@ import { ChevronDown } from 'lucide-react';
 import { type ReactNode, type SelectHTMLAttributes, useId } from 'react';
 import { cn } from '../../lib/cn';
 
+export type SelectOption = string | { readonly value: string; readonly label: string };
+
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   readonly label?: ReactNode;
-  readonly options: readonly string[];
+  readonly options: readonly SelectOption[];
   readonly placeholder?: string;
 }
 
@@ -35,11 +37,15 @@ export function Select({ label, options, placeholder, id, className, ...props }:
               {placeholder}
             </option>
           )}
-          {options.map((option) => (
-            <option key={option} value={option} className="bg-surface text-on-surface py-1">
-              {option}
-            </option>
-          ))}
+          {(options || []).filter(Boolean).map((option) => {
+            const val = typeof option === 'string' ? option : option?.value ?? '';
+            const lbl = typeof option === 'string' ? option : option?.label ?? val;
+            return (
+              <option key={val} value={val} className="bg-surface text-on-surface py-1">
+                {lbl}
+              </option>
+            );
+          })}
         </select>
         <ChevronDown
           className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70"

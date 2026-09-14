@@ -168,7 +168,7 @@ export function AdminManageStudentsPage() {
       </div>
 
       {/* -- Quick Metrics -- */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 2xl:gap-5">
         <div className="flex items-center gap-3.5 p-4 rounded-2xl border border-card-border bg-surface-container-low">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Users size={18} />
@@ -208,9 +208,9 @@ export function AdminManageStudentsPage() {
 
       {/* -- Filter Bar & Table Card -- */}
       <Card padded={false} hoverable={false} className="overflow-hidden">
-        {/* Table Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-card-border bg-surface-container-lowest">
-          <div className="relative flex-1 max-w-sm">
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-b border-card-border bg-surface-container-lowest">
+          <div className="relative flex-1 max-w-sm 2xl:max-w-md">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none" />
             <input
               type="text"
@@ -296,7 +296,7 @@ export function AdminManageStudentsPage() {
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs sm:text-sm font-semibold text-on-surface group-hover:text-primary transition-colors truncate block max-w-[200px]">
+                          <span className="text-xs sm:text-sm font-semibold text-on-surface group-hover:text-primary transition-colors truncate block max-w-[200px] xl:max-w-xs 2xl:max-w-md">
                             {student.name}
                           </span>
                           {student.role === 'admin' && (
@@ -308,12 +308,12 @@ export function AdminManageStudentsPage() {
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           {student.username && (
-                            <span className="text-[11px] font-medium text-primary truncate max-w-[100px]">
+                            <span className="text-[11px] font-medium text-primary truncate max-w-[100px] xl:max-w-[140px]">
                               {student.username}
                             </span>
                           )}
                           {student.email && (
-                            <span className="text-[11px] text-on-surface-variant truncate max-w-[150px]" title={student.email}>
+                            <span className="text-[11px] text-on-surface-variant truncate max-w-[150px] xl:max-w-[220px] 2xl:max-w-xs" title={student.email}>
                               {student.email}
                             </span>
                           )}
@@ -325,12 +325,12 @@ export function AdminManageStudentsPage() {
                   {/* Academic Info */}
                   <td className="px-4 py-3.5">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-medium text-on-surface truncate max-w-[180px]" title={student.college || student.university || 'Not specified'}>
+                      <span className="text-xs font-medium text-on-surface truncate max-w-[180px] xl:max-w-xs 2xl:max-w-sm" title={student.college || student.university || 'Not specified'}>
                         {student.college || student.university || 'General Student'}
                       </span>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         {student.branch && (
-                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-surface-container text-on-surface-variant border border-card-border truncate max-w-[120px]">
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-surface-container text-on-surface-variant border border-card-border truncate max-w-[120px] xl:max-w-[180px]">
                             {student.branch}
                           </span>
                         )}

@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { toMaterial } from '../lib/materialMapper';
 import { listBookmarkedMaterialIds, listBookmarkedMaterials } from './bookmarksService';
-import { getLocalLikesCount } from './likesService';
+import { getLocalLikesCount, recordDownloadWithCount } from './likesService';
 import type { Material } from '../data/types';
 import type { MaterialRow, MaterialStatus, MaterialType, PublicProfileRow } from '../types/database.types';
 
@@ -326,6 +326,7 @@ export async function updateMaterialDetails(
     subject?: string;
     branch?: string;
     year?: string;
+    pages?: number;
     status?: MaterialStatus;
     rejection_reason?: string | null;
   }
@@ -352,7 +353,6 @@ export async function deleteMaterialForUI(id: string, filePath?: string): Promis
 }
 
 export async function recordDownload(materialId: string, userId?: string, currentCount: number = 0): Promise<void> {
-  const { recordDownloadWithCount } = await import('./likesService');
   await recordDownloadWithCount(materialId, userId, currentCount);
 }
 
@@ -410,7 +410,7 @@ export async function listLeaderboardForUI(currentUserId?: string): Promise<Lead
     // Fetch views, likes, and types by counting materials
     const { data: materialsData } = await supabase
       .from('materials')
-      .select('id, uploader_id, views_count, saves_count, downloads_count, type')
+      .select('id, uploader_id, views_count, saves_count, downloads_count, likes_count, type')
       .in('uploader_id', userIds)
       .eq('status', 'approved');
 
@@ -424,7 +424,7 @@ export async function listLeaderboardForUI(currentUserId?: string): Promise<Lead
         viewsByUser.set(row.uploader_id, (viewsByUser.get(row.uploader_id) ?? 0) + (row.views_count ?? 0));
         downloadsByUser.set(row.uploader_id, (downloadsByUser.get(row.uploader_id) ?? 0) + (row.downloads_count ?? 0));
         
-        const baseLikes = row.saves_count ?? 0;
+        const baseLikes = row.likes_count ?? row.saves_count ?? 0;
         const local = typeof window !== 'undefined' ? getLocalLikesCount(row.id, baseLikes) : baseLikes;
         likesByUser.set(row.uploader_id, (likesByUser.get(row.uploader_id) ?? 0) + local);
 
