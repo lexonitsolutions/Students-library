@@ -1124,23 +1124,6 @@ export async function deleteStudent(studentId: string): Promise<void> {
   // 1. Immediately record in persistent blocklist
   addDeletedStudentId(studentId);
 
-  // 2. Remove files from storage for any materials uploaded by this student
-  try {
-    const { data: mats } = await supabase
-      .from('materials')
-      .select('file_path')
-      .eq('uploader_id', studentId);
-
-    if (mats && mats.length > 0) {
-      const filePaths = mats.map((m) => m.file_path).filter(Boolean) as string[];
-      if (filePaths.length > 0) {
-        await supabase.storage.from('materials').remove(filePaths).catch(() => {});
-      }
-    }
-  } catch (err) {
-    console.warn('Could not remove student materials storage files:', err);
-  }
-
   // 3. Clean any local approval/rejection caches where this student was the uploader
   try {
     const approvals = getStoredApprovals();
@@ -1171,15 +1154,7 @@ export async function deleteStudent(studentId: string): Promise<void> {
 
   // 5. Fallback direct deletes if RPC is not installed yet
   if (!rpcSuccess) {
-    try {
-      await supabase.from('materials').delete().eq('uploader_id', studentId);
-    } catch {}
-    try {
-      const { error: delProfErr } = await supabase.from('profiles').delete().eq('id', studentId);
-      if (delProfErr) {
-        console.warn('Direct profiles delete notice (RLS):', delProfErr.message);
-      }
-    } catch {}
+    console.warn('admin_delete_student RPC not installed or failed.');
   }
 }
 

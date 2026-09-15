@@ -86,12 +86,14 @@ interface AuthContextValue {
   ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
   readonly signIn: (params: authService.SignInParams) => Promise<{ error: string | null }>;
   readonly signInWithGoogle: (redirectTo?: string) => Promise<{ error: string | null }>;
-  readonly resendSignupOtp: (email: string) => Promise<{ error: string | null }>;
+  readonly resetPassword: (email: string) => Promise<{ error: string | null }>;
+
   readonly verifySignupOtp: (email: string, token: string) => Promise<{ error: string | null }>;
   readonly sendMobileOtp: (phone: string) => Promise<{ error: string | null }>;
   readonly verifyMobileOtp: (phone: string, token: string) => Promise<{ error: string | null }>;
   readonly signOut: () => Promise<void>;
   readonly checkAccountStatus: (email: string) => Promise<authService.AccountStatus>;
+  readonly resendSignupOtp: (email: string) => Promise<{ error: string | null }>;
   readonly completeOnboarding: () => void;
   readonly startExploring: () => void;
   readonly stopExploring: () => void;
@@ -470,6 +472,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       signUp,
       signIn,
       signInWithGoogle,
+      resetPassword: authService.resetPassword,
       resendSignupOtp,
       verifySignupOtp,
       sendMobileOtp,

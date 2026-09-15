@@ -3,9 +3,10 @@ import { RouteLoader } from '../components/ui/RouteLoader';
 import { useAuth } from '../hooks/useAuth';
 import { useWorkspace } from '../hooks/useWorkspace';
 import { useSignupRedirect } from '../hooks/useSignupRedirect';
+import { useEffect } from 'react';
 
 export function PublicOnlyRoute() {
-  const { isAuthenticated, isExploring, user, loading, session } = useAuth();
+  const { isAuthenticated, isExploring, user, loading, session, signOut } = useAuth();
   const { workspace } = useWorkspace();
   const { getAndClearRedirectPath } = useSignupRedirect();
   const location = useLocation();
@@ -25,8 +26,32 @@ export function PublicOnlyRoute() {
     return <Outlet />;
   }
 
+  const isVerifiedSignup = location.pathname === '/signin' && new URLSearchParams(location.search).get('verified') === 'true';
+
+  useEffect(() => {
+    if (isAuthenticated && !isExploring && isVerifiedSignup) {
+      // The user clicked an email verification link and Supabase auto-logged them in.
+      // But we want them to manually log in. So we sign them out immediately.
+      signOut().catch(() => {});
+      
+      // Tell other open tabs (like the OTP/Signup page) that verification succeeded
+      try {
+        const channel = new BroadcastChannel('studexa_auth');
+        channel.postMessage('verified_signup');
+        channel.close();
+      } catch (e) {
+        // BroadcastChannel might not be supported in older browsers
+      }
+
+      // Remove verified=true from URL so it doesn't trigger again on reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('verified');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [isAuthenticated, isExploring, isVerifiedSignup, signOut]);
+
   // Only redirect away fully authenticated non-guest users
-  if (isAuthenticated && !isExploring) {
+  if (isAuthenticated && !isExploring && !isVerifiedSignup) {
     const redirectPath = getAndClearRedirectPath();
     if (redirectPath) {
       return <Navigate to={redirectPath} replace />;
