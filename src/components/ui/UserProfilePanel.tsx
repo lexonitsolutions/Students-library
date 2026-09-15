@@ -68,6 +68,7 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
   const [isCheckingChat, setIsCheckingChat] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [coverImage, setCoverImage] = useState<string | null>(profile?.uploaderCoverImage || null);
+  const [isDeleted, setIsDeleted] = useState(false);
 
   const handleCopyId = () => {
     if (!profile) return;
@@ -104,12 +105,13 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
       try {
         const { data: prof } = await supabase
           .from('public_profiles')
-          .select('name, username, university, college, joined_at, cover_image')
+          .select('name, username, university, college, joined_at, cover_image, is_deleted')
           .eq('id', profile.uploaderId)
           .maybeSingle();
 
         let foundCover: string | null = (prof as any)?.cover_image || null;
         if (prof && isMounted) {
+          if (prof.is_deleted) setIsDeleted(true);
           if (prof.name) setDisplayName(prof.name);
           if (prof.username) setDisplayUsername(prof.username);
           if (prof.joined_at) setJoinedAt(prof.joined_at);
@@ -374,37 +376,50 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
                 {usernameHandle}
               </p>
 
-              {/* User ID (Interactive Monospace Pill with Copy Feedback) */}
-              <div className="mt-2">
-                <button
-                  type="button"
-                  onClick={handleCopyId}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container hover:bg-surface-container-high border border-card-border/70 text-[11px] font-mono font-medium text-on-surface-variant transition-colors cursor-pointer group shadow-2xs"
-                  title="Click to copy User ID"
-                >
-                  <span className="text-on-surface-variant/60 font-sans text-[10px] uppercase font-bold tracking-wider">
-                    ID
-                  </span>
-                  <span>{uploaderQuickId}</span>
-                  {copiedId ? (
-                    <Check size={12} className="text-emerald-500 animate-in fade-in" />
-                  ) : (
-                    <Copy
-                      size={12}
-                      className="text-on-surface-variant/40 group-hover:text-on-surface-variant transition-colors"
-                    />
-                  )}
-                </button>
-              </div>
+              {!(isDeleted || displayName.toLowerCase() === 'studex user') && (
+                <>
+                  {/* User ID (Interactive Monospace Pill with Copy Feedback) */}
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyId}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container hover:bg-surface-container-high border border-card-border/70 text-[11px] font-mono font-medium text-on-surface-variant transition-colors cursor-pointer group shadow-2xs"
+                      title="Click to copy User ID"
+                    >
+                      <span className="text-on-surface-variant/60 font-sans text-[10px] uppercase font-bold tracking-wider">
+                        ID
+                      </span>
+                      <span>{uploaderQuickId}</span>
+                      {copiedId ? (
+                        <Check size={12} className="text-emerald-500 animate-in fade-in" />
+                      ) : (
+                        <Copy
+                          size={12}
+                          className="text-on-surface-variant/40 group-hover:text-on-surface-variant transition-colors"
+                        />
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
+
+            {!(isDeleted || displayName.toLowerCase() === 'studex user') && (
+              <>
 
             {/* ── College & Member Since Info Card ── */}
             <div className="mx-5 my-4 rounded-2xl bg-surface-container-low border border-card-border/60 p-3.5 space-y-2.5">
               <div className="flex items-center gap-2.5 text-xs text-on-surface">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <University size={14} />
-                </div>
-                <span className="font-semibold truncate">{collegeName}</span>
+                {collegeName !== '-' ? (
+                  <>
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <University size={14} />
+                    </div>
+                    <span className="font-semibold truncate">{collegeName}</span>
+                  </>
+                ) : (
+                  <span className="font-semibold text-on-surface-variant pl-1">-</span>
+                )}
               </div>
               <div className="flex items-center gap-2.5 text-xs text-on-surface-variant">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant/70">
@@ -502,6 +517,8 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
                 </div>
               )}
             </div>
+            </>
+            )}
           </motion.aside>
         </>
       )}

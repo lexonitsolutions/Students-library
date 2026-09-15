@@ -27,18 +27,49 @@ export function SignInPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isVerified = new URLSearchParams(location.search).get('verified') === 'true';
   const successMessage =
     ((location.state as any)?.message as string | undefined) ||
     (wasPasswordChanged
       ? 'Password changed successfully! Please sign in with your new password.'
+      : isVerified
+      ? 'Email verified successfully! Please sign in to your account.'
       : undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [noAccountEmail, setNoAccountEmail] = useState<string | null>(null);
-  const { signIn, signInWithGoogle, checkAccountStatus } = useAuth();
+  const { signIn, signInWithGoogle, checkAccountStatus, resetPassword } = useAuth();
   const { chooseWorkspace } = useWorkspace();
   const { getAndClearRedirectPath } = useSignupRedirect();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Intercept back button to strictly go to /get-started
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      navigate('/get-started', { replace: true });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
+
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
+  const handleResetPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    
+    const { error: resetError } = await resetPassword(email.trim());
+    setIsSubmitting(false);
+    
+    if (resetError) {
+      setError(resetError);
+    } else {
+      setResetEmailSent(true);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -204,13 +235,20 @@ export function SignInPage() {
           transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-md mx-auto my-auto py-6"
         >
-          <div className="mb-6 text-left">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Sign in</h2>
-            <p className="mt-1 text-sm text-on-surface-variant">Welcome back. Enter your credentials to access your library.</p>
-          </div>
+          {isForgotPassword ? (
+            <div className="mb-6 text-left">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Reset Password</h2>
+              <p className="mt-1 text-sm text-on-surface-variant">Enter your email address and we'll send you a link to reset your password.</p>
+            </div>
+          ) : (
+            <div className="mb-6 text-left">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Sign in</h2>
+              <p className="mt-1 text-sm text-on-surface-variant">Welcome back. Enter your credentials to access your library.</p>
+            </div>
+          )}
 
           {/* Success Message */}
-          {successMessage && (
+          {successMessage && !isForgotPassword && (
             <div className="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span>{successMessage}</span>
@@ -242,116 +280,153 @@ export function SignInPage() {
           )}
 
           {/* Social Sign-in Buttons */}
-          <div className="space-y-2.5">
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={isGoogleLoading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isGoogleLoading ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
-              ) : (
-                <svg className="h-4 w-4" viewBox="0 0 24 24">
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
-              )}
-              <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider">
-                or sign in with email
-              </span>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-xs font-semibold text-on-surface mb-1.5 text-left">
-                Email address
-              </label>
-              <AnimatedInput
-                type="email"
-                id="email"
-                icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
-                className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                placeholder="student@university.edu"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setNoAccountEmail(null); }}
-                required
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
-                  Password
-                </label>
-                <a href="#forgot" className="text-xs font-medium text-primary hover:underline">
-                  Forgot password?
-                </a>
-              </div>
-              <div className="relative">
-                <AnimatedInput
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
-                  className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+          {!isForgotPassword && (
+            <>
+              <div className="space-y-2.5">
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant hover:text-on-surface cursor-pointer z-30"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={handleGoogleSignIn}
+                  disabled={isGoogleLoading}
+                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {isGoogleLoading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
+                  ) : (
+                    <svg className="h-4 w-4" viewBox="0 0 24 24">
+                      <path
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853"
+                      />
+                      <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        fill="#FBBC05"
+                      />
+                      <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335"
+                      />
+                    </svg>
+                  )}
+                  <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
                 </button>
               </div>
-            </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all disabled:opacity-50 cursor-pointer"
-            >
-              <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </form>
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider">
+                    or sign in with email
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Form */}
+          {!resetEmailSent ? (
+            <form onSubmit={isForgotPassword ? handleResetPassword : handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-xs font-semibold text-on-surface mb-1.5 text-left">
+                  Email address
+                </label>
+                <AnimatedInput
+                  type="email"
+                  id="email"
+                  icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
+                  className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  placeholder="student@university.edu"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setNoAccountEmail(null); }}
+                  required
+                />
+              </div>
+
+              {!isForgotPassword && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
+                      Password
+                    </label>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <AnimatedInput
+                      type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
+                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required={!isForgotPassword}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant hover:text-on-surface cursor-pointer z-30"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <span>
+                  {isSubmitting 
+                    ? (isForgotPassword ? 'Sending...' : 'Signing in...') 
+                    : (isForgotPassword ? 'Send Reset Link' : 'Sign In')}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </form>
+          ) : (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 text-center space-y-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Mail className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-sm font-bold text-on-surface">Check your email</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                We sent a password reset link to <span className="font-semibold text-on-surface">{email}</span>
+              </p>
+            </div>
+          )}
 
           {/* Footer link */}
           <p className="mt-6 text-center text-xs text-on-surface-variant">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-semibold text-primary hover:underline">
-              Create an account
-            </Link>
+            {isForgotPassword ? (
+              <>
+                Remembered your password?{' '}
+                <button type="button" onClick={() => { setIsForgotPassword(false); setResetEmailSent(false); }} className="font-semibold text-primary hover:underline">
+                  Sign in instead
+                </button>
+              </>
+            ) : (
+              <>
+                Don't have an account?{' '}
+                <Link to="/signup" className="font-semibold text-primary hover:underline">
+                  Create an account
+                </Link>
+              </>
+            )}
           </p>
         </motion.div>
 

@@ -15,7 +15,7 @@ import {
   User,
   UserCog,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Avatar } from '../components/ui/Avatar';
@@ -60,6 +60,16 @@ export function SettingsPage() {
 
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showModifyPasswordModal, setShowModifyPasswordModal] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('reset') === 'true') {
+      setShowModifyPasswordModal(true);
+      // Remove it from the URL
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);

@@ -60,7 +60,7 @@ export async function signUpWithPassword({ name, email, password }: SignUpParams
     password,
     options: {
       data: { name },
-      emailRedirectTo: `${window.location.origin}/dashboard`,
+      emailRedirectTo: `${window.location.origin}/signin?verified=true`,
     },
   });
 
@@ -128,6 +128,15 @@ export async function signInWithPassword({ email, password }: SignInParams) {
 
   return result;
 }
+export async function resetPassword(email: string) {
+  const result = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/settings?reset=true`,
+  });
+  if (result.error) {
+    return { error: formatAuthErrorMessage(result.error) };
+  }
+  return { error: null };
+}
 
 export async function signInWithGoogle(redirectTo?: string) {
   const targetUrl = redirectTo || `${window.location.origin}/dashboard`;
@@ -193,19 +202,21 @@ export interface AccountStatus {
   readonly hasAccount: boolean;
   readonly isAdmin: boolean;
   readonly isUnconfirmed: boolean;
+  readonly isDeleted: boolean;
 }
 
 export async function checkAccountStatus(email: string): Promise<AccountStatus> {
   const { data, error } = await supabase.rpc('check_account_status', { p_email: email });
   if (error) {
-    const { data: userProfile } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
-    return { hasAccount: Boolean(userProfile), isAdmin: false, isUnconfirmed: false };
+    const { data: userProfile } = await supabase.from('profiles').select('id, is_deleted').eq('email', email).maybeSingle();
+    return { hasAccount: Boolean(userProfile && !userProfile.is_deleted), isAdmin: false, isUnconfirmed: false, isDeleted: Boolean(userProfile?.is_deleted) };
   }
   const row = Array.isArray(data) ? data[0] : data;
   return {
     hasAccount: Boolean(row?.has_account),
     isAdmin: Boolean(row?.is_admin),
     isUnconfirmed: Boolean(row?.is_unconfirmed),
+    isDeleted: Boolean(row?.is_deleted),
   };
 }
 
@@ -215,19 +226,10 @@ export async function getSession() {
 }
 
 export async function deleteOwnAccount() {
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData?.user?.id;
 
   const { error: rpcError } = await supabase.rpc('delete_user_account');
-  if (!rpcError) {
-    return { error: null };
-  }
-
-  if (userId) {
-    const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId);
-    if (profileError) {
-      return { error: new Error(formatAuthErrorMessage(profileError)) };
-    }
+  if (rpcError) {
+    return { error: new Error(formatAuthErrorMessage(rpcError)) };
   }
 
   return { error: null };

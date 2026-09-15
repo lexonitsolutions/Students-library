@@ -18,6 +18,36 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Logo } from '../components/ui/Logo';
+/* ── TYPEWRITER TEXT EFFECT COMPONENT ── */
+function TypewriterText({ text, delay = 0, speed = 0.03 }: { text: string; delay?: number; speed?: number }) {
+  const letters = Array.from(text);
+  return (
+    <motion.span
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-20px' }}
+      variants={{
+        hidden: { opacity: 1 },
+        visible: {
+          opacity: 1,
+          transition: { delayChildren: delay, staggerChildren: speed },
+        },
+      }}
+    >
+      {letters.map((char, index) => (
+        <motion.span
+          key={index}
+          variants={{
+            hidden: { opacity: 0 },
+            visible: { opacity: 1 },
+          }}
+        >
+          {char}
+        </motion.span>
+      ))}
+    </motion.span>
+  );
+}
 
 /* ── 3D PARTICLE CONSTELLATION CANVAS ── */
 function Hero3DCanvas() {
@@ -302,6 +332,21 @@ interface PlatformFeature {
 
 const PLATFORM_FEATURES: PlatformFeature[] = [
   {
+    id: 'messaging',
+    label: 'Peer Study Chat',
+    icon: MessageSquare,
+    categoryBadge: 'PEER-TO-PEER COLLABORATION',
+    title: 'Discuss exam doubts and share notes directly with classmates',
+    description:
+      'Connect with note uploaders, form study circles with peers from your university, and share document attachments directly inside real-time student messaging threads.',
+    highlights: [
+      { title: 'Direct Student Messaging', desc: 'Ask authors specific questions about difficult theorems or solutions.' },
+      { title: 'Rich Document Previews', desc: 'Share links that automatically expand into readable material preview cards.' },
+      { title: 'Verified Student Profiles', desc: 'Know who you are learning from with verified university tags.' },
+    ],
+    floatingBadge: 'Live Academic Chat',
+  },
+  {
     id: 'library',
     label: 'Academic Library',
     icon: BookOpen,
@@ -330,21 +375,6 @@ const PLATFORM_FEATURES: PlatformFeature[] = [
       { title: 'Personal Study Library', desc: 'Bookmark essential notes into your personal collection for quick revision.' },
     ],
     floatingBadge: 'Offline PDF Downloads Ready',
-  },
-  {
-    id: 'messaging',
-    label: 'Peer Study Chat',
-    icon: MessageSquare,
-    categoryBadge: 'PEER-TO-PEER COLLABORATION',
-    title: 'Discuss exam doubts and share notes directly with classmates',
-    description:
-      'Connect with note uploaders, form study circles with peers from your university, and share document attachments directly inside real-time student messaging threads.',
-    highlights: [
-      { title: 'Direct Student Messaging', desc: 'Ask authors specific questions about difficult theorems or solutions.' },
-      { title: 'Rich Document Previews', desc: 'Share links that automatically expand into readable material preview cards.' },
-      { title: 'Verified Student Profiles', desc: 'Know who you are learning from with verified university tags.' },
-    ],
-    floatingBadge: 'Live Academic Chat',
   },
   {
     id: 'reputation',
@@ -542,22 +572,45 @@ export function GetStartedPage() {
       </section>
 
       {/* ── INTERACTIVE PLATFORM SHOWCASE (ANIMATED FEATURE TOUR) ── */}
-      <section
+      <motion.section
+        initial={{ opacity: 0, y: 60, scale: 0.95, rotateX: 15 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+        viewport={{ once: false, amount: 0.2 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        style={{ perspective: 1000 }}
         className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8"
         onMouseEnter={() => setIsAutoPlaying(false)}
         onMouseLeave={() => setIsAutoPlaying(true)}
       >
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: false }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-4"
+          >
             <Sparkles size={13} />
             <span>PLATFORM TOUR & CAPABILITIES</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+          </motion.div>
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface"
+          >
             Everything built for academic excellence
-          </h2>
-          <p className="mt-3 text-body-md text-on-surface-variant">
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="mt-3 text-body-md text-on-surface-variant"
+          >
             Explore how Studexa connects students with verified university course materials and peer study tools.
-          </p>
+          </motion.p>
 
           {/* Segmented Animated Navigation Tabs */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2 p-1.5 rounded-2xl bg-surface-container border border-card-border max-w-2xl mx-auto">
@@ -645,8 +698,14 @@ export function GetStartedPage() {
               </div>
 
               {/* Right Column: Animated Interactive Mockup Window */}
-              <div className="lg:col-span-7">
-                <div className="rounded-2xl border border-card-border bg-surface-container overflow-hidden shadow-md">
+              <div className="lg:col-span-7" style={{ perspective: 1200 }}>
+                <motion.div 
+                  initial={{ rotateY: -15, x: 20 }}
+                  animate={{ rotateY: 0, x: 0 }}
+                  exit={{ rotateY: 15, x: -20 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="rounded-2xl border border-card-border bg-surface-container overflow-hidden shadow-xl"
+                >
                   {/* Browser Window Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-card-border/70 bg-surface-container-high/50">
                     <div className="flex items-center gap-2">
@@ -762,32 +821,51 @@ export function GetStartedPage() {
 
                     {/* MOCKUP 3: MESSAGING */}
                     {activeFeature.id === 'messaging' && (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {/* Student Chat Message 1 */}
-                        <div className="flex items-start gap-2.5">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ delay: 0.1, duration: 0.3 }}
+                          className="flex items-start gap-2.5"
+                        >
+                          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
                             AK
                           </div>
                           <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-surface border border-card-border p-3 text-xs shadow-2xs">
                             <p className="font-bold text-on-surface mb-0.5">Arun Kumar • CSE Sem 5</p>
-                            <p className="text-on-surface-variant">Hey! Did anyone get the solved proofs for the 2025 Mid-Sem Operating Systems paper?</p>
+                            <p className="text-on-surface-variant min-h-[32px]">
+                              <TypewriterText text="Hey! Did anyone get the solved proofs for the 2025 Mid-Sem Operating Systems paper?" delay={0.4} />
+                            </p>
                           </div>
-                        </div>
+                        </motion.div>
 
                         {/* Student Reply 2 */}
-                        <div className="flex items-start gap-2.5 flex-row-reverse">
-                          <div className="h-8 w-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs">
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ delay: 2.8, duration: 0.3 }}
+                          className="flex items-start gap-2.5 flex-row-reverse"
+                        >
+                          <div className="h-8 w-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
                             SN
                           </div>
                           <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary text-white p-3 text-xs shadow-xs space-y-2">
                             <p className="font-bold mb-0.5">Sneha Nair (Top Contributor)</p>
-                            <p className="text-white/90">Yes! Just uploaded the verified solutions with step-by-step diagrams:</p>
-                            <div className="rounded-xl bg-white/10 p-2 text-[11px] flex items-center justify-between gap-2">
+                            <p className="text-white/90 min-h-[16px]">
+                              <TypewriterText text="Yes! Just uploaded the verified solutions with step-by-step diagrams:" delay={3.1} speed={0.02} />
+                            </p>
+                            <motion.div 
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 4.8 }}
+                              className="rounded-xl bg-white/10 p-2 text-[11px] flex items-center justify-between gap-2"
+                            >
                               <span className="font-mono">OS_MidSem_2025_Solved.pdf</span>
                               <span className="underline font-bold cursor-pointer">View Note →</span>
-                            </div>
+                            </motion.div>
                           </div>
-                        </div>
+                        </motion.div>
                       </div>
                     )}
 
@@ -848,15 +926,21 @@ export function GetStartedPage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
-      </section>
+      </motion.section>
 
       {/* ── COURSE & BRANCH COVERAGE DIRECTORY ── */}
-      <section className="border-t border-card-border bg-surface-container-low px-4 py-16 sm:px-6 lg:px-8">
+      <motion.section 
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.2 }}
+        transition={{ duration: 0.6 }}
+        className="border-t border-card-border bg-surface-container-low px-4 py-16 sm:px-6 lg:px-8"
+      >
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
             <div>
@@ -873,12 +957,28 @@ export function GetStartedPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, amount: 0.1 }}
+            variants={{
+              hidden: {},
+              visible: {
+                transition: { staggerChildren: 0.05 }
+              }
+            }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+            style={{ perspective: 1000 }}
+          >
             {SUPPORTED_BRANCHES.map((b) => (
-              <div
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 20, rotateX: -15 },
+                  visible: { opacity: 1, y: 0, rotateX: 0, transition: { duration: 0.4, ease: 'easeOut' } }
+                }}
                 key={b.name}
                 onClick={handleExplore}
-                className="group flex items-center justify-between p-4 rounded-xl border border-card-border bg-surface hover:border-primary/40 hover:bg-surface-container transition-all cursor-pointer shadow-xs"
+                className="group flex items-center justify-between p-4 rounded-xl border border-card-border bg-surface hover:border-primary/40 hover:bg-surface-container transition-all cursor-pointer shadow-xs hover:-translate-y-1 hover:shadow-md"
               >
                 <div>
                   <h4 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">
@@ -889,22 +989,46 @@ export function GetStartedPage() {
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                   {b.tag}
                 </span>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ── HOW IT WORKS ── */}
-      <section className="border-y border-card-border bg-surface px-4 py-16 sm:px-6 lg:px-8">
+      <motion.section 
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.2 }}
+        transition={{ duration: 0.6 }}
+        className="border-y border-card-border bg-surface px-4 py-16 sm:px-6 lg:px-8"
+      >
         <div className="mx-auto max-w-5xl">
           <div className="text-center mb-12">
             <h2 className="text-label-sm font-bold uppercase tracking-wider text-primary mb-2">Simple 3-Step Flow</h2>
             <p className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Designed for how students actually study</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <div className="flex flex-col items-center text-center">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, amount: 0.1 }}
+            variants={{
+              hidden: {},
+              visible: {
+                transition: { staggerChildren: 0.15 }
+              }
+            }}
+            className="grid grid-cols-1 gap-8 md:grid-cols-3"
+          >
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0, y: 30, scale: 0.9, rotateY: -15 },
+                visible: { opacity: 1, y: 0, scale: 1, rotateY: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+              }}
+              style={{ perspective: 1000 }}
+              className="flex flex-col items-center text-center"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-bold text-lg mb-4 shadow-xs">
                 1
               </div>
@@ -912,9 +1036,16 @@ export function GetStartedPage() {
               <p className="text-body-sm text-on-surface-variant">
                 Select your stream (Engineering or Degree), choose your branch, and find exact notes for your current semester.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-col items-center text-center">
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0, y: 30, scale: 0.9, rotateY: -15 },
+                visible: { opacity: 1, y: 0, scale: 1, rotateY: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+              }}
+              style={{ perspective: 1000 }}
+              className="flex flex-col items-center text-center"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-bold text-lg mb-4 shadow-xs">
                 2
               </div>
@@ -922,9 +1053,16 @@ export function GetStartedPage() {
               <p className="text-body-sm text-on-surface-variant">
                 Preview documents instantly with our built-in PDF viewer, bookmark them into your personal Library, or download for offline study.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-col items-center text-center">
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0, y: 30, scale: 0.9, rotateY: -15 },
+                visible: { opacity: 1, y: 0, scale: 1, rotateY: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+              }}
+              style={{ perspective: 1000 }}
+              className="flex flex-col items-center text-center"
+            >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-bold text-lg mb-4 shadow-xs">
                 3
               </div>
@@ -932,13 +1070,20 @@ export function GetStartedPage() {
               <p className="text-body-sm text-on-surface-variant">
                 Upload your notes to help fellow students, earn points, climb the Academic Leaderboard, and build your student portfolio.
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ── CALL TO ACTION BANNER ── */}
-      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 text-center">
+      <motion.section 
+        initial={{ opacity: 0, scale: 0.9, rotateX: 15 }}
+        whileInView={{ opacity: 1, scale: 1, rotateX: 0 }}
+        viewport={{ once: false, amount: 0.1 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        style={{ perspective: 1200 }}
+        className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 text-center"
+      >
         <div className="rounded-3xl border border-card-border bg-surface-container p-8 sm:p-12 shadow-sm">
           <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-on-surface mb-4">
             Ready to elevate your semester preparation?
@@ -964,7 +1109,7 @@ export function GetStartedPage() {
             </button>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ── FOOTER ── */}
       <footer className="border-t border-card-border bg-surface-container-low py-8 px-4 sm:px-6 lg:px-8">

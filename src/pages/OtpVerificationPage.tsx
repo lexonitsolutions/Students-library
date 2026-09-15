@@ -37,6 +37,28 @@ export function OtpVerificationPage() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
+  useEffect(() => {
+    try {
+      const channel = new BroadcastChannel('studexa_auth');
+      channel.onmessage = (event) => {
+        if (event.data === 'verified_signup') {
+          // Attempt to close the current tab since verification happened elsewhere
+          window.close();
+          // If the browser blocks it (because the script didn't open the tab), fallback to redirect
+          setTimeout(() => {
+            navigate('/signin', { 
+              replace: true, 
+              state: { message: 'Email verified successfully in another tab! Please sign in.' } 
+            });
+          }, 300);
+        }
+      };
+      return () => channel.close();
+    } catch (e) {
+      // BroadcastChannel not supported
+    }
+  }, [navigate]);
+
   const handleChange = (element: HTMLInputElement, index: number) => {
     const val = element.value;
     if (val && isNaN(Number(val))) return;

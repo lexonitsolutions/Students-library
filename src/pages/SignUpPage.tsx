@@ -34,6 +34,16 @@ export function SignUpPage() {
     }
   }, [googleUser, googleName, googleEmail]);
 
+  useEffect(() => {
+    // Intercept back button to strictly go to /get-started
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      navigate('/get-started', { replace: true });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
