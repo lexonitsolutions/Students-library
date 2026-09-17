@@ -144,7 +144,7 @@ export function SignInPage() {
 
         {/* Brand Header */}
         <div className="flex items-center gap-3 relative z-10">
-          <Link to="/" className="flex items-center">
+          <Link to="/get-started" className="flex items-center">
             <Logo height={36} />
           </Link>
         </div>
@@ -219,7 +219,7 @@ export function SignInPage() {
       <div className="flex flex-1 flex-col justify-between p-6 sm:p-12 bg-white">
         {/* Mobile-only brand link */}
         <div className="flex items-center justify-between lg:hidden mb-6">
-          <Link to="/" className="flex items-center">
+          <Link to="/get-started" className="flex items-center">
             <Logo height={30} />
           </Link>
           <Link to="/signup" className="text-xs font-semibold text-primary hover:underline">
