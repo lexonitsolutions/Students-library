@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, User, Mail, Lock, Eye, EyeOff, CheckCircle2, Shield, TrendingUp, Users, FileText, CheckCircle, BrainCircuit, Calendar, MessageSquare } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Logo } from '../components/ui/Logo';
@@ -25,7 +25,6 @@ export function SignUpPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // Password strength logic
   const getPasswordStrength = (pass: string) => {
     if (!pass) return { label: '', color: 'bg-slate-200', text: '' };
     if (pass.length < 6) return { label: 'Weak', color: 'bg-red-400', text: 'text-red-500' };
@@ -81,92 +80,91 @@ export function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full relative overflow-hidden font-sans bg-gradient-to-br from-[#E8EEFC] via-[#F2F5FE] to-[#E2EAFD]">
-      {/* Background soft ambient blobs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-[#D6E2FD] blur-[120px] opacity-70 pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] rounded-full bg-[#E5E9FC] blur-[100px] opacity-80 pointer-events-none" />
-      <div className="absolute top-[20%] right-[20%] w-[30%] h-[30%] rounded-full bg-white/40 blur-[80px] pointer-events-none" />
+    <div className="flex min-h-screen w-full relative overflow-hidden font-sans bg-gradient-to-br from-[#E8EEF8] via-[#E2E8F6] to-[#DCE3F3]">
+      {/* Ambient background glows to match the design */}
+      <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[50%] rounded-full bg-[#E5ECF9] blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[10%] w-[40%] h-[40%] rounded-full bg-[#E2E6F8] blur-[100px] pointer-events-none" />
 
       {/* TOP HEADER */}
-      <div className="absolute top-6 left-6 lg:top-10 lg:left-10 z-30">
+      <div className="absolute top-6 left-8 lg:top-8 lg:left-12 z-30 flex items-center">
         <Link to="/get-started">
           <Logo height={32} />
         </Link>
       </div>
 
-      <div className="absolute top-8 right-8 lg:top-10 lg:right-10 z-30 hidden md:block">
-        <span className="text-sm text-slate-500 font-medium">
+      <div className="absolute top-8 right-8 lg:top-10 lg:right-12 z-30 hidden md:block">
+        <span className="text-[13px] text-slate-500 font-medium">
           Already have an account? <Link to="/signin" className="text-primary font-bold hover:underline ml-1">Sign In &rarr;</Link>
         </span>
       </div>
 
       {/* MAIN CONTENT WRAPPER */}
-      <div className="relative z-20 w-full h-full flex flex-col lg:flex-row items-center justify-between max-w-[1500px] mx-auto min-h-screen px-6 pt-24 pb-12 lg:p-12 lg:pt-16 gap-8 lg:gap-4">
+      <div className="relative z-20 w-full h-full flex flex-col xl:flex-row items-center justify-center max-w-[1550px] mx-auto min-h-screen px-6 pt-24 pb-12 lg:p-12 gap-8 lg:gap-6 xl:gap-8">
         
-        {/* 1. LEFT CONTENT AREA (Marketing) */}
-        <div className="w-full lg:w-[35%] xl:w-[40%] flex flex-col z-20">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 border border-white shadow-sm w-max mb-6 backdrop-blur-sm">
-            <span className="text-[13px]">🎓</span>
-            <span className="text-[11px] font-bold text-indigo-700 tracking-wide uppercase">Your Learning Partner</span>
+        {/* 1. LEFT CONTENT AREA */}
+        <div className="w-full xl:w-[24%] flex flex-col z-20 pt-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100/50 border border-white/40 shadow-sm w-max mb-6">
+            <span className="text-[14px]">🎓</span>
+            <span className="text-[11px] font-bold text-indigo-700 tracking-wide">Your Learning Partner</span>
           </div>
 
-          <h1 className="text-5xl lg:text-6xl xl:text-[72px] font-extrabold text-slate-900 leading-[1.05] tracking-tight mb-4">
+          <h1 className="text-[52px] xl:text-[56px] font-extrabold text-slate-900 leading-[1.05] tracking-tight mb-4">
             Let's get <br />
-            <span className="text-primary">started!</span>
+            <span className="text-[#5B55F5]">started!</span>
           </h1>
 
-          <p className="text-slate-600 text-base lg:text-lg mb-10 max-w-[360px] leading-relaxed">
+          <p className="text-slate-500 font-medium text-[14px] max-w-[280px] leading-relaxed mb-10">
             Create your Studexa account and start learning smarter.
           </p>
 
           <div className="space-y-6">
             <FeatureRow 
-              icon="📄" 
+              icon={<FileText size={18} strokeWidth={2.5} />} 
               title="Access Study Materials" 
               subtitle="Notes, PDFs, past papers & more" 
-              color="bg-blue-100/80 text-blue-600" 
+              color="bg-indigo-100/60 text-indigo-600 border-indigo-200/50" 
             />
             <FeatureRow 
-              icon="👥" 
+              icon={<Users size={18} strokeWidth={2.5} />} 
               title="Connect & Collaborate" 
               subtitle="Message, share and grow together" 
-              color="bg-indigo-100/80 text-indigo-600" 
+              color="bg-indigo-100/60 text-indigo-600 border-indigo-200/50" 
             />
             <FeatureRow 
-              icon="📈" 
+              icon={<TrendingUp size={18} strokeWidth={2.5} />} 
               title="Track Your Progress" 
               subtitle="Stay consistent with your goals" 
-              color="bg-emerald-100/80 text-emerald-600" 
+              color="bg-emerald-100/60 text-emerald-600 border-emerald-200/50" 
             />
             <FeatureRow 
-              icon="🛡️" 
+              icon={<Shield size={18} strokeWidth={2.5} />} 
               title="Safe & Student Focused" 
               subtitle="Your data, your control" 
-              color="bg-slate-200/80 text-slate-700" 
+              color="bg-rose-50 border-rose-100/50 text-rose-500" 
             />
           </div>
         </div>
 
         {/* 2. CENTER 3D CHARACTER AREA */}
-        <div className="hidden lg:flex flex-1 relative h-[650px] items-center justify-center -ml-4 z-10 pointer-events-none">
+        <div className="hidden xl:flex w-[26%] relative h-[700px] items-center justify-center -mx-4 z-10 pointer-events-none">
           <img 
-            src="/images/signup-illustration.png" 
+            src="/images/exact-character.png" 
             alt="Studexa Student Illustration" 
-            className="w-full max-w-[340px] h-auto object-contain rounded-2xl shadow-sm relative z-10" 
+            className="w-[120%] max-w-none h-auto object-contain mix-blend-multiply opacity-[0.98] relative z-10 scale-[1.1] origin-center" 
           />
         </div>
 
         {/* 3. RIGHT SIGN UP CARD */}
-        <div className="w-full max-w-[420px] lg:w-[32%] xl:w-[30%] bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 p-8 z-30">
+        <div className="w-full max-w-[420px] xl:w-[28%] bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] border border-slate-100 p-8 xl:p-9 z-30">
           <div className="mb-6">
-            <h2 className="text-[22px] font-bold text-slate-900 mb-1 tracking-tight flex items-center gap-2">
+            <h2 className="text-[22px] font-bold text-slate-900 mb-1.5 tracking-tight flex items-center gap-2">
               Create your account <span className="text-xl">✨</span>
             </h2>
-            <p className="text-[13px] text-slate-500 font-medium">Join Studexa and make your learning journey simpler.</p>
+            <p className="text-[12px] text-slate-500 font-medium">Join Studexa and make your learning journey simpler.</p>
           </div>
 
           {error && (
-            <div className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-600 border border-red-100">
+            <div className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-[12px] font-semibold text-red-600 border border-red-100">
               {error}
             </div>
           )}
@@ -179,7 +177,7 @@ export function SignUpPage() {
             className="w-full flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-3 text-[13px] font-bold text-slate-700 transition-all cursor-pointer mb-5 shadow-sm active:scale-[0.98]"
           >
             {isGoogleLoading ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-[#5B55F5]" />
             ) : (
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -197,116 +195,147 @@ export function SignUpPage() {
             <div className="h-px bg-slate-100 flex-1" />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1.5 ml-1">Full name</label>
-              <input
-                type="text"
-                placeholder="Enter your full name"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+              <label className="block text-[11px] font-bold text-slate-800 mb-1.5 ml-1">Full name</label>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"><User size={15} /></div>
+                <input
+                  type="text"
+                  placeholder="Enter your full name"
+                  className="w-full rounded-[14px] border border-slate-200 bg-slate-50/40 pl-10 pr-4 py-3 text-[12px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5B55F5] focus:ring-1 focus:ring-[#5B55F5] outline-none transition-all"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
             
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1.5 ml-1">Email address</label>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              <label className="block text-[11px] font-bold text-slate-800 mb-1.5 ml-1">Email address</label>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"><Mail size={15} /></div>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="w-full rounded-[14px] border border-slate-200 bg-slate-50/40 pl-10 pr-4 py-3 text-[12px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5B55F5] focus:ring-1 focus:ring-[#5B55F5] outline-none transition-all"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1.5 ml-1">Password</label>
+              <label className="block text-[11px] font-bold text-slate-800 mb-1.5 ml-1">Password</label>
               <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"><Lock size={15} /></div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Create a password"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-4 pr-10 py-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  className="w-full rounded-[14px] border border-slate-200 bg-slate-50/40 pl-10 pr-10 py-3 text-[12px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5B55F5] focus:ring-1 focus:ring-[#5B55F5] outline-none transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1.5 ml-1">Confirm password</label>
+              <label className="block text-[11px] font-bold text-slate-800 mb-1.5 ml-1">Confirm password</label>
               <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"><Lock size={15} /></div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm your password"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-4 pr-10 py-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  className="w-full rounded-[14px] border border-slate-200 bg-slate-50/40 pl-10 pr-10 py-3 text-[12px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5B55F5] focus:ring-1 focus:ring-[#5B55F5] outline-none transition-all"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
-                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                  {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
             {/* Password Strength Indicator */}
             {password && (
-              <div className="mt-2 ml-1">
-                <div className="flex gap-1 h-1 w-full max-w-[120px] mb-1">
+              <div className="mt-1 ml-1 mb-2">
+                <div className="flex gap-1.5 h-1 w-full max-w-[140px] mb-1">
                   <div className={`h-full flex-1 rounded-full ${password.length > 0 ? strength.color : 'bg-slate-200'}`} />
                   <div className={`h-full flex-1 rounded-full ${password.length >= 6 ? strength.color : 'bg-slate-200'}`} />
                   <div className={`h-full flex-1 rounded-full ${password.length >= 10 && /\d/.test(password) ? strength.color : 'bg-slate-200'}`} />
                 </div>
-                <div className="text-[10px] font-semibold text-slate-500">
+                <div className="text-[10px] font-semibold text-slate-400">
                   Password strength: <span className={strength.text}>{strength.label}</span>
                 </div>
               </div>
             )}
 
-            <div className="flex items-start gap-2 pt-1">
+            <div className="flex items-start gap-2 pt-1 pb-1">
               <input
                 type="checkbox"
                 id="terms"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-1 shrink-0 rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                className="mt-[3px] shrink-0 rounded-[4px] border-slate-300 text-[#5B55F5] focus:ring-[#5B55F5] h-3 w-3 cursor-pointer"
               />
-              <label htmlFor="terms" className="text-[11px] text-slate-500 cursor-pointer select-none">
-                I agree to the <Link to="/terms" className="font-bold text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="font-bold text-primary hover:underline">Privacy Policy</Link>
+              <label htmlFor="terms" className="text-[10px] text-slate-500 cursor-pointer select-none">
+                I agree to the <Link to="/terms" className="font-bold text-[#5B55F5] hover:underline">Terms of Service</Link> and <Link to="/privacy" className="font-bold text-[#5B55F5] hover:underline">Privacy Policy</Link>
               </label>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-hover px-4 py-3.5 text-[14px] font-bold text-white transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer mt-2 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#5B55F5] hover:bg-[#4d48d9] px-4 py-3 text-[13px] font-bold text-white transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer mt-1 active:scale-[0.98]"
             >
-              {isSubmitting ? 'Creating...' : 'Create Account'} <ArrowRight size={16} />
+              {isSubmitting ? 'Creating...' : 'Create Account'} <ArrowRight size={15} />
             </button>
           </form>
 
-          <div className="mt-6 text-center lg:hidden">
-            <span className="text-[12px] text-slate-500">
-              Already have an account? <Link to="/signin" className="text-primary font-bold hover:underline">Sign In</Link>
+          <div className="mt-5 text-center">
+            <span className="text-[11px] font-medium text-slate-500">
+              Already have an account? <Link to="/signin" className="text-[#5B55F5] font-bold hover:underline">Sign In</Link>
             </span>
+          </div>
+        </div>
+
+        {/* 4. FAR RIGHT "WHY JOIN" PANEL */}
+        <div className="hidden xl:flex w-[22%] bg-white/70 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-white/80 p-8 flex-col z-20">
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Why join Studexa?</h3>
+            <p className="text-[12px] text-slate-500 leading-relaxed">Everything you need for a better learning experience.</p>
+          </div>
+
+          <div className="space-y-6 flex-1">
+            <WhyJoinRow icon={<CheckCircle size={16} />} title="Verified Resources" subtitle="Trusted and quality study materials" color="bg-indigo-100/60 text-indigo-600" />
+            <WhyJoinRow icon={<BrainCircuit size={16} />} title="Smart Learning" subtitle="Personalized and organized" color="bg-purple-100/60 text-purple-600" />
+            <WhyJoinRow icon={<Calendar size={16} />} title="Task & Exam Tracker" subtitle="Never miss important deadlines" color="bg-blue-100/60 text-blue-600" />
+            <WhyJoinRow icon={<MessageSquare size={16} />} title="Community Support" subtitle="Get help, share knowledge, grow together" color="bg-slate-100 text-slate-600" />
+          </div>
+
+          <div className="mt-8 pt-4">
+            <div className="text-[#5B55F5] font-serif italic text-lg tracking-wide -rotate-3 text-center">
+              Learn • Grow • Succeed
+            </div>
+            {/* Soft underline simulation */}
+            <div className="w-24 h-0.5 bg-[#5B55F5]/30 rounded-full mx-auto mt-1 -rotate-3"></div>
           </div>
         </div>
 
       </div>
 
       {/* BOTTOM FOOTER LABELS */}
-      <div className="absolute bottom-6 left-10 text-[11px] text-slate-500 hidden md:flex items-center gap-1.5 font-bold tracking-wide">
-        <CheckCircle2 size={13} className="text-primary" /> Verified Academic Content
+      <div className="absolute bottom-6 left-10 text-[10px] text-slate-500 hidden md:flex items-center gap-1.5 font-bold tracking-wide">
+        <CheckCircle2 size={12} className="text-[#5B55F5]" /> Verified Academic Content
       </div>
-      <div className="absolute bottom-6 right-10 text-[11px] text-slate-500 hidden md:flex items-center gap-1.5 font-bold tracking-wide">
-        <span className="text-[14px] text-primary">♙</span> Free for University Students
+      <div className="absolute bottom-6 right-10 text-[10px] text-slate-500 hidden md:flex items-center gap-1.5 font-bold tracking-wide">
+        <User size={12} className="text-[#5B55F5]" /> Free for University Students
       </div>
     </div>
   );
@@ -315,12 +344,26 @@ export function SignUpPage() {
 function FeatureRow({ icon, title, subtitle, color }: { icon: React.ReactNode, title: string, subtitle: string, color: string }) {
   return (
     <div className="flex items-center gap-3.5">
-      <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm border border-white/50 ${color}`}>
+      <div className={`h-10 w-10 rounded-xl flex items-center justify-center border shadow-sm ${color}`}>
         {icon}
       </div>
       <div>
-        <h4 className="text-[13px] font-bold text-slate-900">{title}</h4>
+        <h4 className="text-[12px] font-bold text-slate-900">{title}</h4>
         <p className="text-[11px] text-slate-500 font-medium">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function WhyJoinRow({ icon, title, subtitle, color }: { icon: React.ReactNode, title: string, subtitle: string, color: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center ${color}`}>
+        {icon}
+      </div>
+      <div className="pt-0.5">
+        <h4 className="text-[11px] font-bold text-slate-900">{title}</h4>
+        <p className="text-[10px] text-slate-500 leading-snug mt-0.5">{subtitle}</p>
       </div>
     </div>
   );
