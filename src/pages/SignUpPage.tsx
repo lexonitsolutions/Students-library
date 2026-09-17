@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { Logo } from '../components/ui/Logo';
 
@@ -149,73 +148,12 @@ export function SignUpPage() {
         </div>
 
         {/* 2. CENTER 3D CHARACTER AREA */}
-        <div className="hidden lg:flex flex-1 relative h-[650px] items-center justify-center -ml-8 -mr-8 z-10 pointer-events-none">
+        <div className="hidden lg:flex flex-1 relative h-[650px] items-center justify-center -ml-4 z-10 pointer-events-none">
           <img 
-            src="/images/signup-3d-student.jpg" 
-            alt="3D Student Ambassador" 
-            className="h-full w-auto max-h-[85vh] object-contain mix-blend-multiply opacity-95 relative z-10 drop-shadow-2xl" 
+            src="/images/signup-illustration.png" 
+            alt="Studexa Student Illustration" 
+            className="w-full max-w-[340px] h-auto object-contain rounded-2xl shadow-sm relative z-10" 
           />
-
-          {/* Floating Objects using Framer Motion for smooth subtle animation */}
-          
-          {/* Laptop */}
-          <motion.div 
-            animate={{ y: [0, -15, 0], rotate: [-2, 2, -2] }} 
-            transition={{ duration: 7, ease: "easeInOut", repeat: Infinity }}
-            className="absolute top-[15%] left-[5%] bg-white/90 backdrop-blur-md shadow-xl rounded-xl p-3 flex items-center justify-center border border-white/50 z-20"
-          >
-            <span className="text-4xl drop-shadow-sm">💻</span>
-          </motion.div>
-
-          {/* Graduation Cap */}
-          <motion.div 
-            animate={{ y: [0, 12, 0], rotate: [5, -5, 5] }} 
-            transition={{ duration: 6, ease: "easeInOut", repeat: Infinity, delay: 1 }}
-            className="absolute top-[8%] right-[12%] text-5xl drop-shadow-xl z-20"
-          >
-            🎓
-          </motion.div>
-
-          {/* PDF Document */}
-          <motion.div 
-            animate={{ y: [0, -10, 0] }} 
-            transition={{ duration: 5.5, ease: "easeInOut", repeat: Infinity, delay: 2.5 }}
-            className="absolute top-[35%] right-[0%] bg-white shadow-lg rounded-lg p-2 border border-slate-100 flex flex-col items-center justify-center w-16 h-20 z-20"
-          >
-            <div className="w-10 h-1 bg-slate-200 rounded-full mb-1" />
-            <div className="w-8 h-1 bg-slate-200 rounded-full mb-3" />
-            <div className="bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm">PDF</div>
-          </motion.div>
-
-          {/* Stack of Books */}
-          <motion.div 
-            animate={{ y: [0, 10, 0] }} 
-            transition={{ duration: 8, ease: "easeInOut", repeat: Infinity, delay: 0.5 }}
-            className="absolute bottom-[25%] left-[0%] z-20 flex flex-col-reverse items-center gap-0.5"
-          >
-            <div className="w-20 h-4 bg-indigo-500 rounded shadow-md border border-indigo-600/20" />
-            <div className="w-18 h-4 bg-blue-400 rounded shadow-md border border-blue-500/20" />
-            <div className="w-22 h-4 bg-emerald-400 rounded shadow-md border border-emerald-500/20" />
-            <div className="w-16 h-4 bg-rose-400 rounded shadow-md border border-rose-500/20" />
-          </motion.div>
-
-          {/* Checklist Card */}
-          <motion.div 
-            animate={{ y: [0, -12, 0], rotate: [-1, 1, -1] }} 
-            transition={{ duration: 6.5, ease: "easeInOut", repeat: Infinity, delay: 1.5 }}
-            className="absolute bottom-[20%] right-[8%] bg-white/95 backdrop-blur-sm shadow-xl rounded-xl p-3 border border-white/60 w-32 z-20"
-          >
-            <div className="w-full h-2 bg-slate-100 rounded-full mb-2 flex items-center justify-between px-1">
-               <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-               <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2"><CheckCircle2 size={10} className="text-emerald-500"/> <div className="h-1.5 bg-slate-200 rounded w-16" /></div>
-              <div className="flex items-center gap-2"><CheckCircle2 size={10} className="text-emerald-500"/> <div className="h-1.5 bg-slate-200 rounded w-12" /></div>
-              <div className="flex items-center gap-2"><CheckCircle2 size={10} className="text-emerald-500"/> <div className="h-1.5 bg-slate-200 rounded w-14" /></div>
-            </div>
-          </motion.div>
         </div>
 
         {/* 3. RIGHT SIGN UP CARD */}
