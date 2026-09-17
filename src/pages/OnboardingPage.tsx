@@ -26,7 +26,7 @@ export function OnboardingPage() {
 
   const handleSkip = () => setShowGetStarted(true);
 
-  const finishOnboarding = (destination: '/signin') => {
+  const finishOnboarding = (destination: '/signin' | '/signup') => {
     completeOnboarding();
     navigate(destination);
   };
@@ -114,7 +114,7 @@ export function OnboardingPage() {
               transition={{ duration: 0.2 }}
               className="flex flex-1 flex-col p-6 sm:p-8"
             >
-              <div className="flex items-center">
+              <div className="flex items-center cursor-pointer" onClick={() => window.location.reload()}>
                 <Logo height={32} />
               </div>
 
@@ -131,7 +131,7 @@ export function OnboardingPage() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <Button variant="primary" size="lg" fullWidth onClick={() => finishOnboarding('/signin')}>
+                <Button variant="primary" size="lg" fullWidth onClick={() => finishOnboarding('/signup')}>
                   Get Started
                 </Button>
                 <Button variant="ghost" size="lg" fullWidth onClick={() => finishOnboarding('/signin')}>

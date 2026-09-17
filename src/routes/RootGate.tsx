@@ -25,11 +25,9 @@ export function RootGate() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // 3. Returning users who already created an account or onboarded:
+  // 3. Returning users who already created an account:
   // Direct them to sign in so they can immediately log in to the dashboard
-  const hasAccount =
-    localStorage.getItem('quicklearnit.has_account') === 'true' ||
-    localStorage.getItem('quicklearnit.hasOnboarded') === 'true';
+  const hasAccount = localStorage.getItem('quicklearnit.has_account') === 'true';
 
   if (hasAccount) {
     return <Navigate to="/signin" replace />;

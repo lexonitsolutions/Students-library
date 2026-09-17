@@ -176,7 +176,7 @@ export function OtpVerificationPage() {
     <div className="flex min-h-screen flex-col justify-between bg-surface-container-lowest text-on-surface p-4 sm:p-10">
       {/* Brand Header */}
       <div className="w-full max-w-5xl mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/get-started" className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-on-primary font-black text-lg shadow-sm">
             Q
           </div>

@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { Footer } from '../components/ui/Footer';
 import { Modal } from '../components/ui/Modal';
 import { UserProfilePanel, type UploaderProfile } from '../components/ui/UserProfilePanel';
 import { AdminMaterialViewerModal } from '../components/admin/AdminMaterialViewerModal';
@@ -1456,6 +1457,7 @@ export function AdminDashboardPage() {
           </div>
         </div>
       </Modal>
+      <Footer />
     </div>
   );
 }

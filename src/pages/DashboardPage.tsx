@@ -11,6 +11,7 @@ import { MaterialRow } from '../components/ui/MaterialRow';
 import { UserProfilePanel, type UploaderProfile } from '../components/ui/UserProfilePanel';
 import { AcademicOnboardingModal } from '../components/onboarding/AcademicOnboardingModal';
 import { DocumentFilterModal } from '../components/ui/DocumentFilterModal';
+import { Footer } from '../components/ui/Footer';
 import { categories } from '../data/mockData';
 import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
@@ -689,6 +690,7 @@ export function DashboardPage() {
         onClear={clearFilters}
         totalMatchesCount={filteredMaterials.length}
       />
+      <Footer />
     </div>
   );
 }

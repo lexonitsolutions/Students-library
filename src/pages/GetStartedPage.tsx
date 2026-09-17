@@ -3,7 +3,6 @@ import {
   BookOpen,
   CheckCircle2,
   Compass,
-  Download,
   FileText,
   GraduationCap,
   Layers,
@@ -12,12 +11,25 @@ import {
   ShieldCheck,
   Sparkles,
   Trophy,
+  Upload,
 } from 'lucide-react';
-import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import {
+  AnimatePresence,
+  motion,
+  useScroll,
+  useTransform,
+  useInView,
+  animate,
+  useMotionValue,
+  useSpring,
+  useMotionTemplate,
+} from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Logo } from '../components/ui/Logo';
+import { Footer } from '../components/ui/Footer';
+import { DarkModeScrollShowcase } from '../components/ui/DarkModeScrollShowcase';
 /* ── TYPEWRITER TEXT EFFECT COMPONENT ── */
 function TypewriterText({ text, delay = 0, speed = 0.03 }: { text: string; delay?: number; speed?: number }) {
   const letters = Array.from(text);
@@ -49,275 +61,274 @@ function TypewriterText({ text, delay = 0, speed = 0.03 }: { text: string; delay
   );
 }
 
-/* ── 3D PARTICLE CONSTELLATION CANVAS ── */
-function Hero3DCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+/* ── SCROLL-TRIGGERED NUMBER COUNT-UP COMPONENT ── */
+function CountUpNumber({
+  target,
+  duration = 1.8,
+  prefix = '',
+  suffix = '',
+  decimals = 0,
+}: {
+  target: number;
+  duration?: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: false, amount: 0.3 });
+  const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animId: number;
-    let width = (canvas.width = canvas.parentElement?.clientWidth || 800);
-    let height = (canvas.height = canvas.parentElement?.clientHeight || 500);
-
-    const onResize = () => {
-      if (!canvas.parentElement) return;
-      width = canvas.width = canvas.parentElement.clientWidth;
-      height = canvas.height = canvas.parentElement.clientHeight;
-    };
-    window.addEventListener('resize', onResize);
-
-    const count = 46;
-    const radius = Math.min(width, height) * 0.36;
-    const pts: { x: number; y: number; z: number; size: number; color: string }[] = [];
-    const colors = [
-      'rgba(79, 70, 229, 0.75)',
-      'rgba(99, 102, 241, 0.65)',
-      'rgba(124, 58, 237, 0.65)',
-      'rgba(16, 185, 129, 0.6)',
-    ];
-
-    for (let i = 0; i < count; i++) {
-      const theta = Math.acos(2 * Math.random() - 1);
-      const phi = 2 * Math.PI * Math.random();
-      const r = radius * (0.75 + 0.3 * Math.random());
-      pts.push({
-        x: r * Math.sin(theta) * Math.cos(phi),
-        y: r * Math.sin(theta) * Math.sin(phi),
-        z: r * Math.cos(theta),
-        size: 2.2 + Math.random() * 2.2,
-        color: colors[i % colors.length],
-      });
+    if (!isInView) {
+      setDisplayValue(0);
+      return;
     }
 
-    let mouseX = 0;
-    let mouseY = 0;
-    const onMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mouseX = ((e.clientX - rect.left) / rect.width - 0.5) * 0.02;
-      mouseY = ((e.clientY - rect.top) / rect.height - 0.5) * 0.02;
-    };
-    window.addEventListener('mousemove', onMouseMove);
+    const controls = animate(0, target, {
+      duration,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (value) => {
+        setDisplayValue(value);
+      },
+    });
 
-    const fov = 340;
+    return () => controls.stop();
+  }, [isInView, target, duration]);
 
-    const loop = () => {
-      ctx.clearRect(0, 0, width, height);
-      const angY = 0.0035 + mouseX;
-      const angX = 0.002 + mouseY;
-      const cosY = Math.cos(angY);
-      const sinY = Math.sin(angY);
-      const cosX = Math.cos(angX);
-      const sinX = Math.sin(angX);
-
-      const projected = pts.map((p) => {
-        const x1 = p.x * cosY - p.z * sinY;
-        const z1 = p.z * cosY + p.x * sinY;
-        const y2 = p.y * cosX - z1 * sinX;
-        const z2 = z1 * cosX + p.y * sinX;
-        p.x = x1;
-        p.y = y2;
-        p.z = z2;
-
-        const scale = fov / (fov + z2 + radius);
-        return {
-          ...p,
-          px: x1 * scale + width / 2,
-          py: y2 * scale + height / 2,
-          scale,
-          z: z2,
-        };
-      });
-
-      projected.sort((a, b) => a.z - b.z);
-
-      ctx.lineWidth = 0.75;
-      for (let i = 0; i < projected.length; i++) {
-        for (let j = i + 1; j < projected.length; j++) {
-          const dx = projected[i].px - projected[j].px;
-          const dy = projected[i].py - projected[j].py;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          const maxD = 85 * ((projected[i].scale + projected[j].scale) / 2);
-          if (d < maxD) {
-            const alpha = (1 - d / maxD) * 0.2 * Math.min(projected[i].scale, projected[j].scale);
-            ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
-            ctx.beginPath();
-            ctx.moveTo(projected[i].px, projected[i].py);
-            ctx.lineTo(projected[j].px, projected[j].py);
-            ctx.stroke();
-          }
-        }
-      }
-
-      for (const p of projected) {
-        if (p.px < 0 || p.px > width || p.py < 0 || p.py > height) continue;
-        const alpha = Math.max(0.2, Math.min(1, (p.z + radius) / (radius * 2)));
-        ctx.beginPath();
-        ctx.arc(p.px, p.py, p.size * p.scale, 0, Math.PI * 2);
-        ctx.fillStyle = p.color.replace(/[\d.]+\)$/g, `${alpha})`);
-        ctx.fill();
-      }
-
-      animId = requestAnimationFrame(loop);
-    };
-
-    loop();
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('mousemove', onMouseMove);
-    };
-  }, []);
+  const formatted =
+    decimals > 0
+      ? displayValue.toFixed(decimals)
+      : Math.floor(displayValue).toLocaleString();
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none opacity-40 [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,transparent_15%,black_85%)]"
-    />
+    <span ref={ref} className="tabular-nums">
+      {prefix}{formatted}{suffix}
+    </span>
   );
 }
 
-/* ── INTERACTIVE 3D TILT STUDY DECK ── */
-function Hero3DCard() {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
+/* ── INTERACTIVE 3D HERO DASHBOARD CARD WITH CURSOR-TRACKING MOVEMENT ── */
+function HeroInteractiveCard() {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
-  const mouseXSpring = useSpring(x, { stiffness: 280, damping: 26 });
-  const mouseYSpring = useSpring(y, { stiffness: 280, damping: 26 });
+  // Normalized cursor coordinates (-0.5 to 0.5)
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
 
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ['10deg', '-10deg']);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ['-12deg', '12deg']);
-  const glareX = useTransform(mouseXSpring, [-0.5, 0.5], ['0%', '100%']);
-  const glareY = useTransform(mouseYSpring, [-0.5, 0.5], ['0%', '100%']);
+  // Spring physics for buttery smooth motion without lag or sudden snap
+  const springX = useSpring(mouseX, { stiffness: 175, damping: 22, mass: 0.5 });
+  const springY = useSpring(mouseY, { stiffness: 175, damping: 22, mass: 0.5 });
+
+  // 3D rotation based on cursor position
+  const rotateX = useTransform(springY, [-0.5, 0.5], ['7.5deg', '-7.5deg']);
+  const rotateY = useTransform(springX, [-0.5, 0.5], ['-7.5deg', '7.5deg']);
+
+  // Dynamic translational movement towards cursor position
+  const translateX = useTransform(springX, [-0.5, 0.5], [-16, 16]);
+  const translateY = useTransform(springY, [-0.5, 0.5], [-16, 16]);
+
+  // Enhanced parallax for the floating "500+ Students" badge
+  const badgeTranslateX = useTransform(springX, [-0.5, 0.5], [-26, 26]);
+  const badgeTranslateY = useTransform(springY, [-0.5, 0.5], [-26, 26]);
+
+  // Dynamic cursor lighting glare position (in percentages)
+  const glowX = useTransform(springX, [-0.5, 0.5], ['15%', '85%']);
+  const glowY = useTransform(springY, [-0.5, 0.5], ['15%', '85%']);
+  const glowBackground = useMotionTemplate`radial-gradient(650px circle at ${glowX} ${glowY}, rgba(99, 102, 241, 0.09), transparent 65%)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const xPct = (e.clientX - rect.left) / rect.width - 0.5;
-    const yPct = (e.clientY - rect.top) / rect.height - 0.5;
-    x.set(xPct);
-    y.set(yPct);
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    if (width === 0 || height === 0) return;
+
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
+
+    const xPct = Math.max(-0.5, Math.min(0.5, clientX / width - 0.5));
+    const yPct = Math.max(-0.5, Math.min(0.5, clientY / height - 0.5));
+
+    mouseX.set(xPct);
+    mouseY.set(yPct);
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
   };
 
   const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
+    setIsHovered(false);
+    mouseX.set(0);
+    mouseY.set(0);
   };
 
   return (
-    <div
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className="relative mx-auto mt-12 w-full max-w-4xl [perspective:1200px] cursor-grab active:cursor-grabbing select-none"
+    <motion.div 
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay: 0.5, ease: 'easeOut' }}
+      className="mt-16 relative mx-auto w-full max-w-5xl [perspective:1400px]"
     >
       <motion.div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         style={{
           rotateX,
           rotateY,
+          x: translateX,
+          y: translateY,
           transformStyle: 'preserve-3d',
         }}
-        className="relative rounded-3xl border border-card-border bg-surface-container-low/95 p-6 sm:p-8 shadow-2xl backdrop-blur-xl transition-shadow duration-300 hover:shadow-primary/15"
+        className="rounded-3xl border border-card-border/60 bg-surface/50 p-2 sm:p-3 shadow-2xl backdrop-blur-xl transition-shadow duration-300 hover:shadow-indigo-500/10 cursor-pointer relative"
       >
-        {/* Dynamic 3D Specular Glare */}
+        {/* Dynamic cursor sheen / glare following cursor */}
         <motion.div
+          className="pointer-events-none absolute inset-0 rounded-3xl transition-opacity duration-500 z-30"
           style={{
-            background: useTransform(
-              [glareX, glareY],
-              ([gx, gy]) =>
-                `radial-gradient(circle 350px at ${gx} ${gy}, rgba(255, 255, 255, 0.35), transparent 70%)`
-            ),
+            opacity: isHovered ? 1 : 0,
+            background: glowBackground,
           }}
-          className="pointer-events-none absolute inset-0 rounded-3xl z-30 opacity-70"
         />
 
-        {/* 3D Foreground Floating Satellite 1 (Top-Right): translateZ(75px) */}
-        <motion.div
-          style={{ transform: 'translateZ(75px)' }}
-          animate={{ y: [0, -6, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -top-4 -right-2 sm:-right-6 z-40 flex items-center gap-2 rounded-2xl border border-card-border bg-surface px-4 py-2 text-xs font-bold text-on-surface shadow-xl backdrop-blur-md"
-        >
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <ShieldCheck size={16} className="text-emerald-500" />
-          <span>Verified Academic Content</span>
-        </motion.div>
-
-        {/* 3D Foreground Floating Satellite 2 (Bottom-Left): translateZ(85px) */}
-        <motion.div
-          style={{ transform: 'translateZ(85px)' }}
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -bottom-5 -left-2 sm:-left-6 z-40 hidden sm:flex items-center gap-2 rounded-2xl border border-card-border bg-surface px-4 py-2.5 text-xs font-bold text-on-surface shadow-xl backdrop-blur-md"
-        >
-          <Trophy size={16} className="text-amber-500" />
-          <span>Top Contributor • QL-94821</span>
-          <span className="ml-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-600 font-extrabold">
-            +1,420 Karma
-          </span>
-        </motion.div>
-
-        {/* 3D Card Base Content: translateZ(25px) */}
-        <div style={{ transform: 'translateZ(25px)' }} className="space-y-4 text-left">
-          {/* Top Bar inside 3D Card */}
-          <div className="flex items-center justify-between border-b border-card-border/70 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white font-bold shadow-xs">
-                <BookOpen size={18} />
+        <div className="rounded-2xl border border-card-border bg-surface-container overflow-hidden shadow-inner">
+           {/* Mock UI Header */}
+           <div className="flex items-center gap-2 px-4 py-3 border-b border-card-border bg-surface-container-high/50">
+             <div className="h-3 w-3 rounded-full bg-rose-400" />
+             <div className="h-3 w-3 rounded-full bg-amber-400" />
+             <div className="h-3 w-3 rounded-full bg-emerald-400" />
+           </div>
+           {/* Mock UI Body populated with real-looking content */}
+           <div className="h-[300px] sm:h-[400px] bg-surface flex p-0 text-left">
+              {/* Sidebar */}
+              <div className="w-48 sm:w-[220px] border-r border-card-border p-5 space-y-6 hidden md:block bg-surface-container-lowest">
+                 <div className="flex items-center gap-2 mb-8">
+                   <Logo />
+                 </div>
+                 <div className="space-y-1.5">
+                   <div className="px-3 py-2 rounded-xl bg-primary/10 text-primary font-bold text-[13px] flex items-center gap-2.5">
+                     <Compass size={16} strokeWidth={2.5} /> Explore
+                   </div>
+                   <div className="px-3 py-2 rounded-xl text-on-surface-variant font-medium text-[13px] flex items-center gap-2.5">
+                     <BookOpen size={16} /> My Library
+                   </div>
+                   <div className="px-3 py-2 rounded-xl text-on-surface-variant font-medium text-[13px] flex items-center gap-2.5">
+                     <MessageSquare size={16} /> Discussions
+                   </div>
+                 </div>
               </div>
-              <div>
-                <h4 className="text-sm sm:text-base font-bold text-on-surface">
-                  Operating Systems & Concurrency Architecture
-                </h4>
-                <p className="text-xs text-on-surface-variant">B.Tech CSE • Semester 5 • Solved Mid-Term Archive</p>
-              </div>
-            </div>
-            <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">
-              <Sparkles size={13} /> 100% Syllabus Aligned
-            </span>
-          </div>
+              {/* Main Content */}
+              <div className="flex-1 overflow-hidden flex flex-col bg-surface">
+                 <div className="p-5 sm:p-7 border-b border-card-border flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-extrabold text-on-surface tracking-tight">Good morning, Student</h3>
+                      <p className="text-[11px] sm:text-xs text-on-surface-variant mt-0.5">Let's continue your studies where you left off.</p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold shadow-sm">
+                      <Upload size={14} /> Upload
+                    </div>
+                 </div>
+                 
+                 <div className="p-5 sm:p-7 space-y-5 flex-1 overflow-hidden">
+                   {/* Fake Tabs */}
+                   <div className="flex items-center gap-2 overflow-hidden">
+                     <div className="px-3 py-1.5 rounded-lg bg-surface-container-high border border-card-border text-on-surface text-[11px] font-bold flex items-center gap-1.5">
+                       <FileText size={12} className="text-indigo-500" /> Study Notes
+                     </div>
+                     <div className="px-3 py-1.5 rounded-lg text-on-surface-variant text-[11px] font-medium flex items-center gap-1.5">
+                       <FileText size={12} className="text-violet-500" /> Past Papers
+                     </div>
+                     <div className="px-3 py-1.5 rounded-lg text-on-surface-variant text-[11px] font-medium flex items-center gap-1.5">
+                       <FileText size={12} className="text-emerald-500" /> Cheatsheets
+                     </div>
+                   </div>
 
-          {/* Interactive Document Preview Box */}
-          <div
-            style={{ transform: 'translateZ(45px)' }}
-            className="rounded-2xl border border-card-border bg-surface p-5 shadow-inner space-y-3"
-          >
-            <div className="flex items-center justify-between text-xs text-on-surface-variant">
-              <span className="font-mono text-primary font-bold">UNIT 3: DEADLOCK DETECTION & RESOURCE ALLOCATION</span>
-              <span className="rounded bg-surface-container-high px-2 py-0.5 font-mono text-[11px] font-semibold text-on-surface">
-                Page 18 of 56
-              </span>
-            </div>
-
-            <div className="rounded-xl bg-surface-container-high/40 p-3.5 text-xs text-on-surface-variant font-mono space-y-1.5 border border-card-border/40">
-              <p className="text-on-surface font-semibold">
-                Theorem 5.1 (Banker's Algorithm State Invariant):
-              </p>
-              <p className="text-[11px] text-on-surface-variant leading-relaxed">
-                Let Available[m], Max[n][m], Allocation[n][m], and Need[n][m] be defined. If Need[i][j] &le; Available[j],
-                process P_i safely commits without circular resource contention.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs">
-              <div className="flex items-center gap-4 text-on-surface-variant">
-                <span>📄 56 Verified Pages</span>
-                <span>⭐ 4.95 / 5.0 (420 Votes)</span>
-                <span>📥 4,120 Offline Downloads</span>
+                   {/* Grid of Materials */}
+                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                     {/* Card 1 */}
+                     <div className="rounded-xl bg-surface border border-card-border p-3 sm:p-4 shadow-sm flex flex-col justify-between h-28 sm:h-32">
+                       <div>
+                         <div className="flex items-center justify-between mb-1.5">
+                           <span className="text-[9px] font-bold text-primary uppercase bg-primary/10 px-1.5 py-0.5 rounded">PDF</span>
+                           <span className="text-[9px] text-on-surface-variant">2.4 MB</span>
+                         </div>
+                         <div className="text-xs sm:text-sm font-bold text-on-surface leading-tight line-clamp-2">Operating Systems Concurrency Guide</div>
+                       </div>
+                       <div className="flex items-center justify-between text-[10px] text-on-surface-variant mt-2">
+                         <span className="font-medium text-emerald-600">Alex K.</span>
+                         <span>★ 4.9</span>
+                       </div>
+                     </div>
+                     
+                     {/* Card 2 */}
+                     <div className="rounded-xl bg-surface border border-card-border p-3 sm:p-4 shadow-sm flex flex-col justify-between h-28 sm:h-32">
+                       <div>
+                         <div className="flex items-center justify-between mb-1.5">
+                           <span className="text-[9px] font-bold text-violet-600 uppercase bg-violet-50 px-1.5 py-0.5 rounded">PDF</span>
+                           <span className="text-[9px] text-on-surface-variant">1.1 MB</span>
+                         </div>
+                         <div className="text-xs sm:text-sm font-bold text-on-surface leading-tight line-clamp-2">Discrete Math PYQ Solutions 2023</div>
+                       </div>
+                       <div className="flex items-center justify-between text-[10px] text-on-surface-variant mt-2">
+                         <span className="font-medium text-violet-600">Sarah M.</span>
+                         <span>★ 4.8</span>
+                       </div>
+                     </div>
+                     
+                     {/* Card 3 */}
+                     <div className="hidden lg:flex rounded-xl bg-surface border border-card-border p-3 sm:p-4 shadow-sm flex flex-col justify-between h-28 sm:h-32">
+                       <div>
+                         <div className="flex items-center justify-between mb-1.5">
+                           <span className="text-[9px] font-bold text-emerald-600 uppercase bg-emerald-50 px-1.5 py-0.5 rounded">DOCX</span>
+                           <span className="text-[9px] text-on-surface-variant">845 KB</span>
+                         </div>
+                         <div className="text-xs sm:text-sm font-bold text-on-surface leading-tight line-clamp-2">Data Structures Tree Traversal Summary</div>
+                       </div>
+                       <div className="flex items-center justify-between text-[10px] text-on-surface-variant mt-2">
+                         <span className="font-medium text-blue-600">David Y.</span>
+                         <span>★ 5.0</span>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-bold text-emerald-600">
-                  Moderator Approved
-                </span>
-              </div>
-            </div>
-          </div>
+           </div>
         </div>
+
+        {/* Floating badges around the mock UI with enhanced parallax */}
+        <motion.div
+          style={{
+            x: badgeTranslateX,
+            y: badgeTranslateY,
+          }}
+          className="absolute -left-4 bottom-12 sm:-left-8 sm:bottom-24 hidden sm:block z-40 pointer-events-none"
+        >
+          <motion.div 
+            animate={{ y: [8, -8, 8] }} 
+            transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="bg-surface border border-card-border px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 backdrop-blur-md"
+          >
+            <div className="flex -space-x-2">
+              <div className="w-8 h-8 rounded-full bg-indigo-500 border-2 border-surface" />
+              <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-surface" />
+              <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-surface" />
+            </div>
+            <div className="text-left">
+              <p className="text-xs font-bold text-on-surface">500+ Students</p>
+              <p className="text-[10px] text-on-surface-variant">Studying now</p>
+            </div>
+          </motion.div>
+        </motion.div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
+
+
 
 interface PlatformFeature {
   id: string;
@@ -341,7 +352,6 @@ const PLATFORM_FEATURES: PlatformFeature[] = [
       'Connect with note uploaders, form study circles with peers from your university, and share document attachments directly inside real-time student messaging threads.',
     highlights: [
       { title: 'Direct Student Messaging', desc: 'Ask authors specific questions about difficult theorems or solutions.' },
-      { title: 'Rich Document Previews', desc: 'Share links that automatically expand into readable material preview cards.' },
       { title: 'Verified Student Profiles', desc: 'Know who you are learning from with verified university tags.' },
     ],
     floatingBadge: 'Live Academic Chat',
@@ -360,21 +370,6 @@ const PLATFORM_FEATURES: PlatformFeature[] = [
       { title: 'PYQ Exam Archive', desc: 'Solved mid-term and final semester question papers with step-by-step answers.' },
     ],
     floatingBadge: '100% Moderated & Spam-Free',
-  },
-  {
-    id: 'reader',
-    label: 'In-Browser Reader',
-    icon: FileText,
-    categoryBadge: 'DISTRACTION-FREE STUDY ENGINE',
-    title: 'High-speed PDF viewer with zero pop-ups or paywalls',
-    description:
-      'Read documents immediately in your browser with responsive zoom, page jump navigation, continuous scroll, and one-click offline PDF downloads for exam hall revisions.',
-    highlights: [
-      { title: 'Instant Previewing', desc: 'View notes instantly without waiting for massive file downloads.' },
-      { title: 'One-Click Offline Download', desc: 'Save clean, high-resolution PDFs directly to your phone or laptop.' },
-      { title: 'Personal Study Library', desc: 'Bookmark essential notes into your personal collection for quick revision.' },
-    ],
-    floatingBadge: 'Offline PDF Downloads Ready',
   },
   {
     id: 'reputation',
@@ -405,11 +400,25 @@ const SUPPORTED_BRANCHES = [
   { name: 'BCA & B.Sc Computing', count: '1,100+ Notes', tag: 'Degree' },
 ];
 
+const WATERMARK_LINE = Array(22).fill("Studexa").join("   ");
+const WATERMARK_ROWS = Array.from({ length: 18 });
+
 export function GetStartedPage() {
   const navigate = useNavigate();
-  const { completeOnboarding, startExploring } = useAuth();
+  const { completeOnboarding, startExploring, stopExploring } = useAuth();
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  // Combined scroll controller for the continuous watermark typography across How It Works + CTA
+  const combinedSectionsRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: combinedSectionsRef,
+    offset: ["start end", "end start"]
+  });
+
+  // Diagonal travel: starts at TOP-RIGHT (positive X, negative Y) -> moves toward BOTTOM-LEFT (negative X, positive Y)
+  const watermarkX = useTransform(scrollYProgress, [0, 0.5, 1], ["25vw", "0vw", "-25vw"]);
+  const watermarkY = useTransform(scrollYProgress, [0, 0.5, 1], ["-20vh", "0vh", "20vh"]);
 
   const activeFeature = PLATFORM_FEATURES[activeFeatureIndex];
 
@@ -422,7 +431,17 @@ export function GetStartedPage() {
     return () => clearInterval(interval);
   }, [isAutoPlaying]);
 
-  const handleGetStarted = (destination: string) => {
+  const handleLogoClick = () => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (window.location.pathname === '/get-started') {
+      window.location.reload();
+    } else {
+      window.location.href = '/get-started';
+    }
+  };
+
+  const handleGetStarted = (destination: string = '/signup') => {
+    stopExploring?.();
     completeOnboarding();
     navigate(destination);
   };
@@ -437,7 +456,18 @@ export function GetStartedPage() {
       {/* ── TOP NAVIGATION ── */}
       <header className="sticky top-0 z-40 border-b border-card-border bg-surface-container-low/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
+          <div
+            className="flex items-center cursor-pointer transition-opacity hover:opacity-85"
+            onClick={handleLogoClick}
+            role="button"
+            tabIndex={0}
+            title="Refresh Page"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleLogoClick();
+              }
+            }}
+          >
             <Logo height={34} />
           </div>
 
@@ -452,7 +482,7 @@ export function GetStartedPage() {
             <button
               type="button"
               onClick={() => handleGetStarted('/signup')}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-label-sm font-bold text-white shadow-xs hover:opacity-95 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-label-sm font-bold text-white shadow-xs hover:opacity-95 transition-all cursor-pointer active:scale-95"
             >
               <span>Get Started</span>
               <ArrowRight size={14} />
@@ -463,15 +493,18 @@ export function GetStartedPage() {
 
       {/* ── HERO SECTION WITH 3D ANIMATIONS ── */}
       <section className="relative border-b border-card-border bg-surface-container-low px-4 pt-16 pb-20 sm:px-6 lg:px-8 overflow-hidden">
-        {/* 3D Interactive Particle Constellation */}
-        <Hero3DCanvas />
 
         <div className="relative z-10 mx-auto max-w-5xl text-center">
           {/* Subtle ambient lighting behind hero */}
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] max-w-full h-[240px] bg-gradient-to-tr from-indigo-500/8 via-purple-500/8 to-transparent blur-3xl pointer-events-none rounded-full" />
 
           {/* Badge */}
-          <div className="inline-flex items-center gap-2.5 rounded-full border border-indigo-100 bg-white shadow-xs px-4 py-1.5 text-xs font-medium text-slate-700 mb-8 transition-all hover:border-indigo-200">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2.5 rounded-full border border-indigo-100 bg-white shadow-xs px-4 py-1.5 text-xs font-medium text-slate-700 mb-8 transition-all hover:border-indigo-200"
+          >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
@@ -479,10 +512,15 @@ export function GetStartedPage() {
             <span className="font-semibold text-slate-800">Open Academic Repository</span>
             <span className="text-slate-300">·</span>
             <span className="text-indigo-600 font-bold">100% Free for University Students</span>
-          </div>
+          </motion.div>
 
           {/* Heading */}
-          <h1 className="text-4xl sm:text-5xl lg:text-[64px] font-black tracking-[-0.035em] text-slate-900 leading-[1.12] max-w-4xl mx-auto">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-4xl sm:text-5xl lg:text-[64px] font-black tracking-[-0.035em] text-slate-900 leading-[1.12] max-w-4xl mx-auto"
+          >
             <span>Master your university courses with{' '}</span>
             <span className="relative inline-block whitespace-nowrap">
               <span className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 bg-clip-text text-transparent">
@@ -510,15 +548,25 @@ export function GetStartedPage() {
               </svg>
             </span>
             <span>, exam papers & assignments.</span>
-          </h1>
+          </motion.h1>
 
           {/* Subtitle */}
-          <p className="mx-auto mt-7 max-w-2xl text-[16px] sm:text-[18px] text-slate-600 leading-relaxed font-normal">
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mx-auto mt-7 max-w-2xl text-[16px] sm:text-[18px] text-slate-600 leading-relaxed font-normal"
+          >
             The student-powered platform designed for <span className="font-bold text-slate-900">Engineering & Degree programs</span>. Access curated semester notes, view past exam solutions, and share academic knowledge with peers.
-          </p>
+          </motion.p>
 
           {/* Feature Badges / Quick Highlights */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5"
+          >
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
               <BookOpen size={14} className="text-indigo-600" />
               <span>Curated Semester Notes</span>
@@ -531,43 +579,100 @@ export function GetStartedPage() {
               <GraduationCap size={14} className="text-emerald-600" />
               <span>Branch & University Specific</span>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Primary Action Button */}
-          <div className="mt-9 flex items-center justify-center">
+          {/* Primary Action Buttons */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="mt-9 flex items-center justify-center gap-3.5 flex-wrap"
+          >
+            <button
+              type="button"
+              onClick={() => handleGetStarted('/signup')}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:opacity-95 px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-indigo-600/25 hover:shadow-lg hover:shadow-indigo-600/35 transition-all cursor-pointer active:scale-[0.99]"
+            >
+              <span>Get Started</span>
+              <ArrowRight size={16} strokeWidth={2.2} />
+            </button>
             <button
               type="button"
               onClick={handleExplore}
-              className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 px-8 py-3.5 text-sm font-semibold text-white shadow-md shadow-indigo-600/25 hover:shadow-lg hover:shadow-indigo-600/35 transition-all cursor-pointer active:scale-[0.99]"
+              className="inline-flex items-center justify-center gap-2.5 rounded-xl border border-card-border bg-surface-container px-6 py-3.5 text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-all cursor-pointer active:scale-[0.99]"
             >
               <Compass size={18} strokeWidth={2.2} />
               <span>Explore Library</span>
-              <ArrowRight size={16} strokeWidth={2.2} />
             </button>
-          </div>
+          </motion.div>
 
-          {/* 3D Interactive Holographic Tilt Study Deck */}
-          <Hero3DCard />
-
-          {/* Trust stats bar */}
-          <div className="mt-14 grid grid-cols-2 gap-4 border-t border-card-border/60 pt-8 sm:grid-cols-4">
+          {/* Elegant Hero Visual Dashboard Mockup with 3D Cursor Tracking */}
+          <HeroInteractiveCard />
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.5 }}
+            className="mt-14 grid grid-cols-2 gap-4 border-t border-card-border/60 pt-8 sm:grid-cols-4"
+          >
             <div className="flex flex-col">
-              <span className="text-2xl font-bold tracking-tight text-on-surface">50,000+</span>
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+                <CountUpNumber target={50000} suffix="+" />
+              </span>
               <span className="text-label-sm text-on-surface-variant">Active Students</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-2xl font-bold tracking-tight text-on-surface">12,500+</span>
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+                <CountUpNumber target={12500} suffix="+" />
+              </span>
               <span className="text-label-sm text-on-surface-variant">Verified Documents</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-2xl font-bold tracking-tight text-on-surface">100% Free</span>
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+                <CountUpNumber target={100} suffix="% Free" />
+              </span>
               <span className="text-label-sm text-on-surface-variant">No Paywalls Ever</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-2xl font-bold tracking-tight text-on-surface">4.9 / 5.0</span>
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+                <CountUpNumber target={4.9} decimals={1} suffix=" / 5.0" />
+              </span>
               <span className="text-label-sm text-on-surface-variant">Student Satisfaction</span>
             </div>
-          </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── SEAMLESS SCROLLING LOGO MARQUEE ── */}
+      <section className="border-b border-card-border bg-surface py-10 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-6 text-center">
+          <p className="text-sm font-semibold tracking-wide text-on-surface-variant uppercase">
+            Trusted by students across top institutions
+          </p>
+        </div>
+        <div className="relative flex w-full overflow-hidden">
+          {/* Gradient masks for smooth fade at edges */}
+          <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-20 sm:w-40 bg-gradient-to-r from-surface to-transparent" />
+          <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-20 sm:w-40 bg-gradient-to-l from-surface to-transparent" />
+          
+          <motion.div
+            className="flex items-center gap-16 px-8 whitespace-nowrap"
+            animate={{ x: [0, -1035] }}
+            transition={{
+              ease: "linear",
+              duration: 20,
+              repeat: Infinity,
+            }}
+          >
+            {/* Duplicated list for infinite scroll effect */}
+            {[...SUPPORTED_BRANCHES, ...SUPPORTED_BRANCHES, ...SUPPORTED_BRANCHES].map((branch, i) => (
+              <div key={i} className="flex items-center">
+                <span className="text-xl sm:text-2xl font-black text-on-surface/20 hover:text-on-surface/40 transition-colors">
+                  {branch.name}
+                </span>
+              </div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
@@ -583,16 +688,7 @@ export function GetStartedPage() {
         onMouseLeave={() => setIsAutoPlaying(true)}
       >
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: false }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-4"
-          >
-            <Sparkles size={13} />
-            <span>PLATFORM TOUR & CAPABILITIES</span>
-          </motion.div>
+
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -611,9 +707,13 @@ export function GetStartedPage() {
           >
             Explore how Studexa connects students with verified university course materials and peer study tools.
           </motion.p>
+        </div>
 
-          {/* Segmented Animated Navigation Tabs */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 p-1.5 rounded-2xl bg-surface-container border border-card-border max-w-2xl mx-auto">
+        {/* Dynamic Animated Viewport with Vertical Tabs */}
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 rounded-3xl border border-card-border bg-surface-container-low p-6 sm:p-10 shadow-sm">
+          
+          {/* Vertical Navigation Tabs */}
+          <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible lg:w-64 shrink-0 pb-4 lg:pb-0">
             {PLATFORM_FEATURES.map((feature, idx) => {
               const Icon = feature.icon;
               const isActive = activeFeatureIndex === idx;
@@ -625,8 +725,8 @@ export function GetStartedPage() {
                     setActiveFeatureIndex(idx);
                     setIsAutoPlaying(false);
                   }}
-                  className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
-                    isActive ? 'text-white' : 'text-on-surface-variant hover:text-on-surface'
+                  className={`relative flex items-center gap-3 px-4 py-3 sm:py-4 rounded-xl text-xs sm:text-sm font-semibold transition-colors cursor-pointer text-left whitespace-nowrap lg:whitespace-normal ${
+                    isActive ? 'text-white' : 'text-on-surface-variant hover:text-on-surface bg-surface border border-card-border/50 hover:bg-surface-container'
                   }`}
                 >
                   {isActive && (
@@ -636,69 +736,67 @@ export function GetStartedPage() {
                       transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                     />
                   )}
-                  <Icon size={16} className="relative z-10" />
-                  <span className="relative z-10">{feature.label}</span>
+                  <Icon size={18} className="relative z-10 shrink-0" />
+                  <span className="relative z-10 leading-snug">{feature.label}</span>
                 </button>
               );
             })}
           </div>
-        </div>
 
-        {/* Dynamic Animated Viewport */}
-        <div className="rounded-3xl border border-card-border bg-surface-container-low p-6 sm:p-10 shadow-sm">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeFeature.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center"
-            >
+          <div className="flex-1 min-w-0">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeFeature.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[800px] sm:min-h-[720px] xl:min-h-[480px]"
+              >
               {/* Left Column: Feature Breakdown */}
-              <div className="lg:col-span-5 space-y-6">
+              <div className="space-y-6 flex flex-col justify-center">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
                     {activeFeature.categoryBadge}
                   </span>
-                  <h3 className="text-2xl sm:text-3xl font-extrabold text-on-surface mt-2 leading-tight">
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface mt-2 leading-tight">
                     {activeFeature.title}
                   </h3>
-                  <p className="text-body-sm sm:text-body-md text-on-surface-variant mt-3 leading-relaxed">
+                  <p className="text-body-sm sm:text-body-md text-on-surface-variant mt-4 leading-relaxed">
                     {activeFeature.description}
                   </p>
                 </div>
 
                 {/* Highlights List */}
-                <div className="space-y-3 pt-2">
+                <div className="space-y-4 pt-2">
                   {activeFeature.highlights.map((h) => (
                     <div key={h.title} className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <CheckCircle2 size={13} />
+                      <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <CheckCircle2 size={13} strokeWidth={3} />
                       </div>
                       <div>
                         <span className="text-sm font-bold text-on-surface">{h.title}: </span>
-                        <span className="text-xs sm:text-sm text-on-surface-variant">{h.desc}</span>
+                        <span className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">{h.desc}</span>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Action CTA */}
-                <div className="pt-3">
+                <div className="pt-4">
                   <button
                     type="button"
                     onClick={handleExplore}
-                    className="inline-flex items-center gap-2 rounded-xl bg-surface border border-card-border px-5 py-2.5 text-xs sm:text-sm font-semibold text-on-surface hover:bg-surface-container hover:border-primary/40 transition-all cursor-pointer shadow-xs"
+                    className="inline-flex items-center gap-2 rounded-xl bg-surface border border-card-border px-5 py-3 text-sm font-bold text-on-surface hover:bg-surface-container hover:border-primary/40 transition-all cursor-pointer shadow-sm active:scale-95"
                   >
                     <span>Open in Study Hub</span>
-                    <ArrowRight size={14} className="text-primary" />
+                    <ArrowRight size={16} className="text-primary" />
                   </button>
                 </div>
               </div>
 
               {/* Right Column: Animated Interactive Mockup Window */}
-              <div className="lg:col-span-7" style={{ perspective: 1200 }}>
+              <div style={{ perspective: 1200 }}>
                 <motion.div 
                   initial={{ rotateY: -15, x: 20 }}
                   animate={{ rotateY: 0, x: 0 }}
@@ -722,16 +820,6 @@ export function GetStartedPage() {
 
                   {/* Window Body Mockup Content */}
                   <div className="p-6 sm:p-8 min-h-[360px] flex flex-col justify-center relative">
-                    {/* Floating pill badge */}
-                    <motion.div
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                      className="absolute top-4 right-4 hidden sm:flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-semibold text-primary shadow-2xs z-10"
-                    >
-                      <Sparkles size={12} />
-                      <span>{activeFeature.floatingBadge}</span>
-                    </motion.div>
-
                     {/* MOCKUP 1: LIBRARY */}
                     {activeFeature.id === 'library' && (
                       <div className="space-y-4">
@@ -774,46 +862,6 @@ export function GetStartedPage() {
                               <span className="text-on-surface-variant">Downloads</span>
                               <p className="font-bold text-on-surface">3,850+</p>
                             </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs text-on-surface-variant pt-1 px-1">
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 size={13} className="text-emerald-500" /> Syllabus Unit 1 to 5 Mapped
-                          </span>
-                          <span className="font-semibold text-primary">Free Instant PDF</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* MOCKUP 2: READER */}
-                    {activeFeature.id === 'reader' && (
-                      <div className="rounded-xl border border-card-border bg-surface p-4 space-y-4">
-                        {/* Reader Toolbar Simulation */}
-                        <div className="flex items-center justify-between pb-3 border-b border-card-border/60 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-on-surface">Page 14 of 48</span>
-                            <span className="text-outline">|</span>
-                            <span className="text-on-surface-variant">100% Zoom</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              className="flex items-center gap-1 rounded-lg bg-primary/10 text-primary px-2.5 py-1 font-semibold text-xs"
-                            >
-                              <Download size={12} /> Download
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Page Preview Content Simulation */}
-                        <div className="rounded-lg bg-surface-container-high/40 p-4 border border-card-border/50 text-xs space-y-2">
-                          <div className="font-bold text-on-surface text-sm">Theorem 3.2: Asymptotic Bounds of Dijkstra’s Algorithm</div>
-                          <p className="text-on-surface-variant leading-relaxed">
-                            Given a directed graph G = (V, E) with non-negative edge weights, the priority queue implementation yields an optimal time complexity of O((|V| + |E|) log |V|).
-                          </p>
-                          <div className="mt-2 p-2 rounded bg-primary/10 border border-primary/20 text-primary text-[11px] font-mono">
-                            Time: O(E log V) | Space: O(V)
                           </div>
                         </div>
                       </div>
@@ -931,6 +979,7 @@ export function GetStartedPage() {
             </motion.div>
           </AnimatePresence>
         </div>
+        </div>
       </motion.section>
 
       {/* ── COURSE & BRANCH COVERAGE DIRECTORY ── */}
@@ -995,135 +1044,324 @@ export function GetStartedPage() {
         </div>
       </motion.section>
 
-      {/* ── HOW IT WORKS ── */}
-      <motion.section 
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: false, amount: 0.2 }}
-        transition={{ duration: 0.6 }}
-        className="border-y border-card-border bg-surface px-4 py-16 sm:px-6 lg:px-8"
+      {/* ── DARK MODE SHOWCASE (100% SCROLL-CONTROLLED) ── */}
+      <DarkModeScrollShowcase />
+
+      {/* ── COMBINED HOW IT WORKS & CTA WITH CONTINUOUS SCROLL-CONTROLLED WATERMARK ── */}
+      <div 
+        ref={combinedSectionsRef}
+        className="relative overflow-hidden border-y border-card-border bg-surface"
       >
-        <div className="mx-auto max-w-5xl">
-          <div className="text-center mb-12">
-            <h2 className="text-label-sm font-bold uppercase tracking-wider text-primary mb-2">Simple 3-Step Flow</h2>
-            <p className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Designed for how students actually study</p>
-          </div>
-
+        {/* Continuous Scroll-Controlled Watermark Typography Layer */}
+        <div className="absolute -inset-x-[40vw] -inset-y-[35vh] pointer-events-none select-none z-0 overflow-hidden flex items-center justify-center">
           <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.1 }}
-            variants={{
-              hidden: {},
-              visible: {
-                transition: { staggerChildren: 0.15 }
-              }
+            style={{ 
+              x: watermarkX, 
+              y: watermarkY,
+              rotate: -12,
+              willChange: 'transform'
             }}
-            className="grid grid-cols-1 gap-8 md:grid-cols-3"
+            className="flex flex-col gap-6 sm:gap-10 w-[170vw] max-w-none"
           >
-            <motion.div 
-              variants={{
-                hidden: { opacity: 0, y: 30, scale: 0.9, rotateY: -15 },
-                visible: { opacity: 1, y: 0, scale: 1, rotateY: 0, transition: { duration: 0.5, ease: 'easeOut' } }
-              }}
-              style={{ perspective: 1000 }}
-              className="flex flex-col items-center text-center"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-bold text-lg mb-4 shadow-xs">
-                1
+            {WATERMARK_ROWS.map((_, i) => (
+              <div 
+                key={i}
+                className={`whitespace-nowrap font-black uppercase tracking-wider select-none leading-none text-on-surface/[0.035] dark:text-white/[0.045] text-[clamp(2.5rem,5.5vw,5.5rem)] ${
+                  i % 2 === 0 ? '-ml-28 sm:-ml-48' : 'ml-0'
+                }`}
+                aria-hidden="true"
+              >
+                {WATERMARK_LINE}
               </div>
-              <h4 className="text-body-lg font-bold text-on-surface mb-2">Search Your Course</h4>
-              <p className="text-body-sm text-on-surface-variant">
-                Select your stream (Engineering or Degree), choose your branch, and find exact notes for your current semester.
-              </p>
-            </motion.div>
-
-            <motion.div 
-              variants={{
-                hidden: { opacity: 0, y: 30, scale: 0.9, rotateY: -15 },
-                visible: { opacity: 1, y: 0, scale: 1, rotateY: 0, transition: { duration: 0.5, ease: 'easeOut' } }
-              }}
-              style={{ perspective: 1000 }}
-              className="flex flex-col items-center text-center"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-bold text-lg mb-4 shadow-xs">
-                2
-              </div>
-              <h4 className="text-body-lg font-bold text-on-surface mb-2">Read in Browser or Save</h4>
-              <p className="text-body-sm text-on-surface-variant">
-                Preview documents instantly with our built-in PDF viewer, bookmark them into your personal Library, or download for offline study.
-              </p>
-            </motion.div>
-
-            <motion.div 
-              variants={{
-                hidden: { opacity: 0, y: 30, scale: 0.9, rotateY: -15 },
-                visible: { opacity: 1, y: 0, scale: 1, rotateY: 0, transition: { duration: 0.5, ease: 'easeOut' } }
-              }}
-              style={{ perspective: 1000 }}
-              className="flex flex-col items-center text-center"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white font-bold text-lg mb-4 shadow-xs">
-                3
-              </div>
-              <h4 className="text-body-lg font-bold text-on-surface mb-2">Share & Build Profile</h4>
-              <p className="text-body-sm text-on-surface-variant">
-                Upload your notes to help fellow students, earn points, climb the Academic Leaderboard, and build your student portfolio.
-              </p>
-            </motion.div>
+            ))}
           </motion.div>
         </div>
-      </motion.section>
 
-      {/* ── CALL TO ACTION BANNER ── */}
-      <motion.section 
-        initial={{ opacity: 0, scale: 0.9, rotateX: 15 }}
-        whileInView={{ opacity: 1, scale: 1, rotateX: 0 }}
-        viewport={{ once: false, amount: 0.1 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        style={{ perspective: 1200 }}
-        className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 text-center"
-      >
-        <div className="rounded-3xl border border-card-border bg-surface-container p-8 sm:p-12 shadow-sm">
-          <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-on-surface mb-4">
-            Ready to elevate your semester preparation?
-          </h2>
-          <p className="text-body-md text-on-surface-variant max-w-xl mx-auto mb-8">
-            Join thousands of university students learning smarter today. Create your account in less than a minute.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => handleGetStarted('/signup')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-label-md font-bold text-white shadow-md hover:opacity-95 transition-all cursor-pointer"
-            >
-              <span>Create Free Account</span>
-              <ArrowRight size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={handleExplore}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-card-border bg-surface-container-low px-6 py-3.5 text-label-md font-semibold text-on-surface hover:bg-surface-container transition-all cursor-pointer"
-            >
-              Browse Library as Guest
-            </button>
+        {/* ── HOW IT WORKS ── */}
+        <motion.section 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 px-4 pt-20 pb-12 sm:px-6 lg:px-8"
+        >
+          {/* Subtle decorative background glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-r from-primary/5 via-blue-500/5 to-purple-500/5 blur-3xl pointer-events-none rounded-full" />
+
+          <div className="relative mx-auto max-w-5xl">
+            {/* Header */}
+            <div className="text-center mb-16">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4 }}
+                className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-3 shadow-xs"
+              >
+                <Sparkles size={13} className="text-primary animate-pulse" />
+                <span>Simple 3-Step Flow</span>
+              </motion.div>
+              <motion.h2 
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-2xl sm:text-4xl font-extrabold tracking-tight text-on-surface"
+              >
+                Designed for how students <span className="bg-gradient-to-r from-primary via-indigo-500 to-blue-600 bg-clip-text text-transparent">actually study</span>
+              </motion.h2>
+            </div>
+
+            {/* Cards Grid with connecting progress line */}
+            <div className="relative">
+              {/* Connecting progress beam on desktop */}
+              <div className="hidden md:block absolute top-[68px] left-[15%] right-[15%] h-[2px] z-0 pointer-events-none overflow-hidden rounded-full">
+                <div className="w-full h-full bg-gradient-to-r from-primary/15 via-primary/30 to-primary/15" />
+                <motion.div
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+                  className="absolute top-0 left-0 w-1/3 h-full bg-gradient-to-r from-transparent via-primary to-transparent blur-[1px]"
+                />
+              </div>
+
+              <motion.div 
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.15 }}
+                variants={{
+                  hidden: {},
+                  visible: {
+                    transition: { staggerChildren: 0.18 }
+                  }
+                }}
+                className="grid grid-cols-1 gap-8 md:grid-cols-3 relative z-10"
+              >
+                {/* Step 1 */}
+                <motion.div 
+                  variants={{
+                    hidden: { opacity: 0, y: 35, scale: 0.95 },
+                    visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', damping: 20, stiffness: 120 } }
+                  }}
+                  whileHover={{ y: -8, transition: { type: 'spring', stiffness: 350, damping: 20 } }}
+                  className="group relative flex flex-col items-center text-center p-7 sm:p-8 rounded-3xl border border-card-border/80 bg-surface/90 hover:bg-surface-container backdrop-blur-sm transition-all duration-300 shadow-xs hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 cursor-default"
+                >
+                  {/* Ambient hover glow */}
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                  {/* Animated Icon & Step Badge */}
+                  <div className="relative mb-6">
+                    <div className="absolute -inset-2 rounded-2xl bg-primary/20 blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />
+                    <motion.div 
+                      whileHover={{ rotate: [-6, 6, -3, 0], scale: 1.08 }}
+                      transition={{ duration: 0.4 }}
+                      className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-600 text-white shadow-lg shadow-primary/25"
+                    >
+                      <Search size={26} className="text-white drop-shadow-xs" />
+                      <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-surface text-primary border-2 border-primary font-black text-xs shadow-xs">
+                        1
+                      </span>
+                    </motion.div>
+                  </div>
+
+                  <h4 className="text-lg font-bold text-on-surface mb-2.5 group-hover:text-primary transition-colors">
+                    Search Your Course
+                  </h4>
+                  <p className="text-sm text-on-surface-variant leading-relaxed mb-5">
+                    Select your stream (Engineering or Degree), choose your branch, and find exact notes for your current semester.
+                  </p>
+
+                  {/* Micro tags */}
+                  <div className="mt-auto flex flex-wrap justify-center gap-1.5 pt-2">
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Engineering</span>
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Degree</span>
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Sem 1-8</span>
+                  </div>
+                </motion.div>
+
+                {/* Step 2 */}
+                <motion.div 
+                  variants={{
+                    hidden: { opacity: 0, y: 35, scale: 0.95 },
+                    visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', damping: 20, stiffness: 120 } }
+                  }}
+                  whileHover={{ y: -8, transition: { type: 'spring', stiffness: 350, damping: 20 } }}
+                  className="group relative flex flex-col items-center text-center p-7 sm:p-8 rounded-3xl border border-card-border/80 bg-surface/90 hover:bg-surface-container backdrop-blur-sm transition-all duration-300 shadow-xs hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 cursor-default"
+                >
+                  {/* Ambient hover glow */}
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                  {/* Animated Icon & Step Badge */}
+                  <div className="relative mb-6">
+                    <div className="absolute -inset-2 rounded-2xl bg-indigo-500/20 blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />
+                    <motion.div 
+                      whileHover={{ rotate: [-6, 6, -3, 0], scale: 1.08 }}
+                      transition={{ duration: 0.4 }}
+                      className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-primary text-white shadow-lg shadow-indigo-500/25"
+                    >
+                      <BookOpen size={26} className="text-white drop-shadow-xs" />
+                      <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-surface text-primary border-2 border-primary font-black text-xs shadow-xs">
+                        2
+                      </span>
+                    </motion.div>
+                  </div>
+
+                  <h4 className="text-lg font-bold text-on-surface mb-2.5 group-hover:text-primary transition-colors">
+                    Read in Browser or Save
+                  </h4>
+                  <p className="text-sm text-on-surface-variant leading-relaxed mb-5">
+                    Preview documents instantly with our built-in PDF viewer, bookmark them into your personal Library, or download for offline study.
+                  </p>
+
+                  {/* Micro tags */}
+                  <div className="mt-auto flex flex-wrap justify-center gap-1.5 pt-2">
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Built-in PDF</span>
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Bookmark</span>
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Offline</span>
+                  </div>
+                </motion.div>
+
+                {/* Step 3 */}
+                <motion.div 
+                  variants={{
+                    hidden: { opacity: 0, y: 35, scale: 0.95 },
+                    visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', damping: 20, stiffness: 120 } }
+                  }}
+                  whileHover={{ y: -8, transition: { type: 'spring', stiffness: 350, damping: 20 } }}
+                  className="group relative flex flex-col items-center text-center p-7 sm:p-8 rounded-3xl border border-card-border/80 bg-surface/90 hover:bg-surface-container backdrop-blur-sm transition-all duration-300 shadow-xs hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 cursor-default"
+                >
+                  {/* Ambient hover glow */}
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                  {/* Animated Icon & Step Badge */}
+                  <div className="relative mb-6">
+                    <div className="absolute -inset-2 rounded-2xl bg-violet-500/20 blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />
+                    <motion.div 
+                      whileHover={{ rotate: [-6, 6, -3, 0], scale: 1.08 }}
+                      transition={{ duration: 0.4 }}
+                      className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-primary text-white shadow-lg shadow-violet-600/25"
+                    >
+                      <Trophy size={26} className="text-white drop-shadow-xs" />
+                      <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-surface text-primary border-2 border-primary font-black text-xs shadow-xs">
+                        3
+                      </span>
+                    </motion.div>
+                  </div>
+
+                  <h4 className="text-lg font-bold text-on-surface mb-2.5 group-hover:text-primary transition-colors">
+                    Share & Build Profile
+                  </h4>
+                  <p className="text-sm text-on-surface-variant leading-relaxed mb-5">
+                    Upload your notes to help fellow students, earn points, climb the Academic Leaderboard, and build your student portfolio.
+                  </p>
+
+                  {/* Micro tags */}
+                  <div className="mt-auto flex flex-wrap justify-center gap-1.5 pt-2">
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Leaderboard</span>
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Earn Points</span>
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-surface-container border border-card-border/70 text-on-surface-variant/80 group-hover:border-primary/30 group-hover:text-primary transition-colors">Portfolio</span>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </div>
           </div>
-        </div>
-      </motion.section>
+        </motion.section>
+
+        {/* ── CALL TO ACTION BANNER ── */}
+        <motion.section 
+          initial={{ opacity: 0, y: 40, scale: 0.96 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 mx-auto max-w-5xl px-4 pt-8 pb-20 sm:px-6 lg:px-8 text-center"
+        >
+          <div className="relative rounded-3xl border border-card-border/90 bg-surface-container/95 p-8 sm:p-14 shadow-xl overflow-hidden backdrop-blur-md">
+            {/* Animated floating background glow spheres */}
+            <motion.div
+              animate={{
+                scale: [1, 1.25, 1],
+                x: [0, 25, 0],
+                y: [0, -20, 0],
+                opacity: [0.25, 0.45, 0.25]
+              }}
+              transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
+              className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-primary/20 blur-3xl pointer-events-none"
+            />
+            <motion.div
+              animate={{
+                scale: [1.2, 1, 1.2],
+                x: [0, -30, 0],
+                y: [0, 25, 0],
+                opacity: [0.2, 0.4, 0.2]
+              }}
+              transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
+              className="absolute -bottom-28 -left-24 w-96 h-96 rounded-full bg-blue-500/20 blur-3xl pointer-events-none"
+            />
+
+            {/* Subtle grid pattern texture */}
+            <div 
+              className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+              style={{
+                backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
+                backgroundSize: '24px 24px'
+              }}
+            />
+
+            <div className="relative z-10 max-w-2xl mx-auto">
+              {/* Headline */}
+              <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-on-surface mb-4 leading-tight">
+                Ready to elevate your <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-primary via-indigo-500 to-blue-600 bg-clip-text text-transparent">
+                  semester preparation?
+                </span>
+              </h2>
+
+              {/* Subtitle */}
+              <p className="text-sm sm:text-base text-on-surface-variant max-w-xl mx-auto mb-7 leading-relaxed">
+                Join thousands of university students learning smarter today. Create your account in less than a minute.
+              </p>
+
+              {/* Value proposition badges */}
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-8 text-xs sm:text-sm font-semibold text-on-surface-variant">
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 size={16} className="text-primary" /> Verified Notes
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 size={16} className="text-primary" /> Instant PDF Viewer
+                </span>
+              </div>
+
+              {/* Interactive Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.04, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleGetStarted('/signup')}
+                  className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-primary to-blue-600 px-8 py-4 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 transition-all cursor-pointer overflow-hidden"
+                >
+                  {/* Shimmer sweep animation across button */}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+                  <span className="relative z-10">Get Started</span>
+                  <ArrowRight size={17} className="relative z-10 transition-transform group-hover:translate-x-1" />
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleExplore}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-card-border bg-surface-container-low px-7 py-4 text-sm font-semibold text-on-surface hover:bg-surface-container hover:border-primary/30 transition-all cursor-pointer shadow-xs"
+                >
+                  Browse Library as Guest
+                </motion.button>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+      </div>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-card-border bg-surface-container-low py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <Logo height={24} />
-            <span className="text-on-surface-variant text-body-xs">· Open University Study Platform</span>
-          </div>
-
-          <p className="text-body-xs text-on-surface-variant">
-            &copy; {new Date().getFullYear()} Studexa. All academic rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
