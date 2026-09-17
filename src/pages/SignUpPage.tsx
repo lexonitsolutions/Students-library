@@ -1,124 +1,67 @@
 import { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight, BookOpen, CheckCircle2, User as UserIcon, Eye, EyeOff, Award, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
-import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { Logo } from '../components/ui/Logo';
-import { supabase } from '../lib/supabaseClient';
 
 export function SignUpPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signUp, signInWithGoogle, session, updateUser, signOut } = useAuth();
+  const { signUp, signInWithGoogle, session } = useAuth();
   
   const googleUser = session?.user?.app_metadata?.provider === 'google' ? session.user : null;
   const googleName = (googleUser?.user_metadata?.full_name as string) || (googleUser?.user_metadata?.name as string) || '';
   const googleEmail = googleUser?.email || '';
-  const googleAvatar = (googleUser?.user_metadata?.avatar_url as string) || (googleUser?.user_metadata?.picture as string) || '';
-
+  
   const [name, setName] = useState(googleName || '');
   const [email, setEmail] = useState(googleEmail || location.state?.prefillEmail || '');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  useEffect(() => {
-    if (googleUser) {
-      if (googleName) setName(googleName);
-      if (googleEmail) setEmail(googleEmail);
-    }
-  }, [googleUser, googleName, googleEmail]);
+  // Password strength logic
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return { label: '', color: 'bg-slate-200', text: '' };
+    if (pass.length < 6) return { label: 'Weak', color: 'bg-red-400', text: 'text-red-500' };
+    if (pass.length < 10 && !/\d/.test(pass)) return { label: 'Fair', color: 'bg-amber-400', text: 'text-amber-500' };
+    return { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-600' };
+  };
+  const strength = getPasswordStrength(password);
 
   useEffect(() => {
-    // Intercept back button to strictly go to /get-started
     window.history.pushState(null, '', window.location.href);
-    const handlePopState = () => {
-      navigate('/get-started', { replace: true });
-    };
+    const handlePopState = () => { navigate('/get-started', { replace: true }); };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    const emailTrimmed = email.trim();
-    const nameTrimmed = name.trim();
-
-    if (!nameTrimmed) {
-      setError('Please enter your name');
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
-
-    if (!emailTrimmed) {
-      setError('Please enter your email address');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
     if (!agreedToTerms) {
-      setError('Please accept the Terms and Conditions to create your account');
+      setError('You must agree to the Terms of Service');
       return;
     }
-
-    if (googleUser) {
-      setIsSubmitting(true);
-      try {
-        const { error: passwordError } = await supabase.auth.updateUser({ password });
-        if (passwordError) {
-          throw new Error(passwordError.message || 'Failed to set password. Please try again.');
-        }
-        await updateUser({
-          name: nameTrimmed,
-          ...(googleAvatar ? { avatar: googleAvatar } : {}),
-        });
-        localStorage.setItem('quicklearnit_google_signup_completed', 'true');
-        localStorage.setItem('quicklearnit_has_onboarded', 'true');
-        navigate('/dashboard', { replace: true });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to complete registration');
-      } finally {
-        setIsSubmitting(false);
-      }
-      return;
-    }
-
+    setError(null);
     setIsSubmitting(true);
-    const { error: signUpError } = await signUp({
-      email: emailTrimmed,
-      password,
-      name: nameTrimmed,
-    });
+
+    const { error: signUpError } = await signUp({ email, password, name });
     setIsSubmitting(false);
 
     if (signUpError) {
-      if (signUpError.toLowerCase().includes('pending')) {
-        navigate('/verify-otp', {
-          state: {
-            target: emailTrimmed,
-            type: 'email',
-          },
-        });
-      } else {
-        setError(signUpError);
-      }
+      setError(signUpError);
     } else {
-      navigate('/verify-otp', {
-        state: {
-          target: emailTrimmed,
-          type: 'email',
-        },
-      });
+      navigate('/verify-otp', { state: { target: email, type: 'email' } });
     }
   };
 
@@ -138,243 +81,203 @@ export function SignUpPage() {
     }
   };
 
-  const handleDisconnectGoogle = async () => {
-    await signOut();
-    setName('');
-    setEmail('');
-    setPassword('');
-    localStorage.removeItem('quicklearnit_google_signup_completed');
-    navigate('/signup', { replace: true });
-  };
-
   return (
-    <div className="flex min-h-screen bg-white text-on-surface">
-      {/* ── LEFT SIDE: BRANDING SHOWCASE PANEL (Desktop only) ── */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-slate-200/90 bg-gradient-to-br from-slate-100 via-[#EDF2F9] to-slate-100 relative overflow-hidden">
-        {/* Subtle tinted grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(99,102,241,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.07)_1px,transparent_1px)] bg-[size:2.5rem_2.5rem] pointer-events-none" />
-        <div className="absolute -top-28 -right-28 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-28 -left-28 h-80 w-80 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+    <div className="flex min-h-screen w-full relative overflow-hidden font-sans bg-gradient-to-br from-[#E8EEFC] via-[#F2F5FE] to-[#E2EAFD]">
+      {/* Background soft ambient blobs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-[#D6E2FD] blur-[120px] opacity-70 pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] rounded-full bg-[#E5E9FC] blur-[100px] opacity-80 pointer-events-none" />
+      <div className="absolute top-[20%] right-[20%] w-[30%] h-[30%] rounded-full bg-white/40 blur-[80px] pointer-events-none" />
 
-        {/* Brand Header */}
-        <div className="flex items-center gap-3 relative z-10">
-          <Link to="/" className="flex items-center">
-            <Logo height={36} />
-          </Link>
-        </div>
-
-        {/* Center Showcase */}
-        <motion.div
-          key="signup-showcase"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.32, ease: 'easeOut' }}
-          className="relative z-10 max-w-md mx-auto my-auto py-12"
-        >
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 mb-6">
-            <Sparkles size={13} />
-            <span>Join 50,000+ Students</span>
-          </div>
-
-          <h1 className="text-4xl font-extrabold tracking-tight text-on-surface mb-4 leading-tight">
-            Share knowledge. Ace your semester together.
-          </h1>
-          <p className="text-on-surface-variant text-base leading-relaxed mb-8">
-            Upload your handwritten lecture notes, past exams, and study guides. Earn recognition and help your university peers excel.
-          </p>
-
-          {/* Academic Showcase Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold">
-                  <BookOpen size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-on-surface">Digital Electronics & Circuits</h4>
-                  <p className="text-xs text-on-surface-variant">EE204 • Solved Midterm • 28 Pages</p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                Top Rated
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-                <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider block">Colleges</span>
-                <span className="text-2xl font-bold text-on-surface">120+</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-                <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider block">Documents</span>
-                <span className="text-2xl font-bold text-on-surface">15,000+</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Footer Pill */}
-        <div className="relative z-10 flex items-center justify-between text-xs text-on-surface-variant border-t border-card-border/60 pt-6">
-          <span className="flex items-center gap-1.5 font-medium">
-            <Award size={14} className="text-primary" /> 100% Free Account
-          </span>
-          <span className="flex items-center gap-1.5 font-medium">
-            <CheckCircle2 size={14} className="text-primary" /> Verified Student Network
-          </span>
-        </div>
+      {/* TOP HEADER */}
+      <div className="absolute top-6 left-6 lg:top-10 lg:left-10 z-30">
+        <Link to="/get-started">
+          <Logo height={32} />
+        </Link>
       </div>
 
-      {/* ── RIGHT SIDE: SIGN UP INTERFACE ── */}
-      <div className="flex flex-1 flex-col justify-between p-6 sm:p-12 bg-white">
-        {/* Mobile-only brand link */}
-        <div className="flex items-center justify-between lg:hidden mb-6">
-          <Link to="/" className="flex items-center">
-            <Logo height={30} />
-          </Link>
-          <Link to="/signin" className="text-xs font-semibold text-primary hover:underline">
-            Sign in
-          </Link>
-        </div>
+      <div className="absolute top-8 right-8 lg:top-10 lg:right-10 z-30 hidden md:block">
+        <span className="text-sm text-slate-500 font-medium">
+          Already have an account? <Link to="/signin" className="text-primary font-bold hover:underline ml-1">Sign In &rarr;</Link>
+        </span>
+      </div>
 
-        {/* Form Container */}
-        <motion.div
-          key="signup-form"
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-md mx-auto my-auto py-6"
-        >
-          <div className="mb-6 text-left">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Create an account</h2>
-            <p className="mt-1 text-sm text-on-surface-variant">Join thousands of students sharing and discovering study materials.</p>
+      {/* MAIN CONTENT WRAPPER */}
+      <div className="relative z-20 w-full h-full flex flex-col lg:flex-row items-center justify-between max-w-[1500px] mx-auto min-h-screen px-6 pt-24 pb-12 lg:p-12 lg:pt-16 gap-8 lg:gap-4">
+        
+        {/* 1. LEFT CONTENT AREA (Marketing) */}
+        <div className="w-full lg:w-[35%] xl:w-[40%] flex flex-col z-20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 border border-white shadow-sm w-max mb-6 backdrop-blur-sm">
+            <span className="text-[13px]">🎓</span>
+            <span className="text-[11px] font-bold text-indigo-700 tracking-wide uppercase">Your Learning Partner</span>
           </div>
 
-          {/* Error Display */}
+          <h1 className="text-5xl lg:text-6xl xl:text-[72px] font-extrabold text-slate-900 leading-[1.05] tracking-tight mb-4">
+            Let's get <br />
+            <span className="text-primary">started!</span>
+          </h1>
+
+          <p className="text-slate-600 text-base lg:text-lg mb-10 max-w-[360px] leading-relaxed">
+            Create your Studexa account and start learning smarter.
+          </p>
+
+          <div className="space-y-6">
+            <FeatureRow 
+              icon="📄" 
+              title="Access Study Materials" 
+              subtitle="Notes, PDFs, past papers & more" 
+              color="bg-blue-100/80 text-blue-600" 
+            />
+            <FeatureRow 
+              icon="👥" 
+              title="Connect & Collaborate" 
+              subtitle="Message, share and grow together" 
+              color="bg-indigo-100/80 text-indigo-600" 
+            />
+            <FeatureRow 
+              icon="📈" 
+              title="Track Your Progress" 
+              subtitle="Stay consistent with your goals" 
+              color="bg-emerald-100/80 text-emerald-600" 
+            />
+            <FeatureRow 
+              icon="🛡️" 
+              title="Safe & Student Focused" 
+              subtitle="Your data, your control" 
+              color="bg-slate-200/80 text-slate-700" 
+            />
+          </div>
+        </div>
+
+        {/* 2. CENTER 3D CHARACTER AREA */}
+        <div className="hidden lg:flex flex-1 relative h-[650px] items-center justify-center -ml-8 -mr-8 z-10 pointer-events-none">
+          <img 
+            src="/images/signup-3d-student.jpg" 
+            alt="3D Student Ambassador" 
+            className="h-full w-auto max-h-[85vh] object-contain mix-blend-multiply opacity-95 relative z-10 drop-shadow-2xl" 
+          />
+
+          {/* Floating Objects using Framer Motion for smooth subtle animation */}
+          
+          {/* Laptop */}
+          <motion.div 
+            animate={{ y: [0, -15, 0], rotate: [-2, 2, -2] }} 
+            transition={{ duration: 7, ease: "easeInOut", repeat: Infinity }}
+            className="absolute top-[15%] left-[5%] bg-white/90 backdrop-blur-md shadow-xl rounded-xl p-3 flex items-center justify-center border border-white/50 z-20"
+          >
+            <span className="text-4xl drop-shadow-sm">💻</span>
+          </motion.div>
+
+          {/* Graduation Cap */}
+          <motion.div 
+            animate={{ y: [0, 12, 0], rotate: [5, -5, 5] }} 
+            transition={{ duration: 6, ease: "easeInOut", repeat: Infinity, delay: 1 }}
+            className="absolute top-[8%] right-[12%] text-5xl drop-shadow-xl z-20"
+          >
+            🎓
+          </motion.div>
+
+          {/* PDF Document */}
+          <motion.div 
+            animate={{ y: [0, -10, 0] }} 
+            transition={{ duration: 5.5, ease: "easeInOut", repeat: Infinity, delay: 2.5 }}
+            className="absolute top-[35%] right-[0%] bg-white shadow-lg rounded-lg p-2 border border-slate-100 flex flex-col items-center justify-center w-16 h-20 z-20"
+          >
+            <div className="w-10 h-1 bg-slate-200 rounded-full mb-1" />
+            <div className="w-8 h-1 bg-slate-200 rounded-full mb-3" />
+            <div className="bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm">PDF</div>
+          </motion.div>
+
+          {/* Stack of Books */}
+          <motion.div 
+            animate={{ y: [0, 10, 0] }} 
+            transition={{ duration: 8, ease: "easeInOut", repeat: Infinity, delay: 0.5 }}
+            className="absolute bottom-[25%] left-[0%] z-20 flex flex-col-reverse items-center gap-0.5"
+          >
+            <div className="w-20 h-4 bg-indigo-500 rounded shadow-md border border-indigo-600/20" />
+            <div className="w-18 h-4 bg-blue-400 rounded shadow-md border border-blue-500/20" />
+            <div className="w-22 h-4 bg-emerald-400 rounded shadow-md border border-emerald-500/20" />
+            <div className="w-16 h-4 bg-rose-400 rounded shadow-md border border-rose-500/20" />
+          </motion.div>
+
+          {/* Checklist Card */}
+          <motion.div 
+            animate={{ y: [0, -12, 0], rotate: [-1, 1, -1] }} 
+            transition={{ duration: 6.5, ease: "easeInOut", repeat: Infinity, delay: 1.5 }}
+            className="absolute bottom-[20%] right-[8%] bg-white/95 backdrop-blur-sm shadow-xl rounded-xl p-3 border border-white/60 w-32 z-20"
+          >
+            <div className="w-full h-2 bg-slate-100 rounded-full mb-2 flex items-center justify-between px-1">
+               <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+               <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2"><CheckCircle2 size={10} className="text-emerald-500"/> <div className="h-1.5 bg-slate-200 rounded w-16" /></div>
+              <div className="flex items-center gap-2"><CheckCircle2 size={10} className="text-emerald-500"/> <div className="h-1.5 bg-slate-200 rounded w-12" /></div>
+              <div className="flex items-center gap-2"><CheckCircle2 size={10} className="text-emerald-500"/> <div className="h-1.5 bg-slate-200 rounded w-14" /></div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* 3. RIGHT SIGN UP CARD */}
+        <div className="w-full max-w-[420px] lg:w-[32%] xl:w-[30%] bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 p-8 z-30">
+          <div className="mb-6">
+            <h2 className="text-[22px] font-bold text-slate-900 mb-1 tracking-tight flex items-center gap-2">
+              Create your account <span className="text-xl">✨</span>
+            </h2>
+            <p className="text-[13px] text-slate-500 font-medium">Join Studexa and make your learning journey simpler.</p>
+          </div>
+
           {error && (
-            <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-semibold text-red-600">
+            <div className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-600 border border-red-100">
               {error}
             </div>
           )}
 
-          {/* Social Sign-Up or Connected Google Account */}
-          <div className="space-y-2.5">
-            {googleUser ? (
-              <div className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 shadow-xs">
-                <div className="flex items-center gap-3 min-w-0">
-                  {googleAvatar ? (
-                    <img
-                      src={googleAvatar}
-                      alt={googleName || 'Google Account'}
-                      className="h-10 w-10 rounded-full object-cover border-2 border-indigo-300 shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shrink-0">
-                      {(googleName || googleEmail || 'G').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0 text-left">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-on-surface truncate">
-                        {googleName || 'Google Account'}
-                      </span>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    </div>
-                    <p className="text-xs text-on-surface-variant truncate">{googleEmail}</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleDisconnectGoogle}
-                  className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline ml-2 shrink-0 cursor-pointer"
-                >
-                  Change
-                </button>
-              </div>
+          {/* Google Sign In */}
+          <button
+            type="button"
+            onClick={handleGoogleSignUp}
+            disabled={isGoogleLoading}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-3 text-[13px] font-bold text-slate-700 transition-all cursor-pointer mb-5 shadow-sm active:scale-[0.98]"
+          >
+            {isGoogleLoading ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
             ) : (
-              <button
-                type="button"
-                onClick={handleGoogleSignUp}
-                disabled={isGoogleLoading}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isGoogleLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
-                ) : (
-                  <svg className="h-4 w-4" viewBox="0 0 24 24">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                )}
-                <span>{isGoogleLoading ? 'Connecting to Google...' : 'Sign up with Google'}</span>
-              </button>
+              <svg className="h-4 w-4" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+              </svg>
             )}
+            <span>Continue with Google</span>
+          </button>
+
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-px bg-slate-100 flex-1" />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">or</span>
+            <div className="h-px bg-slate-100 flex-1" />
           </div>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider">
-                {googleUser ? 'Complete your details' : 'or register with email'}
-              </span>
-            </div>
-          </div>
-
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-xs font-semibold text-on-surface mb-1.5 text-left">
-                Full Name
-              </label>
-              <AnimatedInput
+              <label className="block text-[11px] font-bold text-slate-700 mb-1.5 ml-1">Full name</label>
+              <input
                 type="text"
-                id="name"
-                icon={<UserIcon className="h-4 w-4 text-on-surface-variant" />}
-                className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                placeholder="Alex Morgan"
+                placeholder="Enter your full name"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
-
+            
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="email" className="block text-xs font-semibold text-on-surface text-left">
-                  Email Address
-                </label>
-                {googleUser && (
-                  <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Verified by Google
-                  </span>
-                )}
-              </div>
-              <AnimatedInput
+              <label className="block text-[11px] font-bold text-slate-700 mb-1.5 ml-1">Email address</label>
+              <input
                 type="email"
-                id="email"
-                readOnly={Boolean(googleUser)}
-                icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
-                className={`block w-full rounded-xl border border-slate-200 ${googleUser ? 'bg-slate-100 cursor-not-allowed opacity-90' : 'bg-slate-50 focus:bg-white'} pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors`}
-                placeholder="student@university.edu"
+                placeholder="Enter your email"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -382,85 +285,105 @@ export function SignUpPage() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
-                  Studexa Password <span className="text-error">*</span>
-                  {googleUser && (
-                    <span className="text-on-surface-variant font-normal ml-1.5 text-[11px]">
-                      (Set your password to secure your Studexa account)
-                    </span>
-                  )}
-                </label>
-              </div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1.5 ml-1">Password</label>
               <div className="relative">
-                <AnimatedInput
+                <input
                   type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
-                  className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  placeholder="Create your password (min 6 characters)"
+                  placeholder="Create a password"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-4 pr-10 py-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant hover:text-on-surface cursor-pointer z-30"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            {/* Terms & Conditions Checkbox */}
-            <label className="flex items-start gap-2.5 pt-1 select-none cursor-pointer group">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1.5 ml-1">Confirm password</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Confirm your password"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-4 pr-10 py-3 text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Password Strength Indicator */}
+            {password && (
+              <div className="mt-2 ml-1">
+                <div className="flex gap-1 h-1 w-full max-w-[120px] mb-1">
+                  <div className={`h-full flex-1 rounded-full ${password.length > 0 ? strength.color : 'bg-slate-200'}`} />
+                  <div className={`h-full flex-1 rounded-full ${password.length >= 6 ? strength.color : 'bg-slate-200'}`} />
+                  <div className={`h-full flex-1 rounded-full ${password.length >= 10 && /\d/.test(password) ? strength.color : 'bg-slate-200'}`} />
+                </div>
+                <div className="text-[10px] font-semibold text-slate-500">
+                  Password strength: <span className={strength.text}>{strength.label}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-start gap-2 pt-1">
               <input
                 type="checkbox"
                 id="terms"
                 checked={agreedToTerms}
-                onChange={(e) => {
-                  setAgreedToTerms(e.target.checked);
-                  if (error && error.includes('Terms')) setError(null);
-                }}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer transition-colors"
-                required
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 shrink-0 rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
               />
-              <span className="text-xs font-medium text-on-surface-variant leading-snug">
-                I agree to the{' '}
-                <span className="font-semibold text-primary hover:underline">Terms of Service</span>
-                {' '}and{' '}
-                <span className="font-semibold text-primary hover:underline">Privacy Policy</span>
-              </span>
-            </label>
+              <label htmlFor="terms" className="text-[11px] text-slate-500 cursor-pointer select-none">
+                I agree to the <Link to="/terms" className="font-bold text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="font-bold text-primary hover:underline">Privacy Policy</Link>
+              </label>
+            </div>
 
-            {/* Create Account Button */}
             <button
               type="submit"
-              disabled={isSubmitting || !agreedToTerms}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer pt-2"
+              disabled={isSubmitting}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-hover px-4 py-3.5 text-[14px] font-bold text-white transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer mt-2 active:scale-[0.98]"
             >
-              <span>{isSubmitting ? 'Creating account...' : googleUser ? 'Complete Registration' : 'Create Account'}</span>
-              <ArrowRight className="h-4 w-4" />
+              {isSubmitting ? 'Creating...' : 'Create Account'} <ArrowRight size={16} />
             </button>
           </form>
 
-          {/* Footer link */}
-          <p className="mt-6 text-center text-xs text-on-surface-variant">
-            Already have an account?{' '}
-            <Link to="/signin" className="font-semibold text-primary hover:underline">
-              Sign in
-            </Link>
-          </p>
-        </motion.div>
-
-        {/* Legal */}
-        <div className="text-center text-[11px] text-on-surface-variant">
-          By continuing, you agree to our Terms of Service and Honor Code.
+          <div className="mt-6 text-center lg:hidden">
+            <span className="text-[12px] text-slate-500">
+              Already have an account? <Link to="/signin" className="text-primary font-bold hover:underline">Sign In</Link>
+            </span>
+          </div>
         </div>
+
+      </div>
+
+      {/* BOTTOM FOOTER LABELS */}
+      <div className="absolute bottom-6 left-10 text-[11px] text-slate-500 hidden md:flex items-center gap-1.5 font-bold tracking-wide">
+        <CheckCircle2 size={13} className="text-primary" /> Verified Academic Content
+      </div>
+      <div className="absolute bottom-6 right-10 text-[11px] text-slate-500 hidden md:flex items-center gap-1.5 font-bold tracking-wide">
+        <span className="text-[14px] text-primary">♙</span> Free for University Students
       </div>
     </div>
   );
 }
 
-export default SignUpPage;
+function FeatureRow({ icon, title, subtitle, color }: { icon: React.ReactNode, title: string, subtitle: string, color: string }) {
+  return (
+    <div className="flex items-center gap-3.5">
+      <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-lg shadow-sm border border-white/50 ${color}`}>
+        {icon}
+      </div>
+      <div>
+        <h4 className="text-[13px] font-bold text-slate-900">{title}</h4>
+        <p className="text-[11px] text-slate-500 font-medium">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
