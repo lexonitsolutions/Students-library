@@ -10,6 +10,8 @@ import {
   Moon,
   Palette,
   Pencil,
+  Scale,
+  ShieldCheck,
   Sun,
   Trash2,
   User,
@@ -44,9 +46,11 @@ const settingsSections = [
     ],
   },
   {
-    heading: 'Support',
+    heading: 'Support & Legal',
     items: [
       { label: 'Help & Support', icon: CircleHelp },
+      { label: 'Terms of Service', icon: Scale },
+      { label: 'Privacy Policy', icon: ShieldCheck },
       { label: 'About Studexa', icon: Info },
     ],
   },
@@ -186,6 +190,12 @@ export function SettingsPage() {
                     navigate('/library?tab=activity');
                   } else if (item.label === 'Help & Support') {
                     navigate('/support');
+                  } else if (item.label === 'Terms of Service') {
+                    navigate('/terms');
+                  } else if (item.label === 'Privacy Policy') {
+                    navigate('/privacy');
+                  } else if (item.label === 'About Studexa') {
+                    navigate('/get-started');
                   } else if (item.label === 'Account') {
                     if (isExploring) {
                       openSignupModal('/settings');

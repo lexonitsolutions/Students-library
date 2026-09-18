@@ -24,6 +24,8 @@ import { ReaderPage } from './pages/ReaderPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CustomerSupportPage } from './pages/CustomerSupportPage';
 import { UploadPage } from './pages/UploadPage';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 import { AdminRoute } from './routes/AdminRoute';
 import { HomeGate } from './routes/HomeGate';
 import { RootGate } from './routes/RootGate';
@@ -71,6 +73,12 @@ function App() {
                     </Route>
                   </Route>
                 </Route>
+
+                {/* Legal & Policy Pages (accessible to both authenticated & guest users) */}
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/terms-and-conditions" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPage />} />
 
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
