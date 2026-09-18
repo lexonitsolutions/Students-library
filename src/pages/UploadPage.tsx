@@ -650,10 +650,11 @@ export function UploadPage() {
         )}
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-card-border/60">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-3 border-t border-card-border/60">
           <Button
             type="button"
             variant="secondary"
+            className="w-full sm:w-auto justify-center cursor-pointer"
             onClick={() => {
               setFiles([]);
               setDetectedPages('');
@@ -665,6 +666,7 @@ export function UploadPage() {
           <Button
             type="submit"
             variant="primary"
+            className="w-full sm:w-auto justify-center cursor-pointer"
             icon={<UploadCloud size={16} />}
             disabled={files.length === 0 || progress < 100 || isSubmitting}
           >

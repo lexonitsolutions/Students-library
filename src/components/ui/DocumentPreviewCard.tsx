@@ -1,4 +1,4 @@
-import { Bookmark, Eye, ThumbsUp, Share2, Download } from 'lucide-react';
+import { Bookmark, Eye, ThumbsUp, Share2, Download, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Material } from '../../data/types';
@@ -159,43 +159,17 @@ export function DocumentPreviewCard({ material, onToggleSave, onUploaderClick, c
               />
             </div>
           ) : (
-            /* First Page Document Sheet with actual material content */
-            <div className="flex h-full w-full flex-col bg-white p-3 font-sans text-slate-900 overflow-hidden">
-              <div className="border-b border-slate-300 pb-1.5 mb-2 text-center">
-                <h4 className="font-extrabold text-[12px] leading-tight text-slate-900 line-clamp-2">
-                  {cleanDocumentTitle(material.title)}
-                </h4>
-                <p className="text-[9px] text-slate-500 font-medium line-clamp-1 mt-0.5">
-                  {material.subject} &bull; {material.semester}
-                </p>
+            /* Clean Document Card when no direct preview is available */
+            <div className="flex h-full w-full flex-col items-center justify-center bg-surface-container-lowest p-4 text-center">
+              <div className={cn('flex h-12 w-12 items-center justify-center rounded-2xl shadow-xs mb-2 text-white', badgeColor)}>
+                <FileText size={24} />
               </div>
-
-              {/* Material Actual Description / Content Snippet */}
-              {material.description && (
-                <p className="line-clamp-2 text-[9.5px] text-slate-700 leading-snug mb-2 italic bg-slate-50 p-1.5 rounded border border-slate-200">
-                  &ldquo;{material.description}&rdquo;
-                </p>
-              )}
-
-              {/* Dynamic Content Grid for Page 1 */}
-              <div className="mt-auto rounded border border-slate-300 bg-slate-50 p-1.5 text-[9px] leading-tight">
-                <div className="grid grid-cols-2 gap-1 border-b border-slate-300 pb-1 font-bold text-slate-900">
-                  <span>Document Field</span>
-                  <span>Value</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1 border-b border-slate-200 py-0.5 text-slate-700">
-                  <span className="font-semibold text-slate-900">Subject</span>
-                  <span className="truncate">{material.subject}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1 border-b border-slate-200 py-0.5 text-slate-700">
-                  <span className="font-semibold text-slate-900">Document Type</span>
-                  <span className="truncate">{fileTypeLabel}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1 py-0.5 text-slate-700">
-                  <span className="font-semibold text-slate-900">Pages & Size</span>
-                  <span className="truncate">{lazyPages ? `${lazyPages} pgs (${sizeMbStr} MB)` : `${sizeMbStr} MB`}</span>
-                </div>
-              </div>
+              <h4 className="font-bold text-xs text-on-surface line-clamp-2 max-w-[90%]">
+                {cleanDocumentTitle(material.title)}
+              </h4>
+              <p className="text-[10px] text-on-surface-variant font-medium mt-1">
+                {material.subject}
+              </p>
             </div>
           )}
         </div>

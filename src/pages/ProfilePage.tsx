@@ -381,7 +381,7 @@ export function ProfilePage() {
           </button>
         </div>
 
-        <div className="px-6 pb-6 pt-0">
+        <div className="px-4 sm:px-6 pb-5 sm:pb-6 pt-0">
           {/* Top Row: Avatar */}
           <div className="flex items-end -mt-14 sm:-mt-16 mb-4">
             <div className="relative inline-block">

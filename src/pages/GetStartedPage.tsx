@@ -522,7 +522,7 @@ export function GetStartedPage() {
             className="text-4xl sm:text-5xl lg:text-[64px] font-black tracking-[-0.035em] text-slate-900 leading-[1.12] max-w-4xl mx-auto"
           >
             <span>Master your university courses with{' '}</span>
-            <span className="relative inline-block whitespace-nowrap">
+            <span className="relative inline-block">
               <span className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 bg-clip-text text-transparent">
                 verified notes
               </span>
@@ -751,7 +751,7 @@ export function GetStartedPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[800px] sm:min-h-[720px] xl:min-h-[480px]"
+                className="grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[560px] sm:min-h-[720px] xl:min-h-[480px]"
               >
               {/* Left Column: Feature Breakdown */}
               <div className="space-y-6 flex flex-col justify-center">

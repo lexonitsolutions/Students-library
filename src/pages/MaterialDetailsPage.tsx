@@ -436,9 +436,9 @@ export function MaterialDetailsPage() {
               </div>
 
               {/* Document Canvas Stage */}
-              <div className="relative flex min-h-[440px] sm:min-h-[560px] lg:min-h-[700px] w-full items-center justify-center bg-slate-100/60 dark:bg-slate-900/40 p-2 sm:p-6">
+              <div className="relative flex min-h-[min(440px,55dvh)] sm:min-h-[560px] lg:min-h-[700px] w-full items-center justify-center bg-slate-100/60 dark:bg-slate-900/40 p-2 sm:p-6">
                 {isImageFile ? (
-                  <div className="relative flex h-[440px] sm:h-[540px] lg:h-[640px] w-full items-center justify-center overflow-auto">
+                  <div className="relative flex h-[min(440px,55dvh)] sm:h-[540px] lg:h-[640px] w-full items-center justify-center overflow-auto">
                     <img
                       src={material.fileUrl}
                       alt={cleanTitle}
@@ -448,7 +448,7 @@ export function MaterialDetailsPage() {
                 ) : isOfficeDocument ? (
                   isPublicUrl ? (
                     <div
-                      className="h-[440px] sm:h-[580px] lg:h-[680px] w-full rounded-xl bg-white shadow-md border border-card-border/80 overflow-y-auto overflow-x-auto"
+                      className="h-[min(440px,55dvh)] sm:h-[580px] lg:h-[680px] w-full rounded-xl bg-white shadow-md border border-card-border/80 overflow-y-auto overflow-x-auto"
                       style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
                     >
                       <iframe
@@ -475,7 +475,7 @@ export function MaterialDetailsPage() {
                   )
                 ) : (
                   /* High Quality Native Touch-Scrollable PDF Viewport */
-                  <div className="h-[460px] sm:h-[580px] lg:h-[700px] w-full max-w-3xl rounded-xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-card-border/80 overflow-hidden">
+                  <div className="h-[min(460px,55dvh)] sm:h-[580px] lg:h-[700px] w-full max-w-3xl rounded-xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-card-border/80 overflow-hidden">
                     <PdfViewer
                       fileUrl={material.fileUrl}
                       title={cleanTitle}
