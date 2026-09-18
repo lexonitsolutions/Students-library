@@ -73,13 +73,13 @@ export function ReaderPage() {
   return (
     <>
       <div className="fixed inset-0 z-50 flex flex-col bg-surface-container-lowest text-on-surface">
-        <header className="flex items-center gap-3 border-b border-card-border px-4 py-3 sm:px-6">
+        <header className="flex items-center gap-3 border-b border-card-border px-3.5 sm:px-6 py-2.5 sm:py-3 pt-[max(0.625rem,env(safe-area-inset-top,0.625rem))] shrink-0 bg-surface">
           <IconButton label="Back" onClick={() => navigate(-1)}>
             <ArrowLeft size={20} />
           </IconButton>
           <div className="min-w-0 flex-1">
             <p className="truncate text-body-sm font-semibold text-on-surface">{material?.title ?? 'Loading...'}</p>
-            <p className="text-label-xs text-on-surface-variant">
+            <p className="text-label-xs text-on-surface-variant truncate">
               {material?.subject} • {material?.type === 'past-paper' ? 'Past Paper' : material?.type === 'doc' ? 'Document' : 'Material'}
             </p>
           </div>
@@ -88,14 +88,14 @@ export function ReaderPage() {
           </IconButton>
         </header>
 
-        <div className="relative flex flex-1 items-center justify-center overflow-auto bg-surface-container-lowest p-1 sm:p-4">
+        <div className="relative flex flex-1 min-h-0 items-center justify-center overflow-hidden bg-surface-container-lowest p-0 sm:p-4">
           {!material ? (
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-3 p-4">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               <p className="text-body-sm text-on-surface-variant">Loading document...</p>
             </div>
           ) : isImageFile ? (
-            <div className="relative flex h-full w-full max-w-4xl items-center justify-center">
+            <div className="relative flex h-full w-full max-w-4xl items-center justify-center overflow-auto p-2 sm:p-0">
               <img
                 src={imageList[currentImageIndex] || material.fileUrl}
                 alt={material.title}
@@ -107,7 +107,7 @@ export function ReaderPage() {
                   <button
                     type="button"
                     onClick={() => setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : imageList.length - 1))}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-sm hover:bg-black/90 transition-all cursor-pointer"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-sm hover:bg-black/90 transition-all cursor-pointer"
                     aria-label="Previous page"
                   >
                     <ChevronLeft size={24} />
@@ -116,7 +116,7 @@ export function ReaderPage() {
                   <button
                     type="button"
                     onClick={() => setCurrentImageIndex((prev) => (prev < imageList.length - 1 ? prev + 1 : 0))}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-sm hover:bg-black/90 transition-all cursor-pointer"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-sm hover:bg-black/90 transition-all cursor-pointer"
                     aria-label="Next page"
                   >
                     <ChevronRight size={24} />
@@ -133,11 +133,11 @@ export function ReaderPage() {
               <iframe
                 title={material.title}
                 src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.fileUrl)}`}
-                className="h-full w-full max-w-6xl rounded-lg border-0 bg-white shadow-xl"
+                className="h-full w-full max-w-6xl rounded-none sm:rounded-lg border-0 bg-white shadow-xl"
               />
             ) : (
-              <div className="flex flex-col items-center gap-4 rounded-lg bg-surface-container p-8 text-center shadow-lg max-w-md">
-                <FileText size={64} className="text-outline-variant" />
+              <div className="flex flex-col items-center gap-4 rounded-lg bg-surface-container p-6 sm:p-8 text-center shadow-lg max-w-md mx-4">
+                <FileText size={56} className="text-outline-variant" />
                 <div>
                   <h3 className="text-title-lg font-bold text-on-surface">Preview not available</h3>
                   <p className="mt-2 text-body-sm text-on-surface-variant">
@@ -155,7 +155,7 @@ export function ReaderPage() {
               </div>
             )
           ) : (
-            <div className="h-full w-full max-w-5xl rounded-xl bg-white shadow-xl overflow-hidden">
+            <div className="h-full w-full max-w-5xl rounded-none sm:rounded-xl bg-white shadow-xl overflow-hidden flex flex-col min-h-0">
               <PdfViewer
                 fileUrl={material.fileUrl}
                 title={material.title}

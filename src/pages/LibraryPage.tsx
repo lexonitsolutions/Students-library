@@ -274,7 +274,7 @@ export function LibraryPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 pb-20">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-0 sm:px-2 pb-20">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (

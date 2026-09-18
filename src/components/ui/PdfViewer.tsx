@@ -33,6 +33,7 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
   const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
   const renderTasksRef = useRef<Map<number, any>>(new Map());
   const onPageCountLoadedRef = useRef(onPageCountLoaded);
+  const lastContainerWidthRef = useRef<number>(0);
 
   useEffect(() => {
     onPageCountLoadedRef.current = onPageCountLoaded;
@@ -52,6 +53,7 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
       url: fileUrl,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/cmaps/',
       cMapPacked: true,
+      standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/standard_fonts/',
     });
 
     loadingTask.promise
@@ -104,12 +106,20 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
       // Cancel any existing render task for this page to prevent blurry overwrites
       const existingTask = renderTasksRef.current.get(pageNumber);
       if (existingTask) {
-        existingTask.cancel();
+        try {
+          existingTask.cancel();
+        } catch {
+          // ignore
+        }
+        renderTasksRef.current.delete(pageNumber);
       }
 
       try {
         const page = await pdfDocRef.current.getPage(pageNumber);
-        const containerWidth = containerRef.current?.clientWidth || window.innerWidth || 600;
+        // Clamp to actual viewport width to prevent horizontal overflow on mobile
+        const rawWidth = containerRef.current?.clientWidth || window.innerWidth || 600;
+        const containerWidth = Math.min(rawWidth, window.innerWidth);
+        lastContainerWidthRef.current = containerWidth;
         const unscaledViewport = page.getViewport({ scale: 1 });
 
         // Calculate display scale
@@ -117,15 +127,18 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
         if (fitMode === 'fit-width') {
           // On mobile screens, fill edge-to-edge with minimal margin
           const horizontalPadding = containerWidth < 640 ? 12 : 32;
-          const targetWidth = Math.max(containerWidth - horizontalPadding, 300);
-          effectiveScale = targetWidth / unscaledViewport.width;
+          const targetWidth = Math.max(containerWidth - horizontalPadding, 100);
+          effectiveScale = targetWidth / (unscaledViewport.width || 600);
         }
 
-        // High-DPI multiplier (min 2.5x to 3x for crisp text on Retina/OLED screens)
-        const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 2.5), 3.5);
+        // On mobile, cap DPR at 2.0 to avoid WebKit canvas memory exhaustion which causes blank pages
+        const isMobileScreen = typeof window !== 'undefined' && window.innerWidth < 768;
+        const maxDpr = isMobileScreen ? 2 : 2.5;
+        const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1.5), maxDpr);
         const renderViewport = page.getViewport({ scale: effectiveScale * dpr });
 
-        const context = canvas.getContext('2d', { alpha: false });
+        // Use standard 2D context (WITHOUT alpha:false which initializes canvas to solid black)
+        const context = canvas.getContext('2d');
         if (!context) return;
 
         context.imageSmoothingEnabled = true;
@@ -135,16 +148,24 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
         canvas.width = Math.floor(renderViewport.width);
         canvas.height = Math.floor(renderViewport.height);
 
-        // Display size in CSS points
+        // Pre-paint pure white paper background so transparent PDFs don't appear black or blank
+        context.save();
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.restore();
+
+        // Responsive display sizing: fluid width up to max CSS width, keeping exact aspect ratio
         const cssWidth = Math.floor(renderViewport.width / dpr);
-        const cssHeight = Math.floor(renderViewport.height / dpr);
-        canvas.style.width = `${cssWidth}px`;
-        canvas.style.height = `${cssHeight}px`;
+        canvas.style.width = '100%';
+        canvas.style.maxWidth = `${cssWidth}px`;
+        canvas.style.height = 'auto';
+        canvas.style.aspectRatio = `${renderViewport.width} / ${renderViewport.height}`;
 
         const renderTask = page.render({
           canvasContext: context,
           viewport: renderViewport,
           canvas,
+          background: 'rgb(255, 255, 255)',
         } as any);
 
         renderTasksRef.current.set(pageNumber, renderTask);
@@ -177,9 +198,15 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
     if (!containerRef.current || fitMode !== 'fit-width') return;
 
     let resizeTimer: any;
-    const observer = new ResizeObserver(() => {
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      const newWidth = entry ? Math.round(entry.contentRect.width) : containerRef.current?.clientWidth || 0;
+      // Only re-render if the width changed significantly (e.g. orientation change or real resize > 15px)
+      if (Math.abs(newWidth - lastContainerWidthRef.current) < 15) return;
+
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
+        lastContainerWidthRef.current = newWidth;
         pages.forEach((p) => {
           const canvas = canvasRefs.current.get(p.pageNumber);
           if (canvas) {
@@ -232,12 +259,28 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
 
   if (error) {
     return (
-      <div className={cn('relative w-full h-full min-h-[400px]', className)}>
-        <iframe
-          title={title || 'Document'}
-          src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-          className="w-full h-full border-0 rounded-xl"
-        />
+      <div className={cn('relative w-full h-full min-h-[300px] flex flex-col items-center justify-center p-6 text-center bg-surface rounded-xl border border-card-border gap-3', className)}>
+        <p className="text-sm font-semibold text-on-surface">Unable to display {title || 'PDF preview'}</p>
+        <p className="text-xs text-on-surface-variant max-w-sm">
+          This document could not be rendered inside the inline reader. You can open or download it directly.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold shadow-xs hover:bg-primary/90 transition-all cursor-pointer"
+          >
+            Open File in New Tab
+          </a>
+          <a
+            href={fileUrl}
+            download
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container border border-card-border text-on-surface text-xs font-semibold shadow-xs hover:bg-surface-container-high transition-all cursor-pointer"
+          >
+            Download PDF
+          </a>
+        </div>
       </div>
     );
   }
@@ -248,7 +291,7 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
       <div
         ref={containerRef}
         className={cn(
-          'flex-1 w-full overflow-y-auto overflow-x-auto p-1.5 sm:p-4 space-y-4 [-webkit-overflow-scrolling:touch]',
+          'flex-1 w-full overflow-y-auto overflow-x-hidden p-1.5 sm:p-4 space-y-4 [-webkit-overflow-scrolling:touch]',
           className
         )}
         style={{ touchAction: 'pan-x pan-y' }}
@@ -256,19 +299,18 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
         {pages.map((p) => (
           <div
             key={p.pageNumber}
-            className="relative flex flex-col items-center mx-auto max-w-full"
+            className="relative flex flex-col items-center mx-auto w-full max-w-full"
           >
-            <div className="relative rounded-xl overflow-hidden shadow-lg border border-card-border/80 bg-white">
+            <div className="relative rounded-xl overflow-hidden shadow-lg border border-card-border/80 bg-white max-w-full w-full flex justify-center">
               <canvas
                 ref={(el) => {
                   if (el) {
                     canvasRefs.current.set(p.pageNumber, el);
-                    renderPage(p.pageNumber, el);
                   } else {
                     canvasRefs.current.delete(p.pageNumber);
                   }
                 }}
-                className="block max-w-none"
+                className="block max-w-full h-auto bg-white mx-auto"
               />
             </div>
 
@@ -282,7 +324,10 @@ export function PdfViewer({ fileUrl, title, className, onPageCountLoaded }: Read
       </div>
 
       {/* Modern Floating Reading Toolbar (Pill) */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 rounded-full border border-card-border/80 bg-surface/95 px-2.5 py-1.5 shadow-xl backdrop-blur-md text-xs font-semibold text-on-surface">
+      <div
+        className="absolute left-1/2 z-30 flex items-center gap-1 rounded-full border border-card-border/80 bg-surface/95 px-2.5 py-1.5 shadow-xl backdrop-blur-md text-xs font-semibold text-on-surface -translate-x-1/2"
+        style={{ bottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}
+      >
         <button
           type="button"
           onClick={handleZoomOut}

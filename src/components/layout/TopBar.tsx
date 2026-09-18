@@ -100,11 +100,11 @@ export function TopBar({ onMenuOpen }: TopBarProps) {
       </div>
 
       {/* Centered Global Search – desktop only */}
-      <div className="hidden flex-1 justify-center lg:flex">
+      <div className="hidden flex-1 min-w-0 justify-center lg:flex">
         <GlobalSearch />
       </div>
 
-      <div className="relative ml-auto flex items-center gap-1 sm:gap-2">
+      <div className="relative ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
         {/* Theme toggle (desktop only) - 2-state Light / Dark */}
         <button
           onClick={cycleTheme}
@@ -171,7 +171,7 @@ export function TopBar({ onMenuOpen }: TopBarProps) {
                   exit={{ opacity: 0, y: -8, scale: 0.98 }}
                   transition={{ duration: 0.15, ease: 'easeOut' }}
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 top-12 z-40 w-96 rounded-2xl border border-card-border bg-surface-container-low p-3 shadow-2xl"
+                  className="absolute right-0 top-12 z-40 w-[min(384px,calc(100vw-24px))] rounded-2xl border border-card-border bg-surface-container-low p-3 shadow-2xl"
                 >
                   <div className="flex items-center justify-between px-2 py-1 pb-2 mb-1 border-b border-card-border/60">
                     <div className="flex items-center gap-2">
