@@ -89,8 +89,8 @@ export function Footer({ className }: FooterProps) {
             Lexon IT Solutions
           </div>
           <div className="flex flex-wrap items-center gap-6">
-            <Link to="#" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors">Privacy</Link>
-            <Link to="#" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors">Terms</Link>
+            <Link to="/privacy" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>

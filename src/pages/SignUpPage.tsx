@@ -428,9 +428,25 @@ export function SignUpPage() {
               />
               <span className="text-xs font-medium text-on-surface-variant leading-snug">
                 I agree to the{' '}
-                <span className="font-semibold text-primary hover:underline">Terms of Service</span>
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Terms of Service
+                </Link>
                 {' '}and{' '}
-                <span className="font-semibold text-primary hover:underline">Privacy Policy</span>
+                <Link
+                  to="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Privacy Policy
+                </Link>
               </span>
             </label>
 
@@ -456,7 +472,14 @@ export function SignUpPage() {
 
         {/* Legal */}
         <div className="text-center text-[11px] text-on-surface-variant">
-          By continuing, you agree to our Terms of Service and Honor Code.
+          By continuing, you agree to our{' '}
+          <Link to="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+            Terms of Service
+          </Link>
+          {' '}and{' '}
+          <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+            Privacy Policy
+          </Link>.
         </div>
       </div>
     </div>
