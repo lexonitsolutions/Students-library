@@ -53,6 +53,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const inFlightSavesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!categoryDropdownOpen) return;
@@ -116,16 +117,24 @@ export function DashboardPage() {
   }, [isAuthenticated, isExploring, user, searchParams]);
 
   const toggleSave = async (id: string) => {
-    if (!user) return;
+    if (!user || inFlightSavesRef.current.has(id)) return;
+    inFlightSavesRef.current.add(id);
     const material = materials.find((item) => item.id === id);
-    if (!material) return;
+    if (!material) {
+      inFlightSavesRef.current.delete(id);
+      return;
+    }
     const wasSaved = !!material.isSaved;
     const nextSaved = !wasSaved;
     setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: nextSaved } : item)));
-    if (wasSaved) {
-      await bookmarksService.removeBookmark(id, user.id);
-    } else {
-      await bookmarksService.addBookmark(id, user.id);
+    try {
+      if (wasSaved) {
+        await bookmarksService.removeBookmark(id, user.id);
+      } else {
+        await bookmarksService.addBookmark(id, user.id);
+      }
+    } finally {
+      inFlightSavesRef.current.delete(id);
     }
   };
 

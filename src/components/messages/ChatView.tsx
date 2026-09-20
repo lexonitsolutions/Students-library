@@ -114,11 +114,14 @@ export function ChatView({
   // ── Mark messages as read ──────────────────────────────────────────────────
   useEffect(() => {
     if (conversation.id && currentUserId) {
-      markMessagesRead(conversation.id, currentUserId)
-        .then(() => triggerUnreadMessagesRefresh())
-        .catch(() => {});
+      const hasUnread = messages.some((m) => m.senderId !== currentUserId && !m.readAt);
+      if (hasUnread) {
+        markMessagesRead(conversation.id, currentUserId)
+          .then(() => triggerUnreadMessagesRefresh())
+          .catch(() => {});
+      }
     }
-  }, [conversation.id, currentUserId, messages.length]);
+  }, [conversation.id, currentUserId, messages]);
 
   // ── Realtime: new messages & message clear & message delete ───────────────
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import type { MaterialRow } from '../types/database.types';
+import { cachedQuery, invalidateCache } from '../lib/queryCache';
 
 const LOCAL_SAVED_KEY_PREFIX = 'quicklearnit_saved_ids_';
 
@@ -64,26 +65,33 @@ export async function listBookmarkedMaterialIds(userId: string): Promise<Set<str
 }
 
 export async function listBookmarkedMaterials(userId: string): Promise<MaterialRow[]> {
-  const savedIdsSet = await listBookmarkedMaterialIds(userId);
-  if (savedIdsSet.size === 0) return [];
+  return cachedQuery(
+    `bookmarked_materials:${userId}`,
+    async () => {
+      const savedIdsSet = await listBookmarkedMaterialIds(userId);
+      if (savedIdsSet.size === 0) return [];
 
-  const orderedIds = [...savedIdsSet];
-  try {
-    const { data: materials, error: materialsError } = await supabase
-      .from('materials')
-      .select('*')
-      .in('id', orderedIds);
-    if (!materialsError && materials) {
-      const byId = new Map(materials.map((material) => [material.id, material]));
-      return orderedIds.map((id) => byId.get(id)).filter((m): m is MaterialRow => m !== undefined);
-    }
-  } catch (err) {
-    console.warn('DB listBookmarkedMaterials notice:', err);
-  }
-  return [];
+      const orderedIds = [...savedIdsSet];
+      try {
+        const { data: materials, error: materialsError } = await supabase
+          .from('materials')
+          .select('*')
+          .in('id', orderedIds);
+        if (!materialsError && materials) {
+          const byId = new Map(materials.map((material) => [material.id, material]));
+          return orderedIds.map((id) => byId.get(id)).filter((m): m is MaterialRow => m !== undefined);
+        }
+      } catch (err) {
+        console.warn('DB listBookmarkedMaterials notice:', err);
+      }
+      return [];
+    },
+    30_000,
+  );
 }
 
 export async function addBookmark(materialId: string, userId?: string): Promise<void> {
+  invalidateCache('bookmarked_materials:');
   if (userId) {
     const set = getLocalStorageSavedIds(userId);
     set.add(materialId);
@@ -106,6 +114,7 @@ export async function addBookmark(materialId: string, userId?: string): Promise<
 }
 
 export async function removeBookmark(materialId: string, userId?: string): Promise<void> {
+  invalidateCache('bookmarked_materials:');
   if (userId) {
     const set = getLocalStorageSavedIds(userId);
     set.delete(materialId);

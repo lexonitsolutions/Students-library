@@ -44,6 +44,7 @@ import {
   type StudentQuery,
 } from '../services/queryService';
 import { triggerUnreadMessagesRefresh } from '../hooks/useUnreadMessages';
+import { invalidateCache } from '../lib/queryCache';
 import { cn } from '../lib/cn';
 
 type MainSection = 'messages' | 'queries';
@@ -185,6 +186,7 @@ export function MessagesPage() {
     if (!user?.id) return;
 
     const unsubIncoming = subscribeToIncomingRequests(user.id, () => {
+      invalidateCache('pending_requests:');
       loadPendingRequests().then(() => {
         setPendingRequests((prev) => {
           if (prev.length > 0) setLeftTab('requests');
@@ -194,6 +196,7 @@ export function MessagesPage() {
     });
 
     const unsubOutgoing = subscribeToOutgoingRequests(user.id, () => {
+      invalidateCache('conversations:');
       loadConversations();
     });
 

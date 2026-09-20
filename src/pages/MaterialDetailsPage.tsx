@@ -50,6 +50,7 @@ export function MaterialDetailsPage() {
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [material, setMaterial] = useState<Material | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
@@ -141,15 +142,20 @@ export function MaterialDetailsPage() {
       setShowSignupPrompt(true);
       return;
     }
-    if (!user || !material) return;
+    if (!user || !material || isSaving) return;
+    setIsSaving(true);
     const nextSaved = !isSaved;
     setIsSaved(nextSaved);
     setMaterial((prev) => (prev ? { ...prev, isSaved: nextSaved } : null));
 
-    if (nextSaved) {
-      await bookmarksService.addBookmark(material.id, user.id);
-    } else {
-      await bookmarksService.removeBookmark(material.id, user.id);
+    try {
+      if (nextSaved) {
+        await bookmarksService.addBookmark(material.id, user.id);
+      } else {
+        await bookmarksService.removeBookmark(material.id, user.id);
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 

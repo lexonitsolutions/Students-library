@@ -46,7 +46,7 @@ function toUser(profile: ProfileRow, stats: ProfileStatsRow | null, session?: Se
     (session?.user?.user_metadata?.avatar_url as string) ||
     (session?.user?.user_metadata?.picture as string) ||
     null;
-  const resolvedAvatar = profile.avatar_url || googleAvatar || `https://i.pravatar.cc/160?u=${profile.id}`;
+  const resolvedAvatar = profile.avatar_url || googleAvatar || '';
 
   return {
     id: profile.id,
@@ -174,6 +174,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   useEffect(() => {
     let active = true;
+    let initializedUserId: string | null = null;
 
     async function initSession() {
       try {
@@ -189,6 +190,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
             localStorage.setItem(ONBOARDED_KEY, 'true');
             setHasOnboarded(true);
             stopExploring();
+            initializedUserId = sess.user.id;
             await loadProfile(sess.user.id);
             const fromGoogle = searchParams.get('from_google');
             const cleanUrl = window.location.origin + window.location.pathname + (fromGoogle ? '?from_google=true' : '');
@@ -205,6 +207,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           setSession(currentSession);
           localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
           localStorage.setItem(ONBOARDED_KEY, 'true');
+          initializedUserId = currentSession.user.id;
           await loadProfile(currentSession.user.id);
           if (active) setLoading(false);
         } else {
@@ -229,12 +232,19 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         localStorage.setItem(HAS_ACCOUNT_KEY, 'true');
         localStorage.setItem(ONBOARDED_KEY, 'true');
         stopExploring();
+
+        // Prevent duplicate load if this exact session was already loaded during initialization
+        if (initializedUserId === nextSession.user.id && _event === 'INITIAL_SESSION') {
+          return;
+        }
+        initializedUserId = nextSession.user.id;
         setLoading(true);
         loadProfile(nextSession.user.id).finally(() => setLoading(false));
       } else {
         if (nextSession && !isSessionVerified(nextSession)) {
           supabase.auth.signOut().catch(() => {});
         }
+        initializedUserId = null;
         setSession(null);
         setProfile(null);
         setStats(null);

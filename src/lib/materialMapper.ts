@@ -67,7 +67,7 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     uploaderId: row.uploader_id,
     uploaderName: finalUploaderName || 'Anonymous Student',
     uploaderUsername: uploader?.username,
-    uploaderAvatar: finalAvatar || `https://i.pravatar.cc/80?u=${row.uploader_id}`,
+    uploaderAvatar: finalAvatar || '',
     uploaderUniversity: finalUniversity || undefined,
     uploaderCollege: finalCollege || undefined,
     uploaderLocation: finalLocation || undefined,

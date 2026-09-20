@@ -26,14 +26,7 @@ import { uploadAvatar, getProfileStats } from '../services/profileService';
 import { listBookmarkedMaterialIds } from '../services/bookmarksService';
 import { resizeImageFile } from '../lib/imageUtils';
 import { cn } from '../lib/cn';
-
-const AVATAR_PRESETS = [
-  'https://i.pravatar.cc/400?img=12',
-  'https://i.pravatar.cc/400?img=33',
-  'https://i.pravatar.cc/400?img=68',
-  'https://i.pravatar.cc/400?img=47',
-  'https://i.pravatar.cc/400?img=11',
-];
+import { AVATAR_PRESETS } from '../lib/avatarPresets';
 
 const collegesList = [...universities, 'College of Engineering', 'College of Science', 'School of Engineering'];
 const branchesList = ['Computer Science', 'Mathematics', 'Electronics & Communication', 'Civil Engineering', 'Mechanical Engineering'];
@@ -152,15 +145,23 @@ export function ProfilePage() {
       setSavedCount((prev) => Math.max(prev, savedIds.size));
     });
 
-    getProfileStats(user.id).then((st) => {
-      if (st) {
-        setDbStats({
-          uploads: st.uploads_count ?? 0,
-          downloads: st.downloads_count ?? 0,
-          saved: st.saved_count ?? 0,
-        });
-      }
-    });
+    if (user.stats) {
+      setDbStats({
+        uploads: user.stats.uploads ?? 0,
+        downloads: user.stats.downloads ?? 0,
+        saved: user.stats.saved ?? 0,
+      });
+    } else {
+      getProfileStats(user.id).then((st) => {
+        if (st) {
+          setDbStats({
+            uploads: st.uploads_count ?? 0,
+            downloads: st.downloads_count ?? 0,
+            saved: st.saved_count ?? 0,
+          });
+        }
+      });
+    }
 
     const handleSync = () => {
       if (user?.id) {
@@ -176,16 +177,14 @@ export function ProfilePage() {
     };
 
     window.addEventListener('storage', handleSync);
-    window.addEventListener('focus', handleSync);
     window.addEventListener('quicklearnit_likes_updated', handleSync);
     window.addEventListener('quicklearnit_likes_count_updated', handleSync);
     return () => {
       window.removeEventListener('storage', handleSync);
-      window.removeEventListener('focus', handleSync);
       window.removeEventListener('quicklearnit_likes_updated', handleSync);
       window.removeEventListener('quicklearnit_likes_count_updated', handleSync);
     };
-  }, [user]);
+  }, [user?.id]);
 
   if (!user) return null;
 

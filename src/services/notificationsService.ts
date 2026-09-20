@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { timeAgo } from '../lib/timeAgo';
+import { cachedQuery, setCacheData, invalidateCache } from '../lib/queryCache';
 import type { AppNotification } from '../data/types';
 import type { NotificationRow } from '../types/database.types';
 
@@ -76,6 +77,7 @@ export function addNotificationForUser(userId: string, notification: AppNotifica
   };
   local.unshift(notifWithDate);
   saveLocalNotifications(userId, local);
+  invalidateCache(`notifications:${userId}`);
 
   // Also attempt Supabase insert if logged in / connected
   (async () => {
@@ -95,33 +97,45 @@ export function addNotificationForUser(userId: string, notification: AppNotifica
 }
 
 export async function listNotifications(userId: string): Promise<AppNotification[]> {
-  const localItems = loadLocalNotifications(userId);
-  let dbItems: AppNotification[] = [];
+  if (!userId) return [];
+  return cachedQuery(`notifications:${userId}`, async () => {
+    const localItems = loadLocalNotifications(userId);
+    let dbItems: AppNotification[] = [];
 
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      dbItems = (data as NotificationRow[]).map(toAppNotification);
+      if (!error && data) {
+        dbItems = (data as NotificationRow[]).map(toAppNotification);
+      }
+    } catch (err) {
+      console.warn('DB listNotifications notice:', err);
     }
-  } catch (err) {
-    console.warn('DB listNotifications notice:', err);
-  }
 
-  const map = new Map<string, AppNotification>();
-  localItems.forEach((item) => map.set(item.id, item));
-  dbItems.forEach((item) => map.set(item.id, item));
+    const map = new Map<string, AppNotification>();
+    localItems.forEach((item) => map.set(item.id, item));
+    dbItems.forEach((item) => map.set(item.id, item));
 
-  return Array.from(map.values()).sort((a, b) => (a.read === b.read ? 0 : a.read ? 1 : -1));
+    return Array.from(map.values()).sort((a, b) => (a.read === b.read ? 0 : a.read ? 1 : -1));
+  }, 30_000); // 30s TTL
 }
 
 export async function markAllRead(userId: string): Promise<void> {
   const local = loadLocalNotifications(userId).map((n) => ({ ...n, read: true }));
   saveLocalNotifications(userId, local);
+
+  // Optimistically update cache
+  try {
+    const cached = await listNotifications(userId);
+    const updated = cached.map((item) => ({ ...item, read: true }));
+    setCacheData(`notifications:${userId}`, updated);
+  } catch {
+    invalidateCache(`notifications:${userId}`);
+  }
 
   try {
     await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
@@ -134,6 +148,7 @@ export async function deleteNotification(id: string, userId?: string): Promise<v
   if (userId) {
     const local = loadLocalNotifications(userId).filter((n) => n.id !== id);
     saveLocalNotifications(userId, local);
+    invalidateCache(`notifications:${userId}`);
   }
   try {
     await supabase.from('notifications').delete().eq('id', id);
