@@ -141,14 +141,14 @@ export function AdminManageStudentsPage() {
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
-                Manage Students
+                Manage Users
               </h1>
               <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                {students.length} scholars
+                {students.length} users
               </span>
             </div>
             <p className="mt-1 text-xs sm:text-sm text-on-surface-variant">
-              Inspect student profiles, monitor academic contributions, and remove unauthorized accounts.
+              Inspect user profiles, monitor contributions, and remove unauthorized accounts.
             </p>
           </div>
 
