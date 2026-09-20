@@ -492,7 +492,7 @@ export function GetStartedPage() {
       </header>
 
       {/* ── HERO SECTION WITH 3D ANIMATIONS ── */}
-      <section className="relative border-b border-card-border bg-surface-container-low px-4 pt-16 pb-20 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="relative border-b border-card-border bg-surface-container-low px-4 pt-5 sm:pt-14 pb-16 sm:pb-20 sm:px-6 lg:px-8 overflow-hidden">
 
         <div className="relative z-10 mx-auto max-w-5xl text-center">
           {/* Subtle ambient lighting behind hero */}
@@ -503,15 +503,15 @@ export function GetStartedPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2.5 rounded-full border border-indigo-100 bg-white shadow-xs px-4 py-1.5 text-xs font-medium text-slate-700 mb-8 transition-all hover:border-indigo-200"
+            className="inline-flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 rounded-2xl sm:rounded-full border border-indigo-100 bg-white shadow-xs px-4 py-1.5 text-xs text-slate-700 mb-4 sm:mb-8 transition-all hover:border-indigo-200 text-center mx-auto"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+            <span className="font-semibold text-slate-800 flex items-center justify-center gap-1.5">
+              <span>🚀</span>
+              <span>Smart Exam Prep Platform</span>
             </span>
-            <span className="font-semibold text-slate-800">🚀 Smart Exam Prep Platform</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-indigo-600 font-bold">Notes, PYQs &amp; Solutions</span>
+            <span className="text-indigo-600 font-bold text-center">
+              Notes, PYQs &amp; Solutions
+            </span>
           </motion.div>
 
           {/* Heading */}
