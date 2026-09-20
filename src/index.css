@@ -599,6 +599,11 @@ html.dark ::-webkit-scrollbar-thumb:hover,
    APP BACKGROUND
    Clean, solid, distraction-free surfaces
    ============================ */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
 body {
   background-color: var(--color-background);
   background-image: none;

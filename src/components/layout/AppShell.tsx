@@ -10,6 +10,7 @@ import { LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useSignupRedirect } from '../../hooks/useSignupRedirect';
 import { useAuth } from '../../hooks/useAuth';
+import { useVirtualKeyboard } from '../../hooks/useVirtualKeyboard';
 
 export function AppShell() {
   const location = useLocation();
@@ -19,6 +20,9 @@ export function AppShell() {
   const isFullBleedPage = location.pathname.startsWith('/messages');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
+
+  // Monitors mobile virtual keyboard and syncs CSS custom properties
+  const { viewportHeight, offsetTop } = useVirtualKeyboard();
 
   const handleSignupFromModal = () => {
     closeSignupModal();
@@ -36,9 +40,17 @@ export function AppShell() {
       className={cn(
         'flex flex-col bg-surface',
         isFullBleedPage
-          ? 'h-screen h-[100dvh] overflow-hidden'
+          ? 'fixed inset-x-0 top-0 overflow-hidden lg:static lg:h-screen lg:h-[100dvh]'
           : 'min-h-screen xl:h-screen xl:overflow-hidden'
       )}
+      style={
+        isFullBleedPage
+          ? {
+              height: viewportHeight ? `${Math.round(viewportHeight)}px` : 'var(--visual-viewport-height, 100dvh)',
+              top: offsetTop ? `${Math.round(offsetTop)}px` : 'var(--visual-viewport-offset-top, 0px)',
+            }
+          : undefined
+      }
     >
       {/* Full-width top header */}
       <TopBar onMenuOpen={() => setMobileMenuOpen(true)} />

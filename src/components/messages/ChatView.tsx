@@ -34,6 +34,7 @@ import {
   type Conversation,
 } from '../../services/messagesService';
 import { triggerUnreadMessagesRefresh } from '../../hooks/useUnreadMessages';
+import { useVirtualKeyboard } from '../../hooks/useVirtualKeyboard';
 
 interface Props {
   readonly conversation: Conversation;
@@ -65,6 +66,8 @@ export function ChatView({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const { isKeyboardOpen } = useVirtualKeyboard();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -159,12 +162,60 @@ export function ChatView({
     return unsub;
   }, [conversation.id]);
 
-  // ── Auto-scroll ────────────────────────────────────────────────────────────
-  useEffect(() => {
+  // ── Auto-scroll & Virtual Keyboard Alignment ───────────────────────────────
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'instant') => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior,
+      });
     }
-  }, [messages]);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom('instant');
+  }, [messages, scrollToBottom]);
+
+  // When mobile keyboard opens, smoothly align the latest messages above the composer
+  useEffect(() => {
+    if (isKeyboardOpen) {
+      scrollToBottom('instant');
+      const timer = setTimeout(() => scrollToBottom('instant'), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isKeyboardOpen, scrollToBottom]);
+
+  // Auto-resize textarea as content expands (up to max 128px) and maintain bottom alignment
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 128)}px`;
+    }
+    scrollToBottom('instant');
+  }, [inputValue, scrollToBottom]);
+
+  const handleInputFocus = () => {
+    scrollToBottom('instant');
+    setTimeout(() => {
+      scrollToBottom('instant');
+      inputRef.current?.scrollIntoView({ block: 'nearest' });
+    }, 120);
+  };
+
+  // Tapping the message stream blurs the input and dismisses the keyboard on mobile
+  const handleStreamClick = (e: React.MouseEvent) => {
+    if (inputRef.current && document.activeElement === inputRef.current) {
+      const target = e.target as HTMLElement;
+      if (
+        !target.closest('button') &&
+        !target.closest('a') &&
+        !target.closest('input') &&
+        !target.closest('textarea')
+      ) {
+        inputRef.current.blur();
+      }
+    }
+  };
 
   // ── Send ───────────────────────────────────────────────────────────────────
   const handleSend = useCallback(async () => {
@@ -366,6 +417,7 @@ export function ChatView({
       {/* ── Messages Stream ── */}
       <div
         ref={scrollRef}
+        onClick={handleStreamClick}
         className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5 space-y-3.5 bg-surface"
       >
         {isLoading ? (
@@ -462,7 +514,14 @@ export function ChatView({
       </div>
 
       {/* ── Modern Floating Composer ── */}
-      <div className="shrink-0 p-3 sm:p-4 bg-surface border-t border-card-border/70 mt-auto">
+      <div
+        className={cn(
+          'sticky bottom-0 z-30 shrink-0 p-3 sm:p-4 bg-surface border-t border-card-border/70 mt-auto',
+          isKeyboardOpen
+            ? 'pb-2.5 sm:pb-4'
+            : 'pb-[max(0.75rem,env(safe-area-inset-bottom,0.75rem))]'
+        )}
+      >
         <div className="rounded-2xl border border-card-border bg-surface-container-low p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 transition-all shadow-xs">
           <div className="flex items-end gap-2 px-1">
             <textarea
@@ -470,9 +529,10 @@ export function ChatView({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={handleInputFocus}
               placeholder={`Write a message to ${otherName}…`}
               rows={1}
-              className="flex-1 resize-none bg-transparent text-xs sm:text-sm text-on-surface placeholder:text-outline/70 outline-none max-h-32 leading-relaxed py-1 font-sans"
+              className="flex-1 resize-none bg-transparent text-[16px] sm:text-sm text-on-surface placeholder:text-outline/70 outline-none max-h-32 leading-relaxed py-1 font-sans"
               style={{ overflowY: inputValue.split('\n').length > 3 ? 'auto' : 'hidden' }}
             />
 
