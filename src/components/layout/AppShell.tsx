@@ -22,7 +22,7 @@ export function AppShell() {
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
 
   // Monitors mobile virtual keyboard and syncs CSS custom properties
-  const { keyboardHeight, offsetTop } = useVirtualKeyboard();
+  const { offsetTop, viewportHeight } = useVirtualKeyboard();
 
   const handleSignupFromModal = () => {
     closeSignupModal();
@@ -47,7 +47,7 @@ export function AppShell() {
         isFullBleedPage
           ? {
               top: offsetTop ? `${Math.round(offsetTop)}px` : 'var(--visual-viewport-offset-top, 0px)',
-              bottom: keyboardHeight ? `${Math.round(keyboardHeight)}px` : 'var(--keyboard-height, 0px)',
+              height: viewportHeight ? `${Math.round(viewportHeight)}px` : 'var(--visual-viewport-height, 100dvh)',
             }
           : undefined
       }

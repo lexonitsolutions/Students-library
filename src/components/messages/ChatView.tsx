@@ -198,7 +198,6 @@ export function ChatView({
     scrollToBottom('instant');
     setTimeout(() => {
       scrollToBottom('instant');
-      inputRef.current?.scrollIntoView({ block: 'nearest' });
     }, 120);
   };
 
