@@ -9,20 +9,30 @@ export interface VirtualKeyboardState {
   isKeyboardOpen: boolean;
   /** Visual viewport offset top (iOS Safari scroll) */
   offsetTop: number;
+  /** Bottom overlay inset needed if layout didn't resize */
+  keyboardOverlayInset: number;
 }
 
 export function useVirtualKeyboard(): VirtualKeyboardState {
   const [state, setState] = useState<VirtualKeyboardState>(() => {
     if (typeof window === 'undefined') {
-      return { viewportHeight: 0, keyboardHeight: 0, isKeyboardOpen: false, offsetTop: 0 };
+      return {
+        viewportHeight: 0,
+        keyboardHeight: 0,
+        isKeyboardOpen: false,
+        offsetTop: 0,
+        keyboardOverlayInset: 0,
+      };
     }
     const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     const offsetTop = window.visualViewport ? window.visualViewport.offsetTop : 0;
+    const overlayInset = Math.max(0, window.innerHeight - currentHeight);
     return {
       viewportHeight: currentHeight,
       keyboardHeight: 0,
       isKeyboardOpen: false,
       offsetTop,
+      keyboardOverlayInset: overlayInset,
     };
   });
 
@@ -55,6 +65,7 @@ export function useVirtualKeyboard(): VirtualKeyboardState {
       const effectiveDiff = Math.max(visualDiff, layoutDiff);
       const isOpen = isInputActive || effectiveDiff > 120;
       const detectedKbHeight = isOpen ? (effectiveDiff > 120 ? effectiveDiff : 280) : 0;
+      const overlayInset = Math.max(0, layoutHeight - currentVisualHeight);
 
       // When no input is active and not compressed, refresh maxKnownHeight
       if (!isInputActive && effectiveDiff < 60) {
@@ -74,12 +85,17 @@ export function useVirtualKeyboard(): VirtualKeyboardState {
         '--keyboard-height',
         `${Math.round(detectedKbHeight)}px`
       );
+      document.documentElement.style.setProperty(
+        '--keyboard-overlay-inset',
+        `${Math.round(overlayInset)}px`
+      );
 
       setState({
         viewportHeight: currentVisualHeight,
         keyboardHeight: detectedKbHeight,
         isKeyboardOpen: isOpen,
         offsetTop,
+        keyboardOverlayInset: overlayInset,
       });
     };
 
@@ -156,6 +172,7 @@ export function useVirtualKeyboard(): VirtualKeyboardState {
       document.documentElement.style.removeProperty('--visual-viewport-height');
       document.documentElement.style.removeProperty('--visual-viewport-offset-top');
       document.documentElement.style.removeProperty('--keyboard-height');
+      document.documentElement.style.removeProperty('--keyboard-overlay-inset');
     };
   }, []);
 
