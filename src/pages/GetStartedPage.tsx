@@ -565,19 +565,19 @@ export function GetStartedPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5"
+            className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-2.5 max-w-[290px] sm:max-w-none mx-auto w-full"
           >
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
-              <BookOpen size={14} className="text-indigo-600" />
+            <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
+              <BookOpen size={14} className="text-indigo-600 shrink-0" />
               <span>Curated Semester Notes</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
-              <FileText size={14} className="text-violet-600" />
+            <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
+              <FileText size={14} className="text-violet-600 shrink-0" />
               <span>Past Exam Solutions</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
-              <GraduationCap size={14} className="text-emerald-600" />
-              <span>Branch & University Specific</span>
+            <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
+              <GraduationCap size={14} className="text-emerald-600 shrink-0" />
+              <span>Branch &amp; University Specific</span>
             </div>
           </motion.div>
 
@@ -586,22 +586,22 @@ export function GetStartedPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-9 flex items-center justify-center gap-3.5 flex-wrap"
+            className="mt-6 sm:mt-9 flex flex-row items-center justify-center gap-2.5 sm:gap-3.5 w-full max-w-[340px] sm:max-w-none mx-auto px-1 sm:px-0"
           >
             <button
               type="button"
               onClick={() => handleGetStarted('/signup')}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:opacity-95 px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-indigo-600/25 hover:shadow-lg hover:shadow-indigo-600/35 transition-all cursor-pointer active:scale-[0.99]"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-primary hover:opacity-95 px-3.5 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-indigo-600/25 hover:shadow-lg hover:shadow-indigo-600/35 transition-all cursor-pointer active:scale-[0.99] whitespace-nowrap"
             >
               <span>Get Started</span>
-              <ArrowRight size={16} strokeWidth={2.2} />
+              <ArrowRight size={15} strokeWidth={2.2} className="shrink-0" />
             </button>
             <button
               type="button"
               onClick={handleExplore}
-              className="inline-flex items-center justify-center gap-2.5 rounded-xl border border-card-border bg-surface-container px-6 py-3.5 text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-all cursor-pointer active:scale-[0.99]"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2.5 rounded-xl border border-card-border bg-surface-container px-3 sm:px-6 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-all cursor-pointer active:scale-[0.99] whitespace-nowrap"
             >
-              <Compass size={18} strokeWidth={2.2} />
+              <Compass size={16} strokeWidth={2.2} className="shrink-0" />
               <span>Explore Library</span>
             </button>
           </motion.div>
