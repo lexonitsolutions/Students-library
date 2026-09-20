@@ -67,7 +67,7 @@ export function ChatView({
   const [isClearing, setIsClearing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { isKeyboardOpen, keyboardOverlayInset } = useVirtualKeyboard();
+  const { isKeyboardOpen } = useVirtualKeyboard();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -516,14 +516,11 @@ export function ChatView({
       {/* ── Modern Floating Composer ── */}
       <div
         className={cn(
-          'sticky bottom-0 z-30 shrink-0 p-3 sm:p-4 bg-surface border-t border-card-border/70 mt-auto',
+          'shrink-0 p-3 sm:p-4 bg-surface border-t border-card-border/70 mt-auto',
           isKeyboardOpen
             ? 'pb-2.5 sm:pb-4'
             : 'pb-[max(0.75rem,env(safe-area-inset-bottom,0.75rem))]'
         )}
-        style={{
-          bottom: keyboardOverlayInset ? `${Math.round(keyboardOverlayInset)}px` : 'var(--keyboard-overlay-inset, 0px)',
-        }}
       >
         <div className="rounded-2xl border border-card-border bg-surface-container-low p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 transition-all shadow-xs">
           <div className="flex items-end gap-2 px-1">
