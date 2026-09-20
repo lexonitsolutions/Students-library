@@ -22,7 +22,7 @@ export function AppShell() {
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
 
   // Monitors mobile virtual keyboard and syncs CSS custom properties
-  const { viewportHeight, offsetTop } = useVirtualKeyboard();
+  const { viewportHeight, offsetTop, keyboardOverlayInset } = useVirtualKeyboard();
 
   const handleSignupFromModal = () => {
     closeSignupModal();
@@ -48,6 +48,7 @@ export function AppShell() {
           ? {
               height: viewportHeight ? `${Math.round(viewportHeight)}px` : 'var(--visual-viewport-height, 100dvh)',
               top: offsetTop ? `${Math.round(offsetTop)}px` : 'var(--visual-viewport-offset-top, 0px)',
+              bottom: keyboardOverlayInset ? `${Math.round(keyboardOverlayInset)}px` : 'var(--keyboard-overlay-inset, 0px)',
             }
           : undefined
       }
