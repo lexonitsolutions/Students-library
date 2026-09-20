@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { supabase } from '../lib/supabaseClient';
 import * as authService from '../services/authService';
 import * as profileService from '../services/profileService';
+import { prefetchMaterialsOnLogin, clearMaterialsSession } from '../services/materialsService';
 import type { User } from '../data/types';
 import type { ProfileRow, ProfileStatsRow } from '../types/database.types';
 
@@ -209,6 +210,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
           localStorage.setItem(ONBOARDED_KEY, 'true');
           initializedUserId = currentSession.user.id;
           await loadProfile(currentSession.user.id);
+          prefetchMaterialsOnLogin(currentSession.user.id).catch(() => {});
           if (active) setLoading(false);
         } else {
           if (currentSession && !isSessionVerified(currentSession)) {
@@ -233,13 +235,16 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         localStorage.setItem(ONBOARDED_KEY, 'true');
         stopExploring();
 
-        // Prevent duplicate load if this exact session was already loaded during initialization
-        if (initializedUserId === nextSession.user.id && _event === 'INITIAL_SESSION') {
+        // Prevent duplicate load if this exact session was already loaded
+        if (initializedUserId === nextSession.user.id && (_event === 'INITIAL_SESSION' || _event === 'TOKEN_REFRESHED')) {
           return;
         }
         initializedUserId = nextSession.user.id;
         setLoading(true);
-        loadProfile(nextSession.user.id).finally(() => setLoading(false));
+        loadProfile(nextSession.user.id).finally(() => {
+          prefetchMaterialsOnLogin(nextSession.user.id).catch(() => {});
+          setLoading(false);
+        });
       } else {
         if (nextSession && !isSessionVerified(nextSession)) {
           supabase.auth.signOut().catch(() => {});
@@ -277,6 +282,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         setSession(data.session);
         setLoading(true);
         await loadProfile(data.session.user.id);
+        prefetchMaterialsOnLogin(data.session.user.id).catch(() => {});
         setLoading(false);
       }
     }
@@ -310,6 +316,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         setSession(data.session);
         setLoading(true);
         await loadProfile(data.session.user.id);
+        prefetchMaterialsOnLogin(data.session.user.id).catch(() => {});
         setLoading(false);
       }
     }
@@ -332,6 +339,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         setSession(data.session);
         setLoading(true);
         await loadProfile(data.session.user.id);
+        prefetchMaterialsOnLogin(data.session.user.id).catch(() => {});
         setLoading(false);
       }
     }
@@ -346,6 +354,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setIsExploring(false);
     setGuestUser(null);
     sessionStorage.removeItem(WORKSPACE_KEY);
+    clearMaterialsSession();
     await authService.signOut().catch(() => {});
   }, []);
 
@@ -361,11 +370,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       id: '',
       name: 'Guest User',
       username: 'guest',
-      email: 'guest@studexa.app',
+      email: 'guest@answersbro.app',
       avatar: '',
       university: 'Explore Mode',
       major: 'Guest Access',
-      college: 'Studexa',
+      college: 'answersbro',
       role: 'student',
       stats: {
         uploads: 0,

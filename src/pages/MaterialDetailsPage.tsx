@@ -249,7 +249,7 @@ export function MaterialDetailsPage() {
       if (navigator.share) {
         await navigator.share({
           title: material?.title,
-          text: `Check out ${material?.title} on Studexa!`,
+          text: `Check out ${material?.title} on answersbro!`,
           url: window.location.href,
         });
       } else {

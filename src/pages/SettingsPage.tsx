@@ -51,7 +51,7 @@ const settingsSections = [
       { label: 'Help & Support', icon: CircleHelp },
       { label: 'Terms of Service', icon: Scale },
       { label: 'Privacy Policy', icon: ShieldCheck },
-      { label: 'About Studexa', icon: Info },
+      { label: 'About answersbro', icon: Info },
     ],
   },
 ];
@@ -194,7 +194,7 @@ export function SettingsPage() {
                     navigate('/terms');
                   } else if (item.label === 'Privacy Policy') {
                     navigate('/privacy');
-                  } else if (item.label === 'About Studexa') {
+                  } else if (item.label === 'About answersbro') {
                     navigate('/get-started');
                   } else if (item.label === 'Account') {
                     if (isExploring) {
@@ -245,7 +245,7 @@ export function SettingsPage() {
                     className="flex h-5.5 w-5.5 items-center justify-center rounded-full shadow-xs transition-all duration-200 absolute left-0.5"
                     style={{
                       transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(0)',
-                      backgroundColor: theme === 'dark' ? '#6366F1' : '#FFFFFF',
+                      backgroundColor: theme === 'dark' ? '#7185E6' : '#FFFFFF',
                     }}
                   >
                     {theme === 'dark' ? (

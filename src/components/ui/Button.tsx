@@ -15,11 +15,14 @@ export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-white hover:opacity-95 shadow-xs hover:shadow-sm disabled:opacity-50 disabled:text-white/60',
+  primary:
+    'bg-[#3049B8] text-white hover:bg-[#24378F] dark:bg-[#7185E6] dark:text-[#101522] dark:hover:bg-[#5369D1] dark:hover:text-white shadow-xs hover:shadow-sm disabled:opacity-50 disabled:text-white/60',
   secondary:
-    'bg-surface-container-low text-on-surface border border-card-border hover:bg-surface-container-high hover:border-outline/40 shadow-xs disabled:opacity-50',
-  ghost: 'bg-transparent text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface disabled:opacity-50',
-  danger: 'bg-error text-white hover:opacity-95 shadow-xs hover:shadow-sm disabled:opacity-50 disabled:text-white/60',
+    'bg-[#FFF0D5] text-[#C66A00] border border-[#FFA500]/20 hover:bg-[#FFE6BC] dark:bg-[#3A2B19] dark:text-[#FFAA32] dark:border-[#FFAA32]/20 dark:hover:bg-[#4A3720] shadow-xs disabled:opacity-50',
+  ghost:
+    'bg-transparent text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface disabled:opacity-50',
+  danger:
+    'bg-error text-white hover:opacity-95 shadow-xs hover:shadow-sm disabled:opacity-50 disabled:text-white/60',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

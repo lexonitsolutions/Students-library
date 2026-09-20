@@ -751,10 +751,21 @@ export function LeaderboardPage() {
   }, [user?.id]);
 
   const sortedStudents = useMemo(() => {
-    return [...students].sort((a, b) => {
-      if (sortBy === 'views') return b.totalViews - a.totalViews;
-      return (b.totalLikes ?? 0) - (a.totalLikes ?? 0);
-    });
+    return students
+      .filter((student) => {
+        const name = (student.name || '').toLowerCase();
+        const username = (student.username || '').toLowerCase();
+        return (
+          !name.includes('studex') &&
+          !name.includes('past user') &&
+          !username.includes('studex') &&
+          !username.includes('pastuser')
+        );
+      })
+      .sort((a, b) => {
+        if (sortBy === 'views') return b.totalViews - a.totalViews;
+        return (b.totalLikes ?? 0) - (a.totalLikes ?? 0);
+      });
   }, [students, sortBy]);
 
   const rankLabel = (rank: number) => {

@@ -37,7 +37,7 @@ export function SignupPromptModal({ isOpen, onClose, onSignup }: Readonly<Signup
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="Sign up for Studexa"
+            aria-label="Sign up for answersbro"
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -45,7 +45,7 @@ export function SignupPromptModal({ isOpen, onClose, onSignup }: Readonly<Signup
             className="relative w-full max-w-[440px] rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-7 shadow-2xl shadow-slate-900/15 dark:shadow-black/60 overflow-hidden"
           >
             {/* Subtle top ambient accent line */}
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-600" />
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#3049B8] via-[#5369D1] to-[#FFA500]" />
 
             {/* Close Button */}
             <button
@@ -58,15 +58,15 @@ export function SignupPromptModal({ isOpen, onClose, onSignup }: Readonly<Signup
 
             {/* Header / Brand Badge */}
             <div className="flex items-center gap-3 mb-4 pt-1">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/60 shrink-0 p-2">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shrink-0 p-2">
                 <Logo variant="icon" imgClassName="h-7 w-7 object-contain" />
               </div>
               <div>
-                <span className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                <span className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wider text-primary">
                   Student Library
                 </span>
                 <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
-                  Get full access on Studexa
+                  Get full access on answersbro
                 </h2>
               </div>
             </div>
@@ -126,7 +126,7 @@ export function SignupPromptModal({ isOpen, onClose, onSignup }: Readonly<Signup
               <button
                 type="button"
                 onClick={onSignup}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium text-[14px] h-11 px-5 shadow-sm shadow-indigo-600/20 transition-all cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-[#24378F] active:scale-[0.98] text-white font-medium text-[14px] h-11 px-5 shadow-sm transition-all cursor-pointer"
               >
                 <span>Create Free Account</span>
                 <ArrowRight size={16} strokeWidth={2} />

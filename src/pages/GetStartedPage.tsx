@@ -12,6 +12,8 @@ import {
   Sparkles,
   Trophy,
   Upload,
+  LogIn,
+  UserPlus,
 } from 'lucide-react';
 import {
   motion,
@@ -333,7 +335,7 @@ const PLATFORM_FEATURES: PlatformFeature[] = [
     categoryBadge: 'CURATED SEMESTER REPOSITORY',
     title: 'Instant access to verified semester notes & past papers',
     description:
-      'Stop searching through disorganized WhatsApp groups and expired Google Drive links. Studexa curates study materials indexed by Branch, Semester, and Subject syllabus.',
+      'Stop searching through disorganized WhatsApp groups and expired Google Drive links. answersbro curates study materials indexed by Branch, Semester, and Subject syllabus.',
     highlights: [
       { title: 'Curriculum-Aligned Structure', desc: 'Browse Engineering and Degree notes mapped by unit and semester.' },
       { title: 'Quality Moderation Queue', desc: 'Every uploaded file is reviewed and approved by student admins before publishing.' },
@@ -370,7 +372,7 @@ const SUPPORTED_BRANCHES = [
   { name: 'BCA & B.Sc Computing', count: '1,100+ Notes', tag: 'Degree' },
 ];
 
-const WATERMARK_LINE = Array(22).fill("Studexa").join("   ");
+const WATERMARK_LINE = Array(22).fill("answersbro").join("   ");
 const WATERMARK_ROWS = Array.from({ length: 18 });
 
 export function GetStartedPage() {
@@ -423,9 +425,9 @@ export function GetStartedPage() {
     <div className="min-h-screen bg-surface text-on-surface selection:bg-primary/20 selection:text-primary">
       {/* ── TOP NAVIGATION ── */}
       <header className="sticky top-0 z-40 border-b border-card-border bg-surface-container-low/95 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3.5 sm:px-6 lg:px-8">
           <div
-            className="flex items-center cursor-pointer transition-opacity hover:opacity-85"
+            className="flex items-center cursor-pointer transition-opacity hover:opacity-85 shrink-0"
             onClick={handleLogoClick}
             role="button"
             tabIndex={0}
@@ -436,21 +438,42 @@ export function GetStartedPage() {
               }
             }}
           >
-            <Logo height={34} />
+            <Logo imgClassName="h-7 sm:h-[34px] w-auto object-contain" />
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
+            {/* Mobile Icon Buttons */}
             <button
               type="button"
               onClick={() => handleGetStarted('/signin')}
-              className="px-3.5 py-1.5 text-label-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+              title="Sign In"
+              aria-label="Sign In"
+              className="sm:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer active:scale-95"
+            >
+              <LogIn size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleGetStarted('/signup')}
+              title="Sign Up"
+              aria-label="Sign Up"
+              className="sm:hidden flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-xs hover:opacity-95 transition-all cursor-pointer active:scale-95"
+            >
+              <UserPlus size={18} />
+            </button>
+
+            {/* Desktop & Tablet Text Buttons */}
+            <button
+              type="button"
+              onClick={() => handleGetStarted('/signin')}
+              className="hidden sm:inline-flex px-3.5 py-1.5 text-label-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
             >
               Sign In
             </button>
             <button
               type="button"
               onClick={() => handleGetStarted('/signup')}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-label-sm font-bold text-white shadow-xs hover:opacity-95 transition-all cursor-pointer active:scale-95"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-label-sm font-bold text-white shadow-xs hover:opacity-95 transition-all cursor-pointer active:scale-95"
             >
               <span>Get Started</span>
               <ArrowRight size={14} />
@@ -673,7 +696,7 @@ export function GetStartedPage() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="mt-3 text-body-md text-on-surface-variant"
           >
-            Explore how Studexa connects students with verified university course materials and peer study tools.
+            Explore how answersbro connects students with verified university course materials and peer study tools.
           </motion.p>
         </div>
 
@@ -777,7 +800,7 @@ export function GetStartedPage() {
                         </div>
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-surface border border-card-border text-[11px] text-on-surface-variant font-mono">
                           <ShieldCheck size={12} className="text-emerald-500" />
-                          <span>studexa.app/{feature.id}</span>
+                          <span>answersbro.app/{feature.id}</span>
                         </div>
                         <div className="w-12" />
                       </div>

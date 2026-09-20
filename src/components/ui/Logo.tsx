@@ -18,13 +18,13 @@ export function Logo({
   height,
   className,
   imgClassName,
-  alt = 'Studexa',
+  alt = 'answersbro',
 }: Readonly<LogoProps>) {
   if (variant === 'icon') {
     return (
       <div className={cn('inline-flex items-center justify-center shrink-0', className)}>
         <img
-          src="/images/studexa-icon.png"
+          src="/images/answersbro-icon.png"
           alt={alt}
           style={height ? { height, width: height } : undefined}
           className={cn('object-contain shrink-0', imgClassName || 'h-8 w-8')}
@@ -34,8 +34,8 @@ export function Logo({
   }
 
   const isStacked = variant === 'stacked';
-  const lightSrc = isStacked ? '/images/studexa-stacked-light.png' : '/images/studexa-logo-light.png';
-  const darkSrc = isStacked ? '/images/studexa-stacked-dark.png' : '/images/studexa-logo-dark.png';
+  const lightSrc = isStacked ? '/images/answersbro-stacked-light.png' : '/images/answersbro-logo-light.png';
+  const darkSrc = isStacked ? '/images/answersbro-stacked-dark.png' : '/images/answersbro-logo-dark.png';
 
   const defaultHeightClass = isStacked ? 'h-16 w-auto' : 'h-8 w-auto';
 

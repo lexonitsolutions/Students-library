@@ -354,7 +354,7 @@ export function AdminQueryDetailView({
             {/* 3. Send Email */}
             {query.studentEmail ? (
               <a
-                href={`mailto:${query.studentEmail}?subject=Regarding your Studexa query: ${encodeURIComponent(query.subject)}`}
+                href={`mailto:${query.studentEmail}?subject=Regarding your answersbro query: ${encodeURIComponent(query.subject)}`}
                 className="flex items-center gap-3 p-3.5 rounded-xl border border-card-border/80 bg-surface hover:border-primary/50 hover:bg-primary/5 transition-all group cursor-pointer"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">

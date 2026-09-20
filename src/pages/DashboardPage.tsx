@@ -17,8 +17,7 @@ import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import { useDocumentFilter } from '../hooks/useDocumentFilter';
 import * as bookmarksService from '../services/bookmarksService';
-import { fetchUserLikedIds } from '../services/likesService';
-import { listApprovedMaterialsForUI } from '../services/materialsService';
+import { listApprovedMaterialsForUI, getCachedMaterialsFromSession, saveMaterialsToSession } from '../services/materialsService';
 import { categoryIcon } from '../lib/materialIcons';
 import { cn } from '../lib/cn';
 
@@ -31,8 +30,10 @@ export function DashboardPage() {
   const [filterModalOpen, setFilterModalOpen] = useState<boolean>(false);
   const { filters, activeFilterCount, setFilters, clearFilters, removeFilterKey } = useDocumentFilter();
 
-  // Start with empty array; data is loaded from DB
-  const [materials, setMaterials] = useState<Material[]>([]);
+  // Load from session cache (fetched at login) immediately for 0ms render
+  const [materials, setMaterials] = useState<Material[]>(() => {
+    return getCachedMaterialsFromSession() || [];
+  });
 
 
 
@@ -74,15 +75,23 @@ export function DashboardPage() {
 
   useEffect(() => {
     let active = true;
+
+    // 1. If materials are already loaded in session (fetched on login), DO NOT fetch anything!
+    const cached = getCachedMaterialsFromSession();
+    if (cached && cached.length > 0) {
+      if (materials.length === 0) {
+        setMaterials(cached);
+      }
+      return;
+    }
+
+    // 2. Fallback: Only fetch if session cache was completely empty
     (async () => {
+      setLoading(true);
       let savedIds: Set<string> | undefined;
       if (user) {
         try {
-          const [sIds] = await Promise.all([
-            bookmarksService.listBookmarkedMaterialIds(user.id),
-            fetchUserLikedIds(user.id),
-          ]);
-          savedIds = sIds;
+          savedIds = await bookmarksService.listBookmarkedMaterialIds(user.id);
         } catch (e) {
           console.warn('Failed to load user interaction state:', e);
         }
@@ -91,6 +100,7 @@ export function DashboardPage() {
         const data = await listApprovedMaterialsForUI({}, savedIds);
         if (active && data && data.length > 0) {
           setMaterials(data);
+          saveMaterialsToSession(data);
         }
       } catch (e) {
         console.warn('Failed to load materials from service:', e);
@@ -126,7 +136,11 @@ export function DashboardPage() {
     }
     const wasSaved = !!material.isSaved;
     const nextSaved = !wasSaved;
-    setMaterials((prev) => prev.map((item) => (item.id === id ? { ...item, isSaved: nextSaved } : item)));
+    setMaterials((prev) => {
+      const updated = prev.map((item) => (item.id === id ? { ...item, isSaved: nextSaved } : item));
+      saveMaterialsToSession(updated);
+      return updated;
+    });
     try {
       if (wasSaved) {
         await bookmarksService.removeBookmark(id, user.id);

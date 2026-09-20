@@ -67,7 +67,7 @@ export function MobileDrawer({ isOpen, onClose, onLogout }: MobileDrawerProps) {
               <div
                 className="flex items-center cursor-pointer select-none"
                 onClick={() => handleNav(() => navigate("/"))}
-                title="Studexa Home"
+                title="answersbro Home"
               >
                 <Logo imgClassName="h-8 w-auto object-contain" />
               </div>

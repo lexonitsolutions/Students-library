@@ -1,4 +1,16 @@
-import { ArrowRight, Eye, EyeOff, BookOpen, CheckCircle2, Lock, Mail, Award, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  BookOpen,
+  CheckCircle2,
+  Lock,
+  Mail,
+  Award,
+  Sparkles,
+  Users,
+  ArrowLeft,
+} from 'lucide-react';
 import { type FormEvent, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -134,307 +146,367 @@ export function SignInPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white text-on-surface overflow-x-hidden">
-      {/* ── LEFT BRANDING PANEL (Desktop only) ── */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-slate-200/90 bg-gradient-to-br from-slate-100 via-[#EDF2F9] to-slate-100 relative overflow-hidden">
-        {/* Subtle tinted grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(99,102,241,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.07)_1px,transparent_1px)] bg-[size:2.5rem_2.5rem] pointer-events-none" />
-        <div className="absolute -top-28 -left-28 h-80 w-80 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-28 -right-28 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+    <div className="relative h-screen w-full bg-[#FFFDF9] text-on-surface overflow-hidden flex flex-col selection:bg-primary/20 selection:text-primary">
+      {/* ── ARCHITECTURAL GRID BACKGROUND ── */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(215,200,180,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(215,200,180,0.18)_1px,transparent_1px)] bg-[size:3.2rem_3.2rem] pointer-events-none" />
 
-        {/* Brand Header */}
-        <div className="flex items-center gap-3 relative z-10">
-          <Link to="/get-started" className="flex items-center">
-            <Logo height={36} />
-          </Link>
-        </div>
+      {/* ── AMBIENT WARM & COOL GLOWS ── */}
+      <div className="absolute -top-24 -left-24 h-[500px] w-[500px] rounded-full bg-blue-500/8 blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 right-1/4 h-[450px] w-[450px] rounded-full bg-amber-400/15 blur-[140px] pointer-events-none" />
+      <div className="absolute -bottom-24 right-0 h-[450px] w-[450px] rounded-full bg-orange-300/10 blur-[130px] pointer-events-none" />
 
-        {/* Center Content Showcase */}
-        <motion.div
-          key="signin-showcase"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.32, ease: 'easeOut' }}
-          className="relative z-10 max-w-md mx-auto my-auto py-12"
+      {/* ── TOP HEADER NAVIGATION ── */}
+      <header className="relative z-30 w-full px-6 py-3 sm:px-10 lg:px-14 flex items-center justify-between shrink-0">
+        <Link to="/get-started" className="flex items-center transition-opacity hover:opacity-90">
+          <Logo height={30} />
+        </Link>
+        <Link
+          to="/get-started"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors"
         >
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-6">
-            <Sparkles size={13} />
-            <span>Academic Resource Exchange</span>
-          </div>
+          <ArrowLeft size={14} /> Back to home
+        </Link>
+      </header>
 
-          <h1 className="text-4xl font-extrabold tracking-tight text-on-surface mb-4 leading-tight">
-            Elevate your study routine with verified resources.
-          </h1>
-          <p className="text-on-surface-variant text-base leading-relaxed mb-8">
-            Access thousands of curriculum-aligned notes, past semester exams, and lecture summaries uploaded by top students.
-          </p>
+      {/* ── MAIN TWO-COLUMN CONTENT ── */}
+      <main className="relative z-20 mx-auto w-full max-w-7xl px-6 sm:px-10 lg:px-14 flex-1 min-h-0 flex items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center w-full">
+          
+          {/* ── LEFT COLUMN: HEADLINE & BENEFIT CARDS — hidden on mobile ── */}
+          <div className="hidden lg:flex lg:col-span-6 xl:col-span-7 flex-col justify-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-[#EEF2FF] text-primary border border-primary/20 mb-3 shadow-xs self-start">
+              <Sparkles size={13} className="text-primary" />
+              <span>Academic Resource Exchange</span>
+            </div>
 
-          {/* Academic Resource Card Preview */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                  <BookOpen size={20} />
+            {/* Headline */}
+            <h1 className="text-2xl sm:text-3xl xl:text-[36px] font-extrabold tracking-tight text-on-surface leading-[1.18] mb-2.5">
+              Elevate your study routine with <span className="text-primary">verified resources</span>.
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-on-surface-variant text-sm leading-relaxed mb-4 max-w-xl">
+              Access thousands of curriculum-aligned notes, past semester exams, and lecture summaries uploaded by top students.
+            </p>
+
+            {/* Key Benefits of answersbro */}
+            <div className="flex flex-col gap-2.5 max-w-[500px]">
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs backdrop-blur-xs transition-all hover:bg-white hover:shadow-md">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <BookOpen size={17} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-on-surface">Algorithms & Data Structures</h4>
-                  <p className="text-xs text-on-surface-variant">CS301 • 42 Pages • Verified PDF</p>
+                  <h3 className="text-xs font-bold text-on-surface">Verified Study Notes & Past Exams</h3>
+                  <p className="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">
+                    Access syllabus-tailored lecture notes, formula sheets, and past question papers curated by top-performing students.
+                  </p>
                 </div>
               </div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                Verified
-              </span>
-            </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-card-border/60 text-center">
-              <div>
-                <div className="text-xs text-on-surface-variant">Downloads</div>
-                <div className="text-sm font-bold text-on-surface">3.8k+</div>
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs backdrop-blur-xs transition-all hover:bg-white hover:shadow-md">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600">
+                  <Award size={17} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-on-surface">100% Free & Open Access</h3>
+                  <p className="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">
+                    No paywalls or hidden subscriptions. Every academic resource is freely accessible to empower students everywhere.
+                  </p>
+                </div>
               </div>
-              <div>
-                <div className="text-xs text-on-surface-variant">Rating</div>
-                <div className="text-sm font-bold text-on-surface">4.9 / 5</div>
-              </div>
-              <div>
-                <div className="text-xs text-on-surface-variant">Contributors</div>
-                <div className="text-sm font-bold text-on-surface">120+</div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs backdrop-blur-xs transition-all hover:bg-white hover:shadow-md">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600">
+                  <Users size={17} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-on-surface">Peer-to-Peer Academic Network</h3>
+                  <p className="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">
+                    Collaborate with classmates across colleges, share solutions, ask questions, and prepare for finals together.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </motion.div>
 
-        {/* Footer Meta */}
-        <div className="relative z-10 flex items-center justify-between text-xs text-on-surface-variant border-t border-card-border/60 pt-6">
-          <span className="flex items-center gap-1.5 font-medium">
-            <CheckCircle2 size={14} className="text-primary" /> Verified Academic Content
-          </span>
-          <span className="flex items-center gap-1.5 font-medium">
-            <Award size={14} className="text-primary" /> Free for Students
-          </span>
-        </div>
-      </div>
-
-      {/* ── RIGHT AUTHENTICATION PANEL ── */}
-      <div className="flex flex-1 flex-col justify-between p-6 sm:p-12 bg-white">
-        {/* Mobile-only brand link */}
-        <div className="flex items-center justify-between lg:hidden mb-6">
-          <Link to="/get-started" className="flex items-center">
-            <Logo height={30} />
-          </Link>
-          <Link to="/signup" className="text-xs font-semibold text-primary hover:underline">
-            Sign up
-          </Link>
-        </div>
-
-        {/* Form Container */}
-        <motion.div
-          key="signin-form"
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-md mx-auto my-auto py-6"
-        >
-          {isForgotPassword ? (
-            <div className="mb-6 text-left">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Reset Password</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">Enter your email address and we'll send you a link to reset your password.</p>
+          {/* ── RIGHT COLUMN: AUTH CARD FLANKED BY 3D CHARACTERS ── */}
+          <div className="col-span-1 lg:col-span-6 xl:col-span-5 flex items-center justify-center relative w-full max-w-[420px] mx-auto lg:max-w-none lg:mx-0">
+            
+            {/* 3D Boy standing on left of card */}
+            <div className="hidden xl:block absolute -left-28 2xl:-left-32 bottom-0 z-40 pointer-events-none select-none">
+              <img
+                src="/images/answersbro-flanking-boy.png"
+                alt="Student with books"
+                className="h-[380px] 2xl:h-[420px] w-auto object-contain drop-shadow-2xl"
+              />
             </div>
-          ) : (
-            <div className="mb-6 text-left">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Sign in</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">Welcome back. Enter your credentials to access your library.</p>
+
+            {/* 3D Girl standing on right of card */}
+            <div className="hidden xl:block absolute -right-32 2xl:-right-36 bottom-0 z-40 pointer-events-none select-none">
+              <img
+                src="/images/answersbro-flanking-girl.png"
+                alt="Student with tablet"
+                className="h-[380px] 2xl:h-[420px] w-auto object-contain drop-shadow-2xl"
+              />
             </div>
-          )}
 
-          {/* Success Message */}
-          {successMessage && !isForgotPassword && (
-            <div className="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>{successMessage}</span>
+            {/* Decorative Floating 3D Study Element */}
+            <div className="hidden xl:flex absolute -top-8 -left-8 h-10 w-10 items-center justify-center rounded-2xl bg-white/90 shadow-md border border-amber-200/50 text-amber-500 z-10">
+              <BookOpen size={18} />
             </div>
-          )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs font-semibold text-red-600">
-              {error}
-            </div>
-          )}
+            {/* The Central Authentication Card */}
+            <motion.div
+              key="signin-card"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="relative z-20 w-full max-w-[400px] rounded-[28px] border border-slate-200/85 bg-white p-6 sm:p-7 shadow-2xl shadow-slate-200/60"
+            >
 
-          {/* No Account Prompt */}
-          {noAccountEmail && (
-            <div className="mb-4 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs">
-              <p className="font-semibold text-amber-700 mb-1">No account found for this email.</p>
-              <p className="text-amber-800/80 mb-3">
-                <span className="font-bold">{noAccountEmail}</span> is not registered yet.
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate('/signup', { state: { prefillEmail: noAccountEmail } })}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 text-xs font-semibold transition-colors cursor-pointer"
-              >
-                Create a new account →
-              </button>
-            </div>
-          )}
-
-          {/* Social Sign-in Buttons */}
-          {!isForgotPassword && (
-            <>
-              <div className="space-y-2.5">
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={isGoogleLoading}
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isGoogleLoading ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
-                  ) : (
-                    <svg className="h-4 w-4" viewBox="0 0 24 24">
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                  )}
-                  <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
-                </button>
-              </div>
-
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider">
-                    or sign in with email
-                  </span>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Form */}
-          {!resetEmailSent ? (
-            <form onSubmit={isForgotPassword ? handleResetPassword : handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-xs font-semibold text-on-surface mb-1.5 text-left">
-                  Email address
-                </label>
-                <AnimatedInput
-                  type="email"
-                  id="email"
-                  icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
-                  className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  placeholder="student@university.edu"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setNoAccountEmail(null); }}
-                  required
-                />
-              </div>
-
+              {/* Segmented Tab Switcher */}
               {!isForgotPassword && (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
-                      Password
-                    </label>
-                    <button 
-                      type="button" 
-                      onClick={() => setIsForgotPassword(true)}
-                      className="text-xs font-medium text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <AnimatedInput
-                      type={showPassword ? 'text' : 'password'}
-                      id="password"
-                      icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
-                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required={!isForgotPassword}
-                    />
-                    <button
-                      type="button"
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant hover:text-on-surface cursor-pointer z-30"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
+                <div className="grid grid-cols-2 p-1 bg-slate-100/90 rounded-2xl mb-5 text-xs font-semibold">
+                  <button
+                    type="button"
+                    className="py-2 rounded-xl bg-white text-on-surface shadow-xs font-bold transition-all"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/signup')}
+                    className="py-2 rounded-xl text-on-surface-variant hover:text-on-surface transition-all font-medium cursor-pointer"
+                  >
+                    Create Account
+                  </button>
                 </div>
               )}
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all disabled:opacity-50 cursor-pointer"
-              >
-                <span>
-                  {isSubmitting 
-                    ? (isForgotPassword ? 'Sending...' : 'Signing in...') 
-                    : (isForgotPassword ? 'Send Reset Link' : 'Sign In')}
-                </span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
-          ) : (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 text-center space-y-4">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <Mail className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-sm font-bold text-on-surface">Check your email</h3>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
-                We sent a password reset link to <span className="font-semibold text-on-surface">{email}</span>
+              {isForgotPassword ? (
+                <div className="mb-5 text-left">
+                  <button
+                    type="button"
+                    onClick={() => { setIsForgotPassword(false); setResetEmailSent(false); }}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline mb-2 cursor-pointer"
+                  >
+                    <ArrowLeft size={13} /> Back to sign in
+                  </button>
+                  <h2 className="text-2xl font-bold tracking-tight text-on-surface">Reset Password</h2>
+                  <p className="mt-1 text-xs text-on-surface-variant">Enter your email address to receive a recovery link.</p>
+                </div>
+              ) : (
+                <div className="mb-5 text-left">
+                  <h2 className="text-2xl font-bold tracking-tight text-on-surface">Sign in</h2>
+                  <p className="mt-1 text-xs text-on-surface-variant">Welcome back! Enter your credentials to access your library.</p>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {successMessage && !isForgotPassword && (
+                <div className="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <span>{successMessage}</span>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 text-xs font-semibold text-red-600">
+                  {error}
+                </div>
+              )}
+
+              {/* No Account Prompt */}
+              {noAccountEmail && (
+                <div className="mb-4 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3.5 text-xs text-left">
+                  <p className="font-semibold text-amber-800 mb-1">No account found for this email.</p>
+                  <p className="text-amber-800/80 mb-2.5">
+                    <span className="font-bold">{noAccountEmail}</span> is not registered yet.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/signup', { state: { prefillEmail: noAccountEmail } })}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+                  >
+                    Create a new account →
+                  </button>
+                </div>
+              )}
+
+              {/* Google Sign-in */}
+              {!isForgotPassword && (
+                <>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      disabled={isGoogleLoading}
+                      className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isGoogleLoading ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
+                      ) : (
+                        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                          <path
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            fill="#4285F4"
+                          />
+                          <path
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            fill="#34A853"
+                          />
+                          <path
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                            fill="#FBBC05"
+                          />
+                          <path
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                            fill="#EA4335"
+                          />
+                        </svg>
+                      )}
+                      <span>{isGoogleLoading ? 'Connecting...' : 'Continue with Google'}</span>
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-slate-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider text-[10px]">
+                        or sign in with email
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Form */}
+              {!resetEmailSent ? (
+                <form onSubmit={isForgotPassword ? handleResetPassword : handleSubmit} className="space-y-3.5">
+                  <div>
+                    <label htmlFor="email" className="block text-xs font-semibold text-on-surface mb-1 text-left">
+                      Email address
+                    </label>
+                    <AnimatedInput
+                      type="email"
+                      id="email"
+                      icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
+                      className="block w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      placeholder="student@university.edu"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); setNoAccountEmail(null); }}
+                      required
+                    />
+                  </div>
+
+                  {!isForgotPassword && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
+                          Password
+                        </label>
+                        <button 
+                          type="button" 
+                          onClick={() => setIsForgotPassword(true)}
+                          className="text-xs font-medium text-primary hover:underline cursor-pointer"
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <AnimatedInput
+                          type={showPassword ? 'text' : 'password'}
+                          id="password"
+                          icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
+                          className="block w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-10 pr-10 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required={!isForgotPassword}
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant hover:text-on-surface cursor-pointer z-30"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer active:scale-[0.99] mt-2"
+                  >
+                    <span>
+                      {isSubmitting 
+                        ? (isForgotPassword ? 'Sending...' : 'Signing in...') 
+                        : (isForgotPassword ? 'Send Reset Link' : 'Sign In')}
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </form>
+              ) : (
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 text-center space-y-3">
+                  <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-bold text-on-surface">Check your email</h3>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    We sent a password reset link to <span className="font-semibold text-on-surface">{email}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setIsForgotPassword(false); setResetEmailSent(false); }}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    Return to Sign In
+                  </button>
+                </div>
+              )}
+
+              {/* Footer link */}
+              <p className="mt-5 text-center text-xs text-on-surface-variant">
+                {isForgotPassword ? (
+                  <>
+                    Remembered your password?{' '}
+                    <button type="button" onClick={() => { setIsForgotPassword(false); setResetEmailSent(false); }} className="font-semibold text-primary hover:underline cursor-pointer">
+                      Sign in instead
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Don't have an account?{' '}
+                    <Link to="/signup" className="font-semibold text-primary hover:underline">
+                      Create an account
+                    </Link>
+                  </>
+                )}
               </p>
-            </div>
-          )}
-
-          {/* Footer link */}
-          <p className="mt-6 text-center text-xs text-on-surface-variant">
-            {isForgotPassword ? (
-              <>
-                Remembered your password?{' '}
-                <button type="button" onClick={() => { setIsForgotPassword(false); setResetEmailSent(false); }} className="font-semibold text-primary hover:underline">
-                  Sign in instead
-                </button>
-              </>
-            ) : (
-              <>
-                Don't have an account?{' '}
-                <Link to="/signup" className="font-semibold text-primary hover:underline">
-                  Create an account
-                </Link>
-              </>
-            )}
-          </p>
-        </motion.div>
-
-        {/* Legal Footer */}
-        <div className="text-center text-[11px] text-on-surface-variant">
-          Protected by university-grade encryption. Studexa Academic Platform.
+            </motion.div>
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* ── FULL WIDTH BOTTOM FOOTER ── */}
+      <footer className="hidden lg:flex relative z-30 w-full px-6 py-2.5 sm:px-10 lg:px-14 border-t border-[#E9E2D8]/80 items-center justify-between gap-4 text-[11px] text-on-surface-variant bg-white/40 backdrop-blur-xs shrink-0">
+        <div className="flex items-center gap-6 sm:gap-8">
+          <span className="flex items-center gap-1.5 font-medium">
+            <CheckCircle2 size={13} className="text-primary" /> Verified Academic Content
+          </span>
+          <span className="flex items-center gap-1.5 font-medium">
+            <Award size={13} className="text-amber-500" /> Free for Students
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }

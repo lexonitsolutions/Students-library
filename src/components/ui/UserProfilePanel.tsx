@@ -21,7 +21,7 @@ import { generateQuickId } from '../../lib/idUtils';
 import { supabase } from '../../lib/supabaseClient';
 import { Avatar } from './Avatar';
 import type { Material } from '../../data/types';
-import { toMaterial } from '../../lib/materialMapper';
+import { toMaterial, formatUploaderName } from '../../lib/materialMapper';
 import { timeAgo } from '../../lib/timeAgo';
 import { getLocalLikesCount } from '../../services/likesService';
 import { getConversation } from '../../services/messagesService';
@@ -59,7 +59,7 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
   const [totalUploads, setTotalUploads] = useState<number>(0);
   const [recentUploads, setRecentUploads] = useState<Material[]>([]);
   const [joinedAt, setJoinedAt] = useState<string | null>(profile?.uploaderJoinedAt || null);
-  const [displayName, setDisplayName] = useState<string>(profile?.uploaderName || 'Student');
+  const [displayName, setDisplayName] = useState<string>(() => formatUploaderName(profile?.uploaderName));
   const [displayUsername, setDisplayUsername] = useState<string | null>(profile?.uploaderUsername || null);
   const [displayCollege, setDisplayCollege] = useState<string>(
     profile?.uploaderCollege || profile?.uploaderUniversity || '',
@@ -80,7 +80,7 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
   // Sync state with profile prop updates
   useEffect(() => {
     if (profile) {
-      setDisplayName(profile.uploaderName || 'Student');
+      setDisplayName(formatUploaderName(profile.uploaderName));
       if (profile.uploaderUsername) setDisplayUsername(profile.uploaderUsername);
       if (profile.uploaderJoinedAt) setJoinedAt(profile.uploaderJoinedAt);
       if (profile.uploaderCollege || profile.uploaderUniversity) {
@@ -112,7 +112,7 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
         let foundCover: string | null = (prof as any)?.cover_image || null;
         if (prof && isMounted) {
           if (prof.is_deleted) setIsDeleted(true);
-          if (prof.name) setDisplayName(prof.name);
+          if (prof.name) setDisplayName(formatUploaderName(prof.name));
           if (prof.username) setDisplayUsername(prof.username);
           if (prof.joined_at) setJoinedAt(prof.joined_at);
           const col = prof.college || prof.university;
@@ -202,11 +202,15 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
     ? new Date(joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : 'September 2026';
 
-  const usernameHandle = displayUsername
-    ? displayUsername.startsWith('@')
-      ? displayUsername
-      : `@${displayUsername}`
-    : `@${displayName.toLowerCase().replace(/\s+/g, '')}`;
+  const isPastUser = displayName.toLowerCase().includes('past user') || isDeleted;
+
+  const usernameHandle = isPastUser
+    ? '@pastuser'
+    : displayUsername
+      ? displayUsername.startsWith('@')
+        ? displayUsername
+        : `@${displayUsername}`
+      : `@${displayName.toLowerCase().replace(/\s+/g, '')}`;
 
   const collegeName =
     (displayCollege && displayCollege.trim()) ||
@@ -327,7 +331,7 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
 
               {/* Header Action Buttons (Message & Close) */}
               <div className="absolute top-3.5 right-4 flex items-center gap-2 z-10">
-                {!isOwnProfile && (
+                {!isOwnProfile && !isPastUser && (
                   <button
                     type="button"
                     onClick={handleMessageClick}
@@ -376,7 +380,7 @@ export function UserProfilePanel({ profile, onClose, side = 'right' }: Props) {
                 {usernameHandle}
               </p>
 
-              {!(isDeleted || displayName.toLowerCase() === 'studex user') && (
+              {!isPastUser && (
                 <>
                   {/* User ID (Interactive Monospace Pill with Copy Feedback) */}
                   <div className="mt-2">

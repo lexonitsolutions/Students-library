@@ -9,6 +9,54 @@ import type { MaterialRow, MaterialStatus, MaterialType, PublicProfileRow } from
 const profileCache = new Map<string, PublicProfileRow>();
 let cachedApprovedMaterials: Material[] = [];
 
+const SESSION_MATERIALS_KEY = 'answersbro_cached_approved_materials';
+let inMemorySessionMaterials: Material[] | null = null;
+
+export function getCachedMaterialsFromSession(): Material[] | null {
+  if (inMemorySessionMaterials && inMemorySessionMaterials.length > 0) {
+    return inMemorySessionMaterials;
+  }
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const raw = sessionStorage.getItem(SESSION_MATERIALS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.map((m: Material) => ({
+            ...m,
+            uploaderName: (m.uploaderName && /studex/i.test(m.uploaderName)) ? 'Past user' : (m.uploaderName || 'Past user'),
+          }));
+          inMemorySessionMaterials = cleaned;
+          return cleaned;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse cached session materials:', e);
+  }
+  return null;
+}
+
+export function saveMaterialsToSession(materials: Material[]): void {
+  inMemorySessionMaterials = materials;
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.setItem(SESSION_MATERIALS_KEY, JSON.stringify(materials));
+    }
+  } catch (e) {
+    console.warn('Failed to save materials to sessionStorage:', e);
+  }
+}
+
+export function clearMaterialsSession(): void {
+  inMemorySessionMaterials = null;
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.removeItem(SESSION_MATERIALS_KEY);
+    }
+  } catch {}
+}
+
 async function fetchUploaders(rows: readonly MaterialRow[]): Promise<Map<string, PublicProfileRow>> {
   const missingIds = [...new Set(rows.map((row) => row.uploader_id))].filter((id) => !profileCache.has(id));
   if (missingIds.length > 0) {
@@ -31,9 +79,36 @@ async function toMaterialsWithUploaders(rows: MaterialRow[], savedIds?: Set<stri
   return rows.map((row) => toMaterial(row, uploaders.get(row.uploader_id), savedIds?.has(row.id)));
 }
 
+/** Pre-fetches approved materials once when user logs in and stores in session cache */
+export async function prefetchMaterialsOnLogin(userId?: string): Promise<Material[]> {
+  // If already in session, return it
+  const existing = getCachedMaterialsFromSession();
+  if (existing && existing.length > 0) {
+    return existing;
+  }
+
+  try {
+    let savedIds: Set<string> | undefined;
+    if (userId) {
+      try {
+        savedIds = await listBookmarkedMaterialIds(userId);
+      } catch {}
+    }
+    const materials = await listApprovedMaterialsForUI({}, savedIds);
+    if (materials && materials.length > 0) {
+      saveMaterialsToSession(materials);
+    }
+    return materials;
+  } catch (err) {
+    console.warn('Failed to prefetch materials on login:', err);
+    return [];
+  }
+}
+
 /** Invalidate cached materials to force an immediate reload from the database */
 export function invalidateMaterialsCache(): void {
   cachedApprovedMaterials = [];
+  clearMaterialsSession();
   invalidateCache('approved_materials');
   invalidateCache('material:');
   invalidateCache('leaderboard:');
@@ -487,9 +562,23 @@ export async function listLeaderboardForUI(currentUserId?: string): Promise<Lead
               }
             }
 
+            const name = p.name || 'Student';
+            const lowerName = name.toLowerCase();
+            const lowerUsername = (p.username || '').toLowerCase();
+
+            // Exclude past / studex users from the leaderboard so only active users appear
+            if (
+              lowerName.includes('studex') ||
+              lowerName.includes('past user') ||
+              lowerUsername.includes('studex') ||
+              (p as any).is_deleted
+            ) {
+              return null;
+            }
+
             return {
               id: s.user_id,
-              name: p.name || 'Student',
+              name,
               username: p.username ? `@${p.username}` : `@student`,
               avatar: p.avatar_url || '',
               university: p.university || p.college || '',

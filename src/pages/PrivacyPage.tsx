@@ -14,8 +14,6 @@ import {
   GraduationCap,
   Mail,
   ArrowLeft,
-  Sun,
-  Moon,
   Printer,
   Search,
   ExternalLink,
@@ -28,7 +26,6 @@ import {
 import { Logo } from '../components/ui/Logo';
 import { Footer } from '../components/ui/Footer';
 import { useAuth } from '../hooks/useAuth';
-import { useDarkMode } from '../hooks/useDarkMode';
 import { cn } from '../lib/cn';
 
 interface Section {
@@ -42,7 +39,6 @@ interface Section {
 export function PrivacyPage() {
   const navigate = useNavigate();
   const { isAuthenticated, isExploring } = useAuth();
-  const { theme, cycleTheme } = useDarkMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSectionId, setActiveSectionId] = useState('overview');
 
@@ -56,10 +52,10 @@ export function PrivacyPage() {
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              At <strong>Studexa</strong>, operated by <strong>Lexon IT Solutions</strong> (&quot;<strong>we</strong>&quot;, &quot;<strong>our</strong>&quot;, or &quot;<strong>us</strong>&quot;), we believe that students, educators, and academic researchers deserve complete clarity regarding how their personal and educational information is handled.
+              At <strong>answersbro</strong>, operated by <strong>Lexon IT Solutions</strong> (&quot;<strong>we</strong>&quot;, &quot;<strong>our</strong>&quot;, or &quot;<strong>us</strong>&quot;), we believe that students, educators, and academic researchers deserve complete clarity regarding how their personal and educational information is handled.
             </p>
             <p>
-              This Privacy Policy explains what information we collect when you use the Studexa digital library, upload course notes, interact with university peers, or communicate with our support desk, and how we protect that information.
+              This Privacy Policy explains what information we collect when you use the answersbro digital library, upload course notes, interact with university peers, or communicate with our support desk, and how we protect that information.
             </p>
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs sm:text-sm text-on-surface space-y-2">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -186,7 +182,7 @@ export function PrivacyPage() {
               <div className="p-3.5 rounded-xl border border-card-border bg-surface-container-low">
                 <h5 className="text-xs font-bold text-on-surface mb-1">Trusted Cloud Infrastructure Providers</h5>
                 <p className="text-xs text-on-surface-variant">
-                  We partner with industry-standard cloud providers such as <strong>Supabase</strong> (for managed PostgreSQL database, authentication, and encrypted object storage) and modern hosting infrastructure to run Studexa reliably. These providers process data strictly on our behalf under rigorous data protection agreements.
+                  We partner with industry-standard cloud providers such as <strong>Supabase</strong> (for managed PostgreSQL database, authentication, and encrypted object storage) and modern hosting infrastructure to run answersbro reliably. These providers process data strictly on our behalf under rigorous data protection agreements.
                 </p>
               </div>
 
@@ -215,7 +211,7 @@ export function PrivacyPage() {
                 <strong>Row Level Security (RLS):</strong> Our database utilizes strict PostgreSQL Row Level Security policies. This ensures that only authorized users can view or modify their private bookmarks, drafts, and direct messages.
               </li>
               <li>
-                <strong>Encryption in Transit:</strong> All data transmitted between your browser and Studexa servers is protected with modern Transport Layer Security (TLS/HTTPS).
+                <strong>Encryption in Transit:</strong> All data transmitted between your browser and answersbro servers is protected with modern Transport Layer Security (TLS/HTTPS).
               </li>
               <li>
                 <strong>Credential Hashing:</strong> Passwords are never stored in plaintext. They are securely salted and hashed using industry-standard cryptographic algorithms.
@@ -303,7 +299,7 @@ export function PrivacyPage() {
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              Studexa uses essential cookies and modern browser Local Storage solely to provide a seamless and secure experience. We do not use third-party tracking pixels or ad network beacons.
+              answersbro uses essential cookies and modern browser Local Storage solely to provide a seamless and secure experience. We do not use third-party tracking pixels or ad network beacons.
             </p>
             <div className="space-y-2 text-xs">
               <div className="flex items-start gap-3 p-3 rounded-lg border border-card-border bg-surface-container-low">
@@ -312,7 +308,7 @@ export function PrivacyPage() {
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg border border-card-border bg-surface-container-low">
                 <span className="font-mono text-primary font-bold shrink-0">Theme Mode:</span>
-                <span>Stores your preference for Dark Mode or Light Mode (<code>lexon-theme</code> / <code>quicklearnit-theme</code>).</span>
+                <span>Stores your preference for Dark Mode or Light Mode (<code>lexon-theme</code> / <code>answersbro-theme</code>).</span>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg border border-card-border bg-surface-container-low">
                 <span className="font-mono text-primary font-bold shrink-0">Guest Exploration:</span>
@@ -330,7 +326,7 @@ export function PrivacyPage() {
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              Studexa is designed specifically for students in high schools, polytechnic colleges, universities, and adult educators. The Platform is not intended for children under 13 years of age.
+              answersbro is designed specifically for students in high schools, polytechnic colleges, universities, and adult educators. The Platform is not intended for children under 13 years of age.
             </p>
             <p>
               We do not knowingly collect or solicit personal information from anyone under the age of 13. If we discover that an account has been registered by a child under 13 without verified parental consent, we will promptly delete that account and all associated personal data from our database.
@@ -346,7 +342,7 @@ export function PrivacyPage() {
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              Lexon IT Solutions may update this Privacy Policy periodically to reflect enhancements to Studexa, security best practices, or changing privacy regulations.
+              Lexon IT Solutions may update this Privacy Policy periodically to reflect enhancements to answersbro, security best practices, or changing privacy regulations.
             </p>
             <p>
               When changes are published, we will revise the &quot;Last Updated&quot; date at the top of this policy and notify active students through an in-app banner or notification alert.
@@ -356,7 +352,7 @@ export function PrivacyPage() {
               <p className="text-xs text-on-surface-variant">
                 Support Portal:{' '}
                 <Link to="/support" className="text-primary font-medium hover:underline">
-                  studexa.app/support
+                  answersbro.app/support
                 </Link>
               </p>
               <p className="text-xs text-on-surface-variant">
@@ -433,7 +429,7 @@ export function PrivacyPage() {
                   navigate('/get-started');
                 }
               }}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer shrink-0"
               title="Go back"
               aria-label="Go back"
             >
@@ -441,63 +437,21 @@ export function PrivacyPage() {
             </button>
 
             <Link to={isAuthenticated && !isExploring ? '/dashboard' : '/get-started'} className="flex items-center">
-              <Logo height={30} />
+              <Logo height={28} imgClassName="h-7 sm:h-[30px] w-auto object-contain" />
             </Link>
-
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <ShieldCheck size={12} />
-              <span>Privacy Policy</span>
-            </span>
           </div>
 
-          {/* Right Action Tools */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Quick Link to Terms */}
-            <Link
-              to="/terms"
-              className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors hidden md:inline-block px-2 py-1"
-            >
-              Terms of Service
-            </Link>
-
-            {/* Print Button */}
+          {/* Right Action Tools: Print only */}
+          <div className="flex items-center">
             <button
               type="button"
               onClick={handlePrint}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer shrink-0"
               title="Print or Save as PDF"
               aria-label="Print or Save as PDF"
             >
               <Printer size={16} />
             </button>
-
-            {/* Dark Mode Toggle */}
-            <button
-              type="button"
-              onClick={cycleTheme}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
-              title="Toggle theme"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Moon size={16} className="text-primary" /> : <Sun size={16} className="text-amber-500" />}
-            </button>
-
-            {/* Account / Dashboard Button */}
-            {isAuthenticated && !isExploring ? (
-              <Link
-                to="/dashboard"
-                className="inline-flex items-center justify-center rounded-xl bg-primary hover:bg-primary-hover px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-xs"
-              >
-                Dashboard
-              </Link>
-            ) : (
-              <Link
-                to="/signin"
-                className="inline-flex items-center justify-center rounded-xl bg-primary hover:bg-primary-hover px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-xs"
-              >
-                Sign In
-              </Link>
-            )}
           </div>
         </div>
       </header>
@@ -519,7 +473,7 @@ export function PrivacyPage() {
             </h1>
 
             <p className="mt-3 text-sm sm:text-base text-on-surface-variant leading-relaxed max-w-2xl">
-              Learn how Studexa and Lexon IT Solutions collect, protect, and handle your academic data, notes, and profile details with complete transparency.
+              Learn how answersbro and Lexon IT Solutions collect, protect, and handle your academic data, notes, and profile details with complete transparency.
             </p>
 
             {/* Document Metadata Badges */}
@@ -698,7 +652,7 @@ export function PrivacyPage() {
                 Looking for our terms and conditions?
               </h3>
               <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl mx-auto">
-                Read the Studexa Academic Honor Code, upload licenses, document moderation standards, and user agreement.
+                Read the answersbro Academic Honor Code, upload licenses, document moderation standards, and user agreement.
               </p>
               <div className="pt-2">
                 <Link

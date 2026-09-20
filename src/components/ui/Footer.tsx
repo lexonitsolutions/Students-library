@@ -19,53 +19,35 @@ export function Footer({ className }: FooterProps) {
             hidden: { opacity: 0 },
             visible: { opacity: 1, transition: { staggerChildren: 0.12 } }
           }}
-          className="text-[13vw] sm:text-[14vw] lg:text-[15vw] leading-none font-semibold tracking-tight text-on-surface flex items-center justify-center" 
-          aria-label="Studexa"
+          className="text-[11vw] sm:text-[12vw] lg:text-[13vw] leading-none font-bold tracking-tight flex items-center justify-center" 
+          aria-label="answersbro"
         >
-          {/* Split S, t, u, d, e into separate motion elements */}
-          {["S", "t", "u", "d", "e"].map((char, i) => (
+          {/* answers in primary blue */}
+          {["a", "n", "s", "w", "e", "r", "s"].map((char, i) => (
             <motion.span 
-              key={i}
+              key={`ans-${i}`}
               variants={{
                 hidden: { opacity: 0, y: 30 },
                 visible: { opacity: 1, y: 0, transition: { type: 'spring', damping: 20, stiffness: 100 } }
               }}
+              className="text-primary"
             >
               {char}
             </motion.span>
           ))}
-          
-          <motion.span
-            variants={{
-              hidden: { opacity: 0, y: 30 },
-              visible: { opacity: 1, y: 0, transition: { type: 'spring', damping: 20, stiffness: 100 } }
-            }}
-          >
-            <svg 
-              viewBox="0 0 80 100" 
-              className="h-[0.75em] w-auto mx-[0.02em] inline-block" 
-              style={{ transform: 'translateY(-0.05em)' }}
-              aria-hidden="true"
+          {/* bro in brand orange */}
+          {["b", "r", "o"].map((char, i) => (
+            <motion.span 
+              key={`bro-${i}`}
+              variants={{
+                hidden: { opacity: 0, y: 30 },
+                visible: { opacity: 1, y: 0, transition: { type: 'spring', damping: 20, stiffness: 100 } }
+              }}
+              className="text-[#FFA500] dark:text-[#FFAA32]"
             >
-              <defs>
-                <linearGradient id="xGrad" x1="0" y1="100" x2="80" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#863bff" />
-                  <stop offset="100%" stopColor="#3b82f6" />
-                </linearGradient>
-              </defs>
-              <polygon points="0,0 22,0 80,100 58,100" fill="currentColor" />
-              <polygon points="58,0 80,0 22,100 0,100" fill="url(#xGrad)" />
-            </svg>
-          </motion.span>
-          
-          <motion.span
-            variants={{
-              hidden: { opacity: 0, y: 30 },
-              visible: { opacity: 1, y: 0, transition: { type: 'spring', damping: 20, stiffness: 100 } }
-            }}
-          >
-            a
-          </motion.span>
+              {char}
+            </motion.span>
+          ))}
         </motion.h1>
 
         {/* Vertical text positioned at the far right edge with 2px or 3px gap */}
