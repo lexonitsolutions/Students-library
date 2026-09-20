@@ -200,40 +200,52 @@ function PreviousDarkModeSectionContent() {
           <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-800 max-w-[480px] mx-auto bg-[#0f1115]">
             <div className="flex">
               {/* Light Side */}
-              <div className="w-1/2 bg-white p-5 sm:p-6 border-r border-slate-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sun size={16} className="text-amber-500" />
-                  <span className="text-xs font-bold text-slate-800">Light Mode</span>
-                </div>
+              <div className="w-1/2 bg-white p-4 sm:p-5 border-r border-slate-200 flex flex-col justify-between">
                 <div className="space-y-3">
-                  <div className="h-3.5 w-3/4 rounded bg-slate-100" />
-                  <div className="h-3.5 w-full rounded bg-slate-100" />
-                  <div className="h-20 w-full rounded-xl bg-slate-50 border border-slate-200 p-3 mt-4">
-                    <div className="h-3 w-1/2 rounded bg-slate-200 mb-2" />
-                    <div className="h-3 w-1/3 rounded bg-indigo-100" />
+                  <div className="flex items-center gap-2">
+                    <Sun size={15} className="text-amber-500" />
+                    <span className="text-xs font-bold text-slate-800">Light Mode</span>
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">Good morning</h4>
+                    <p className="text-[10px] text-slate-500 truncate">Resume your studies</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-2.5 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">PDF</span>
+                      <span className="text-[9px] text-slate-500">★ 4.9</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-800 line-clamp-2 leading-snug">Operating Systems Notes</p>
+                    <p className="text-[9px] text-slate-400">Alex K. · 48 pgs</p>
                   </div>
                 </div>
               </div>
 
               {/* Dark Side */}
-              <div className="w-1/2 bg-[#0f1115] p-5 sm:p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Moon size={16} className="text-indigo-400" />
-                  <span className="text-xs font-bold text-slate-100">Dark Mode</span>
-                </div>
+              <div className="w-1/2 bg-[#0b0e17] p-4 sm:p-5 flex flex-col justify-between">
                 <div className="space-y-3">
-                  <div className="h-3.5 w-3/4 rounded bg-[#1f2937]" />
-                  <div className="h-3.5 w-full rounded bg-[#1f2937]" />
-                  <div className="h-20 w-full rounded-xl bg-[#171e2b] border border-[#2d3748] p-3 mt-4">
-                    <div className="h-3 w-1/2 rounded bg-[#374151] mb-2" />
-                    <div className="h-3 w-1/3 rounded bg-indigo-500/30" />
+                  <div className="flex items-center gap-2">
+                    <Moon size={15} className="text-indigo-400" />
+                    <span className="text-xs font-bold text-slate-100">Dark Mode</span>
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-white leading-tight">Good evening</h4>
+                    <p className="text-[10px] text-slate-400 truncate">Resume your studies</p>
+                  </div>
+                  <div className="rounded-xl bg-[#141824] border border-slate-800 p-2.5 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.2 rounded">PDF</span>
+                      <span className="text-[9px] text-slate-400">★ 4.9</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-white line-clamp-2 leading-snug">Deep Learning Notes</p>
+                    <p className="text-[9px] text-slate-500">Jordan L. · 54 pgs</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Central Divider Glow */}
-            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-transparent via-primary/60 to-transparent shadow-[0_0_15px_rgba(99,102,241,0.6)]" />
+            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-transparent via-primary/60 to-transparent shadow-[0_0_15px_rgba(99,102,241,0.6)] pointer-events-none" />
           </div>
         </div>
 
@@ -244,13 +256,218 @@ function PreviousDarkModeSectionContent() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   MobileDarkModeDashboardCard
+   Dedicated clean static dashboard card for mobile screens.
+   Completely removes the 600vh scroll-trap exploring feature on mobile,
+   and features the Studexa dashboard card with Light Mode and Dark Mode.
+   ══════════════════════════════════════════════════════════════════════ */
+
+function MobileDarkModeDashboardCard() {
+  const [viewMode, setViewMode] = useState<'split' | 'light' | 'dark'>('split');
+
+  return (
+    <div className="block md:hidden w-full bg-[#0a0a0a] border-y border-slate-800 py-10 px-4 relative overflow-hidden shadow-2xl select-none">
+      {/* Background depth glows */}
+      <div className="pointer-events-none absolute -top-24 left-1/4 h-[260px] w-[350px] rounded-full bg-indigo-900/20 blur-[100px]" />
+      <div className="pointer-events-none absolute -bottom-24 right-1/4 h-[260px] w-[350px] rounded-full bg-purple-900/20 blur-[100px]" />
+
+      <div className="mx-auto max-w-lg w-full relative z-10 space-y-6">
+        {/* Text Header */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+            <Moon size={13} />
+            <span>NATIVE DARK MODE</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+            Study comfortably, <br /> day or night.
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+            Late night cramming? Studexa features a gorgeous, fully-integrated dark theme that's easy on the eyes. Switch seamlessly depending on your study environment.
+          </p>
+        </div>
+
+        {/* Dashboard Mockup Card */}
+        <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-[#0f1115]">
+          {/* Card Window Header */}
+          <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-800 bg-[#141824]">
+            {/* Window control dots */}
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            </div>
+
+            {/* Mode Switcher Buttons */}
+            <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-slate-700/60 text-[10px] font-bold">
+              <button
+                type="button"
+                onClick={() => setViewMode('split')}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  viewMode === 'split' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Split
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('light')}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                  viewMode === 'light' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sun size={10} /> Light
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('dark')}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                  viewMode === 'dark' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Moon size={10} /> Dark
+              </button>
+            </div>
+          </div>
+
+          {/* Card Body */}
+          <div className="relative overflow-hidden">
+            {/* 1. SPLIT VIEW */}
+            {viewMode === 'split' && (
+              <div className="flex relative">
+                {/* Light Side */}
+                <div className="w-1/2 bg-white p-3.5 flex flex-col justify-between border-r border-slate-200">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-1">
+                      <Sun size={12} className="text-amber-500" />
+                      <span className="text-[10px] font-bold text-slate-700">Light Mode</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900 leading-tight">Good morning</h4>
+                      <p className="text-[9px] text-slate-500 truncate">Resume your studies</p>
+                    </div>
+                    {/* Material Item */}
+                    <div className="rounded-lg bg-slate-50 border border-slate-200 p-2 space-y-1 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded">PDF</span>
+                        <span className="text-[8px] text-slate-500">★ 4.9</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-800 line-clamp-2 leading-snug">Operating Systems Notes</p>
+                      <p className="text-[8px] text-slate-400">Alex K. · 48 pgs</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dark Side */}
+                <div className="w-1/2 bg-[#0b0e17] p-3.5 flex flex-col justify-between">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-1">
+                      <Moon size={12} className="text-indigo-400" />
+                      <span className="text-[10px] font-bold text-slate-200">Dark Mode</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-extrabold text-white leading-tight">Good evening</h4>
+                      <p className="text-[9px] text-slate-400 truncate">Resume your studies</p>
+                    </div>
+                    {/* Material Item */}
+                    <div className="rounded-lg bg-[#141824] border border-slate-800 p-2 space-y-1 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8px] font-bold text-indigo-300 bg-indigo-500/20 px-1 py-0.2 rounded">PDF</span>
+                        <span className="text-[8px] text-slate-400">★ 4.9</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-white line-clamp-2 leading-snug">Deep Learning Notes</p>
+                      <p className="text-[8px] text-slate-500">Jordan L. · 54 pgs</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Central Divider Glow */}
+                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-transparent via-primary/70 to-transparent shadow-[0_0_12px_rgba(99,102,241,0.8)] pointer-events-none" />
+              </div>
+            )}
+
+            {/* 2. FULL LIGHT VIEW */}
+            {viewMode === 'light' && (
+              <div className="bg-white p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-slate-900">Good morning, Student</h4>
+                    <p className="text-[10px] text-slate-500">Let's continue your studies where you left off.</p>
+                  </div>
+                  <span className="rounded-full bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 text-[9px] font-bold flex items-center gap-1">
+                    <Sun size={10} /> Light Mode
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-2.5 shadow-2xs flex flex-col justify-between h-24">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">PDF</span>
+                        <span className="text-[8px] text-slate-500">★ 4.9</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-800 line-clamp-2 leading-tight">Operating Systems Concurrency</p>
+                    </div>
+                    <span className="text-[8px] text-slate-400">Alex K. · 48 Pages</span>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-2.5 shadow-2xs flex flex-col justify-between h-24">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.2 rounded">DOCX</span>
+                        <span className="text-[8px] text-slate-500">★ 4.8</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-800 line-clamp-2 leading-tight">Discrete Math PYQs 2023</p>
+                    </div>
+                    <span className="text-[8px] text-slate-400">Sarah M. · 32 Pages</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. FULL DARK VIEW */}
+            {viewMode === 'dark' && (
+              <div className="bg-[#0b0e17] p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-white">Good evening, Student</h4>
+                    <p className="text-[10px] text-slate-400">Let's continue your studies where you left off.</p>
+                  </div>
+                  <span className="rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 px-2 py-0.5 text-[9px] font-bold flex items-center gap-1">
+                    <Moon size={10} /> Dark Mode
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-[#141824] border border-slate-800 p-2.5 shadow-2xs flex flex-col justify-between h-24">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.2 rounded">PDF</span>
+                        <span className="text-[8px] text-slate-400">★ 4.9</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-white line-clamp-2 leading-tight">Deep Learning Architectures</p>
+                    </div>
+                    <span className="text-[8px] text-slate-400">Jordan L. · 54 Pages</span>
+                  </div>
+                  <div className="rounded-xl bg-[#141824] border border-slate-800 p-2.5 shadow-2xs flex flex-col justify-between h-24">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] font-bold text-sky-300 bg-sky-500/20 px-1.5 py-0.2 rounded">DOCX</span>
+                        <span className="text-[8px] text-slate-400">★ 4.8</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-white line-clamp-2 leading-tight">Distributed Systems Guide</p>
+                    </div>
+                    <span className="text-[8px] text-slate-400">David Y. · 36 Pages</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    DarkModeScrollShowcase
-   A 100 % scroll-controlled dark-mode showcase.
-   Initially shows the exact previous Dark Mode section content.
-   As the user scrolls:
-   - TOP half moves upward
-   - BOTTOM half moves downward
-   from that content height, revealing the full 4-page Dark Mode showcase.
+   A 100 % scroll-controlled dark-mode showcase on desktop/tablets.
    ══════════════════════════════════════════════════════════════════════ */
 
 export function DarkModeScrollShowcase() {
@@ -314,11 +531,16 @@ export function DarkModeScrollShowcase() {
 
   /* ═══════════════════════ RENDER ═══════════════════════════════════ */
   return (
-    <div
-      ref={containerRef}
-      className="relative"
-      style={{ height: '600vh' }}           /* tall scroll runway */
-    >
+    <>
+      {/* ── MOBILE SCREENS: Clean static dashboard card with light/dark modes (NO 600vh scroll-trap exploring feature) ── */}
+      <MobileDarkModeDashboardCard />
+
+      {/* ── DESKTOP & TABLETS: Full 600vh scroll-controlled showcase ── */}
+      <div
+        ref={containerRef}
+        className="hidden md:block relative"
+        style={{ height: '600vh' }}           /* tall scroll runway */
+      >
       <div className="sticky top-0 h-screen w-full overflow-hidden">
 
         {/* ── Layer 0: Dark background ── */}
@@ -1218,5 +1440,6 @@ export function DarkModeScrollShowcase() {
 
       </div>
     </div>
+    </>
   );
 }

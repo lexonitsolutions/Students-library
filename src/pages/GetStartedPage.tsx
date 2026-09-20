@@ -30,7 +30,6 @@ import { useAuth } from '../hooks/useAuth';
 import { Logo } from '../components/ui/Logo';
 import { Footer } from '../components/ui/Footer';
 import { DarkModeScrollShowcase } from '../components/ui/DarkModeScrollShowcase';
-import { MobileThemeShowcaseCard } from '../components/ui/MobileThemeShowcaseCard';
 /* ── TYPEWRITER TEXT EFFECT COMPONENT ── */
 function TypewriterText({ text, delay = 0, speed = 0.03 }: { text: string; delay?: number; speed?: number }) {
   const letters = Array.from(text);
@@ -1045,13 +1044,8 @@ export function GetStartedPage() {
         </div>
       </motion.section>
 
-      {/* ── DARK MODE SHOWCASE: SCROLL-CONTROLLED ON DESKTOP, COMPACT THEME CARD ON MOBILE ── */}
-      <div className="hidden md:block">
-        <DarkModeScrollShowcase />
-      </div>
-      <div className="block md:hidden">
-        <MobileThemeShowcaseCard />
-      </div>
+      {/* ── DARK MODE SHOWCASE (100% SCROLL-CONTROLLED) ── */}
+      <DarkModeScrollShowcase />
 
       {/* ── COMBINED HOW IT WORKS & CTA WITH CONTINUOUS SCROLL-CONTROLLED WATERMARK ── */}
       <div 
