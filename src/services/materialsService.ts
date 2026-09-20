@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { toMaterial } from '../lib/materialMapper';
+import { cachedQuery, invalidateCache } from '../lib/queryCache';
 import { listBookmarkedMaterialIds, listBookmarkedMaterials } from './bookmarksService';
 import { getLocalLikesCount, recordDownloadWithCount } from './likesService';
 import type { Material } from '../data/types';
@@ -7,6 +8,54 @@ import type { MaterialRow, MaterialStatus, MaterialType, PublicProfileRow } from
 
 const profileCache = new Map<string, PublicProfileRow>();
 let cachedApprovedMaterials: Material[] = [];
+
+const SESSION_MATERIALS_KEY = 'answersbro_cached_approved_materials';
+let inMemorySessionMaterials: Material[] | null = null;
+
+export function getCachedMaterialsFromSession(): Material[] | null {
+  if (inMemorySessionMaterials && inMemorySessionMaterials.length > 0) {
+    return inMemorySessionMaterials;
+  }
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const raw = sessionStorage.getItem(SESSION_MATERIALS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.map((m: Material) => ({
+            ...m,
+            uploaderName: (m.uploaderName && /studex/i.test(m.uploaderName)) ? 'Past user' : (m.uploaderName || 'Past user'),
+          }));
+          inMemorySessionMaterials = cleaned;
+          return cleaned;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse cached session materials:', e);
+  }
+  return null;
+}
+
+export function saveMaterialsToSession(materials: Material[]): void {
+  inMemorySessionMaterials = materials;
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.setItem(SESSION_MATERIALS_KEY, JSON.stringify(materials));
+    }
+  } catch (e) {
+    console.warn('Failed to save materials to sessionStorage:', e);
+  }
+}
+
+export function clearMaterialsSession(): void {
+  inMemorySessionMaterials = null;
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.removeItem(SESSION_MATERIALS_KEY);
+    }
+  } catch {}
+}
 
 async function fetchUploaders(rows: readonly MaterialRow[]): Promise<Map<string, PublicProfileRow>> {
   const missingIds = [...new Set(rows.map((row) => row.uploader_id))].filter((id) => !profileCache.has(id));
@@ -30,9 +79,39 @@ async function toMaterialsWithUploaders(rows: MaterialRow[], savedIds?: Set<stri
   return rows.map((row) => toMaterial(row, uploaders.get(row.uploader_id), savedIds?.has(row.id)));
 }
 
+/** Pre-fetches approved materials once when user logs in and stores in session cache */
+export async function prefetchMaterialsOnLogin(userId?: string): Promise<Material[]> {
+  // If already in session, return it
+  const existing = getCachedMaterialsFromSession();
+  if (existing && existing.length > 0) {
+    return existing;
+  }
+
+  try {
+    let savedIds: Set<string> | undefined;
+    if (userId) {
+      try {
+        savedIds = await listBookmarkedMaterialIds(userId);
+      } catch {}
+    }
+    const materials = await listApprovedMaterialsForUI({}, savedIds);
+    if (materials && materials.length > 0) {
+      saveMaterialsToSession(materials);
+    }
+    return materials;
+  } catch (err) {
+    console.warn('Failed to prefetch materials on login:', err);
+    return [];
+  }
+}
+
 /** Invalidate cached materials to force an immediate reload from the database */
 export function invalidateMaterialsCache(): void {
   cachedApprovedMaterials = [];
+  clearMaterialsSession();
+  invalidateCache('approved_materials');
+  invalidateCache('material:');
+  invalidateCache('leaderboard:');
 }
 
 export interface MaterialFilters {
@@ -44,11 +123,18 @@ export interface MaterialFilters {
   readonly type?: string;
 }
 
-/** Approved materials joined with uploader name/avatar, fetched directly from database only. */
+/** Approved materials joined with uploader name/avatar, with in-memory caching and deduplication. */
 export async function listApprovedMaterialsForUI(filters: MaterialFilters = {}, savedIds?: Set<string>): Promise<Material[]> {
+  const cacheKey = `approved_materials:${JSON.stringify(filters)}`;
   try {
-    const rows = await listApprovedMaterials(filters);
-    const dbMaterials = await toMaterialsWithUploaders(rows, savedIds);
+    const dbMaterials = await cachedQuery(
+      cacheKey,
+      async () => {
+        const rows = await listApprovedMaterials(filters);
+        return await toMaterialsWithUploaders(rows);
+      },
+      45_000 // 45 seconds TTL
+    );
     cachedApprovedMaterials = dbMaterials;
     return dbMaterials.map((m) => ({
       ...m,
@@ -56,7 +142,6 @@ export async function listApprovedMaterialsForUI(filters: MaterialFilters = {}, 
     }));
   } catch (err) {
     console.warn('Failed to load materials from DB:', err);
-    // Return cached if available, else empty
     return cachedApprovedMaterials.map((m) => ({
       ...m,
       isSaved: savedIds ? savedIds.has(m.id) : m.isSaved,
@@ -64,7 +149,7 @@ export async function listApprovedMaterialsForUI(filters: MaterialFilters = {}, 
   }
 }
 
-/** A single material joined with its uploader, for the details/reader pages. */
+/** A single material joined with its uploader, for the details/reader pages, cached with 60s TTL. */
 export async function getMaterialForUI(id: string, userIdOrSavedIds?: string | Set<string>): Promise<Material | null> {
   let savedIds: Set<string> | undefined;
   if (userIdOrSavedIds instanceof Set) {
@@ -79,13 +164,25 @@ export async function getMaterialForUI(id: string, userIdOrSavedIds?: string | S
 
   const isItemSaved = savedIds ? savedIds.has(id) : false;
 
-  try {
-    const row = await getMaterialById(id);
-    const uploaders = await fetchUploaders([row]);
-    return toMaterial(row, uploaders.get(row.uploader_id), isItemSaved);
-  } catch {
-    return null;
-  }
+  const baseMaterial = await cachedQuery(
+    `material:${id}`,
+    async () => {
+      try {
+        const row = await getMaterialById(id);
+        const uploaders = await fetchUploaders([row]);
+        return toMaterial(row, uploaders.get(row.uploader_id), false);
+      } catch {
+        return null;
+      }
+    },
+    60_000 // 60 seconds TTL
+  );
+
+  if (!baseMaterial) return null;
+  return {
+    ...baseMaterial,
+    isSaved: isItemSaved || baseMaterial.isSaved,
+  };
 }
 
 /** The signed-in user's own uploads from the database only. */
@@ -372,114 +469,134 @@ export interface LeaderboardEntry {
 }
 
 export async function listLeaderboardForUI(currentUserId?: string): Promise<LeaderboardEntry[]> {
-  try {
-    // Fetch profile stats
-    const { data: statsData, error: statsError } = await supabase
-      .from('profile_stats')
-      .select('user_id, uploads_count, downloads_count')
-      .order('uploads_count', { ascending: false })
-      .limit(50);
+  return cachedQuery(
+    `leaderboard:${currentUserId || 'all'}`,
+    async () => {
+      try {
+        // Fetch profile stats
+        const { data: statsData, error: statsError } = await supabase
+          .from('profile_stats')
+          .select('user_id, uploads_count, downloads_count')
+          .order('uploads_count', { ascending: false })
+          .limit(50);
 
-    if (statsError || !statsData || statsData.length === 0) return [];
+        if (statsError || !statsData || statsData.length === 0) return [];
 
-    let userIds = statsData.map((s: { user_id: string }) => s.user_id);
-    
-    if (currentUserId && !userIds.includes(currentUserId)) {
-      userIds.push(currentUserId);
-      const { data: currentUserStats } = await supabase
-        .from('profile_stats')
-        .select('user_id, uploads_count, downloads_count')
-        .eq('user_id', currentUserId)
-        .single();
-      
-      if (currentUserStats && currentUserStats.uploads_count > 0) {
-        statsData.push(currentUserStats);
-      }
-    }
-
-    // Fetch public profiles for those users
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('public_profiles')
-      .select('id, name, username, avatar_url, university, branch, college, major')
-      .in('id', userIds);
-
-    if (profilesError || !profilesData) return [];
-
-    const profileMap = new Map(profilesData.map((p: { id: string; name: string; username: string | null; avatar_url: string | null; university: string | null; branch: string | null; college: string | null; major: string | null }) => [p.id, p]));
-
-    // Fetch views, likes, and types by counting materials
-    const { data: materialsData } = await supabase
-      .from('materials')
-      .select('id, uploader_id, views_count, saves_count, downloads_count, likes_count, type')
-      .in('uploader_id', userIds)
-      .eq('status', 'approved');
-
-    const viewsByUser = new Map<string, number>();
-    const likesByUser = new Map<string, number>();
-    const downloadsByUser = new Map<string, number>();
-    const typesByUser = new Map<string, string[]>();
-
-    if (materialsData) {
-      for (const row of materialsData as any[]) {
-        viewsByUser.set(row.uploader_id, (viewsByUser.get(row.uploader_id) ?? 0) + (row.views_count ?? 0));
-        downloadsByUser.set(row.uploader_id, (downloadsByUser.get(row.uploader_id) ?? 0) + (row.downloads_count ?? 0));
+        let userIds = statsData.map((s: { user_id: string }) => s.user_id);
         
-        const baseLikes = row.likes_count ?? row.saves_count ?? 0;
-        const local = typeof window !== 'undefined' ? getLocalLikesCount(row.id, baseLikes) : baseLikes;
-        likesByUser.set(row.uploader_id, (likesByUser.get(row.uploader_id) ?? 0) + local);
-
-        const types = typesByUser.get(row.uploader_id) ?? [];
-        types.push(row.type);
-        typesByUser.set(row.uploader_id, types);
-      }
-    }
-
-    return statsData
-      .filter((s: { user_id: string; uploads_count: number; downloads_count: number }) => s.uploads_count > 0)
-      .map((s: { user_id: string; uploads_count: number; downloads_count: number }): LeaderboardEntry | null => {
-        const p = profileMap.get(s.user_id);
-        if (!p) return null;
-
-        const types = typesByUser.get(s.user_id) ?? [];
-        let papers = 0;
-        let assignments = 0;
-        let materials = 0;
-        for (const t of types) {
-          if (t === 'past-paper') papers++;
-          else if (t === 'doc') assignments++;
-          else materials++; // 'notes', 'pdf', 'slides', 'lab-manual'
-        }
-
-        const max = Math.max(papers, assignments, materials);
-        let label = s.uploads_count === 1 ? 'Upload' : 'Uploads';
-        if (max > 0) {
-          if (max === papers && papers >= assignments && papers >= materials) {
-            label = s.uploads_count === 1 ? 'Paper' : 'Papers';
-          } else if (max === assignments && assignments >= papers && assignments >= materials) {
-            label = s.uploads_count === 1 ? 'Assignment' : 'Assignments';
-          } else {
-            label = s.uploads_count === 1 ? 'Material' : 'Materials';
+        if (currentUserId && !userIds.includes(currentUserId)) {
+          userIds.push(currentUserId);
+          const { data: currentUserStats } = await supabase
+            .from('profile_stats')
+            .select('user_id, uploads_count, downloads_count')
+            .eq('user_id', currentUserId)
+            .single();
+          
+          if (currentUserStats && currentUserStats.uploads_count > 0) {
+            statsData.push(currentUserStats);
           }
         }
 
-        return {
-          id: s.user_id,
-          name: p.name || 'Student',
-          username: p.username ? `@${p.username}` : `@student`,
-          avatar: p.avatar_url || `https://i.pravatar.cc/80?u=${s.user_id}`,
-          university: p.university || p.college || '',
-          branch: p.branch || p.major || '',
-          totalUploads: s.uploads_count ?? 0,
-          uploadLabel: label,
-          totalViews: viewsByUser.get(s.user_id) ?? 0,
-          totalDownloads: Math.max(s.downloads_count ?? 0, downloadsByUser.get(s.user_id) ?? 0),
-          totalLikes: likesByUser.get(s.user_id) ?? 0,
-        };
-      })
-      .filter((e): e is LeaderboardEntry => e !== null);
-  } catch (err) {
-    console.warn('Failed to load leaderboard data:', err);
-    return [];
-  }
+        // Fetch public profiles for those users
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('public_profiles')
+          .select('id, name, username, avatar_url, university, branch, college, major')
+          .in('id', userIds);
+
+        if (profilesError || !profilesData) return [];
+
+        const profileMap = new Map(profilesData.map((p: { id: string; name: string; username: string | null; avatar_url: string | null; university: string | null; branch: string | null; college: string | null; major: string | null }) => [p.id, p]));
+
+        // Fetch views, likes, and types by counting materials
+        const { data: materialsData } = await supabase
+          .from('materials')
+          .select('id, uploader_id, views_count, saves_count, downloads_count, likes_count, type')
+          .in('uploader_id', userIds)
+          .eq('status', 'approved');
+
+        const viewsByUser = new Map<string, number>();
+        const likesByUser = new Map<string, number>();
+        const downloadsByUser = new Map<string, number>();
+        const typesByUser = new Map<string, string[]>();
+
+        if (materialsData) {
+          for (const row of materialsData as any[]) {
+            viewsByUser.set(row.uploader_id, (viewsByUser.get(row.uploader_id) ?? 0) + (row.views_count ?? 0));
+            downloadsByUser.set(row.uploader_id, (downloadsByUser.get(row.uploader_id) ?? 0) + (row.downloads_count ?? 0));
+            
+            const baseLikes = row.likes_count ?? row.saves_count ?? 0;
+            const local = typeof window !== 'undefined' ? getLocalLikesCount(row.id, baseLikes) : baseLikes;
+            likesByUser.set(row.uploader_id, (likesByUser.get(row.uploader_id) ?? 0) + local);
+
+            const types = typesByUser.get(row.uploader_id) ?? [];
+            types.push(row.type);
+            typesByUser.set(row.uploader_id, types);
+          }
+        }
+
+        return statsData
+          .filter((s: { user_id: string; uploads_count: number; downloads_count: number }) => s.uploads_count > 0)
+          .map((s: { user_id: string; uploads_count: number; downloads_count: number }): LeaderboardEntry | null => {
+            const p = profileMap.get(s.user_id);
+            if (!p) return null;
+
+            const types = typesByUser.get(s.user_id) ?? [];
+            let papers = 0;
+            let assignments = 0;
+            let materials = 0;
+            for (const t of types) {
+              if (t === 'past-paper') papers++;
+              else if (t === 'doc') assignments++;
+              else materials++; // 'notes', 'pdf', 'slides', 'lab-manual'
+            }
+
+            const max = Math.max(papers, assignments, materials);
+            let label = s.uploads_count === 1 ? 'Upload' : 'Uploads';
+            if (max > 0) {
+              if (max === papers && papers >= assignments && papers >= materials) {
+                label = s.uploads_count === 1 ? 'Paper' : 'Papers';
+              } else if (max === assignments && assignments >= papers && assignments >= materials) {
+                label = s.uploads_count === 1 ? 'Assignment' : 'Assignments';
+              } else {
+                label = s.uploads_count === 1 ? 'Material' : 'Materials';
+              }
+            }
+
+            const name = p.name || 'Student';
+            const lowerName = name.toLowerCase();
+            const lowerUsername = (p.username || '').toLowerCase();
+
+            // Exclude past / studex users from the leaderboard so only active users appear
+            if (
+              lowerName.includes('studex') ||
+              lowerName.includes('past user') ||
+              lowerUsername.includes('studex') ||
+              (p as any).is_deleted
+            ) {
+              return null;
+            }
+
+            return {
+              id: s.user_id,
+              name,
+              username: p.username ? `@${p.username}` : `@student`,
+              avatar: p.avatar_url || '',
+              university: p.university || p.college || '',
+              branch: p.branch || p.major || '',
+              totalUploads: s.uploads_count ?? 0,
+              uploadLabel: label,
+              totalViews: viewsByUser.get(s.user_id) ?? 0,
+              totalDownloads: Math.max(s.downloads_count ?? 0, downloadsByUser.get(s.user_id) ?? 0),
+              totalLikes: likesByUser.get(s.user_id) ?? 0,
+            };
+          })
+          .filter((e): e is LeaderboardEntry => e !== null);
+      } catch (err) {
+        console.warn('Failed to load leaderboard data:', err);
+        return [];
+      }
+    },
+    60_000 // 60 seconds TTL
+  );
 }
 

@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient';
 import type { ConversationRow, MessageRow } from '../types/database.types';
 import { generateQuickId } from '../lib/idUtils';
 import type { PublicProfile } from './messageRequestService';
+import { cachedQuery, invalidateCache } from '../lib/queryCache';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 export interface ChatMessage {
@@ -123,91 +124,97 @@ export async function getConversationById(
  * profile and the latest message preview (respecting 7-day auto-disappear).
  */
 export async function listConversations(userId: string): Promise<Conversation[]> {
-  try {
-    const { data: convRows, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .or(`user_a.eq.${userId},user_b.eq.${userId}`)
-      .order('created_at', { ascending: false });
+  return cachedQuery(
+    `conversations:${userId}`,
+    async () => {
+      try {
+        const { data: convRows, error } = await supabase
+          .from('conversations')
+          .select('*')
+          .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+          .order('created_at', { ascending: false });
 
-    if (error || !convRows || convRows.length === 0) return [];
+        if (error || !convRows || convRows.length === 0) return [];
 
-    const rows = convRows as ConversationRow[];
+        const rows = convRows as ConversationRow[];
 
-    // Collect all other-user IDs
-    const otherIds = rows.map((r) =>
-      r.user_a === userId ? r.user_b : r.user_a,
-    );
-    const uniqueOtherIds = [...new Set(otherIds)];
+        // Collect all other-user IDs
+        const otherIds = rows.map((r) =>
+          r.user_a === userId ? r.user_b : r.user_a,
+        );
+        const uniqueOtherIds = [...new Set(otherIds)];
 
-    // Fetch profiles in one query
-    let profileMap = new Map<string, PublicProfile>();
-    if (uniqueOtherIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('public_profiles')
-        .select('id, name, username, avatar_url, university, college, branch, major')
-        .in('id', uniqueOtherIds);
+        // Fetch profiles in one query
+        let profileMap = new Map<string, PublicProfile>();
+        if (uniqueOtherIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('public_profiles')
+            .select('id, name, username, avatar_url, university, college, branch, major')
+            .in('id', uniqueOtherIds);
 
-      (profiles ?? []).forEach((p: any) =>
-        profileMap.set(p.id, { ...p, quickId: generateQuickId(p.id) }),
-      );
-    }
-
-    // Fetch last message for each conversation (within 7 days)
-    const sevenDaysAgo = getSevenDaysAgoIso();
-    const convIds = rows.map((r) => r.id);
-    const lastMsgMap = new Map<string, { body: string; created_at: string }>();
-
-    if (convIds.length > 0) {
-      const { data: lastMsgs } = await supabase
-        .from('messages')
-        .select('conversation_id, body, created_at')
-        .in('conversation_id', convIds)
-        .gte('created_at', sevenDaysAgo)
-        .order('created_at', { ascending: false });
-
-      (lastMsgs ?? []).forEach((m: any) => {
-        if (!lastMsgMap.has(m.conversation_id)) {
-          lastMsgMap.set(m.conversation_id, { body: m.body, created_at: m.created_at });
+          (profiles ?? []).forEach((p: any) =>
+            profileMap.set(p.id, { ...p, quickId: generateQuickId(p.id) }),
+          );
         }
-      });
-    }
 
-    // Fetch unread counts (within 7 days)
-    const unreadMap = new Map<string, number>();
-    if (convIds.length > 0) {
-      const { data: unreadRows } = await supabase
-        .from('messages')
-        .select('conversation_id')
-        .in('conversation_id', convIds)
-        .neq('sender_id', userId)
-        .gte('created_at', sevenDaysAgo)
-        .is('read_at', null);
+        // Fetch last message for each conversation (within 7 days)
+        const sevenDaysAgo = getSevenDaysAgoIso();
+        const convIds = rows.map((r) => r.id);
+        const lastMsgMap = new Map<string, { body: string; created_at: string }>();
 
-      (unreadRows ?? []).forEach((m: any) => {
-        unreadMap.set(m.conversation_id, (unreadMap.get(m.conversation_id) ?? 0) + 1);
-      });
-    }
+        if (convIds.length > 0) {
+          const { data: lastMsgs } = await supabase
+            .from('messages')
+            .select('conversation_id, body, created_at')
+            .in('conversation_id', convIds)
+            .gte('created_at', sevenDaysAgo)
+            .order('created_at', { ascending: false });
 
-    return rows.map((r) => {
-      const otherId = r.user_a === userId ? r.user_b : r.user_a;
-      const lastMsg = lastMsgMap.get(r.id);
-      return {
-        id: r.id,
-        userA: r.user_a,
-        userB: r.user_b,
-        requestId: r.request_id,
-        createdAt: r.created_at,
-        otherUser: profileMap.get(otherId),
-        lastMessage: lastMsg?.body,
-        lastMessageAt: lastMsg?.created_at,
-        unreadCount: unreadMap.get(r.id) ?? 0,
-      };
-    });
-  } catch (err) {
-    console.error('Error in listConversations:', err);
-    return [];
-  }
+          (lastMsgs ?? []).forEach((m: any) => {
+            if (!lastMsgMap.has(m.conversation_id)) {
+              lastMsgMap.set(m.conversation_id, { body: m.body, created_at: m.created_at });
+            }
+          });
+        }
+
+        // Fetch unread counts (within 7 days)
+        const unreadMap = new Map<string, number>();
+        if (convIds.length > 0) {
+          const { data: unreadRows } = await supabase
+            .from('messages')
+            .select('conversation_id')
+            .in('conversation_id', convIds)
+            .neq('sender_id', userId)
+            .gte('created_at', sevenDaysAgo)
+            .is('read_at', null);
+
+          (unreadRows ?? []).forEach((m: any) => {
+            unreadMap.set(m.conversation_id, (unreadMap.get(m.conversation_id) ?? 0) + 1);
+          });
+        }
+
+        return rows.map((r) => {
+          const otherId = r.user_a === userId ? r.user_b : r.user_a;
+          const lastMsg = lastMsgMap.get(r.id);
+          return {
+            id: r.id,
+            userA: r.user_a,
+            userB: r.user_b,
+            requestId: r.request_id,
+            createdAt: r.created_at,
+            otherUser: profileMap.get(otherId),
+            lastMessage: lastMsg?.body,
+            lastMessageAt: lastMsg?.created_at,
+            unreadCount: unreadMap.get(r.id) ?? 0,
+          };
+        });
+      } catch (err) {
+        console.error('Error in listConversations:', err);
+        return [];
+      }
+    },
+    15_000,
+  );
 }
 
 // ─── Message queries ──────────────────────────────────────────────────────────
@@ -259,6 +266,7 @@ export async function sendMessage(
       console.error('sendMessage error:', error?.message ?? 'No data returned');
       return null;
     }
+    invalidateCache('conversations:');
     return rowToMessage(data as MessageRow);
   } catch (err) {
     console.error('Error sending message:', err);
@@ -274,6 +282,7 @@ export async function markMessagesRead(
   readerId: string,
 ): Promise<void> {
   try {
+    invalidateCache('conversations:');
     await supabase
       .from('messages')
       .update({ read_at: new Date().toISOString() })
@@ -294,6 +303,7 @@ export async function clearChat(
   conversationId: string,
 ): Promise<{ success: boolean; reason?: string }> {
   try {
+    invalidateCache('conversations:');
     // Try RPC first
     const { data, error } = await supabase.rpc('clear_chat', {
       p_conversation_id: conversationId,
@@ -327,6 +337,7 @@ export async function deleteConversation(
   conversationId: string,
 ): Promise<{ success: boolean; reason?: string }> {
   try {
+    invalidateCache('conversations:');
     // Try RPC first
     const { data, error } = await supabase.rpc('delete_conversation', {
       p_conversation_id: conversationId,
@@ -353,10 +364,19 @@ export async function deleteConversation(
   }
 }
 
+let lastPurgeTime = 0;
+const PURGE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Purge messages older than 7 days from the database.
+ * Throttled to at most once per 24 hours per session to avoid spamming the database.
  */
 export async function purgeExpiredMessages(): Promise<void> {
+  const now = Date.now();
+  if (now - lastPurgeTime < PURGE_COOLDOWN_MS) {
+    return;
+  }
+  lastPurgeTime = now;
   try {
     const { error } = await supabase.rpc('purge_expired_messages');
     if (error) {

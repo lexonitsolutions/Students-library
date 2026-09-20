@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient';
 import { generateQuickId } from '../lib/idUtils';
 import { addNotificationForUser, removeMessageRequestNotifications } from './notificationsService';
 import type { MessageRequestRow, MessageRequestStatus } from '../types/database.types';
+import { cachedQuery, invalidateCache } from '../lib/queryCache';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 export type { MessageRequestStatus };
@@ -40,7 +41,7 @@ function rowToRequest(
     id: row.id,
     senderId: row.sender_id,
     senderName: senderProfile.name,
-    senderAvatar: senderProfile.avatar_url ?? `https://i.pravatar.cc/160?u=${row.sender_id}`,
+    senderAvatar: senderProfile.avatar_url || '',
     senderQuickId: generateQuickId(row.sender_id),
     receiverId: row.receiver_id,
     receiverQuickId: generateQuickId(row.receiver_id),
@@ -60,13 +61,19 @@ export async function findUserByQuickId(
   quickId: string,
   callerUuid: string,
 ): Promise<PublicProfile | null> {
-  const { data, error } = await supabase
-    .from('public_profiles')
-    .select('id, name, username, avatar_url, university, college, branch, major');
+  const profiles = await cachedQuery(
+    'public_profiles_for_search',
+    async () => {
+      const { data, error } = await supabase
+        .from('public_profiles')
+        .select('id, name, username, avatar_url, university, college, branch, major');
+      if (error || !data) return [];
+      return data as Array<Omit<PublicProfile, 'quickId'>>;
+    },
+    60_000,
+  );
 
-  if (error || !data) return null;
-
-  const match = (data as Array<Omit<PublicProfile, 'quickId'>>).find(
+  const match = profiles.find(
     (p) => generateQuickId(p.id) === quickId && p.id !== callerUuid,
   );
 
@@ -89,6 +96,7 @@ export async function sendRequest(params: {
   toUserName: string;
   toUserQuickId: string;
 }): Promise<{ success: boolean; reason?: string; requestId?: string }> {
+  invalidateCache('pending_requests:');
   const { data, error } = await supabase.rpc('send_message_request', {
     p_receiver_id: params.toUserId,
   });
@@ -126,6 +134,7 @@ export async function cancelRequest(
   toUserId: string,
   fromUserQuickId: string,
 ): Promise<boolean> {
+  invalidateCache('pending_requests:');
   const { error } = await supabase
     .from('message_requests')
     .delete()
@@ -143,32 +152,38 @@ export async function cancelRequest(
 
 /** List all pending requests where the current user is the receiver. */
 export async function listPendingRequests(userId: string): Promise<MessageRequest[]> {
-  const { data, error } = await supabase
-    .from('message_requests')
-    .select('*')
-    .eq('receiver_id', userId)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false });
+  return cachedQuery(
+    `pending_requests:${userId}`,
+    async () => {
+      const { data, error } = await supabase
+        .from('message_requests')
+        .select('*')
+        .eq('receiver_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
 
-  if (error || !data) return [];
+      if (error || !data) return [];
 
-  // Fetch sender profiles in one query
-  const rows = data as MessageRequestRow[];
-  const senderIds = [...new Set(rows.map((r) => r.sender_id))];
+      // Fetch sender profiles in one query
+      const rows = data as MessageRequestRow[];
+      const senderIds = [...new Set(rows.map((r) => r.sender_id))];
 
-  const { data: profiles } = await supabase
-    .from('public_profiles')
-    .select('id, name, username, avatar_url, university, college, branch, major')
-    .in('id', senderIds);
+      const { data: profiles } = await supabase
+        .from('public_profiles')
+        .select('id, name, username, avatar_url, university, college, branch, major')
+        .in('id', senderIds);
 
-  const profileMap = new Map<string, PublicProfile>();
-  (profiles ?? []).forEach((p: any) =>
-    profileMap.set(p.id, { ...p, quickId: generateQuickId(p.id) }),
+      const profileMap = new Map<string, PublicProfile>();
+      (profiles ?? []).forEach((p: any) =>
+        profileMap.set(p.id, { ...p, quickId: generateQuickId(p.id) }),
+      );
+
+      return rows
+        .filter((r) => profileMap.has(r.sender_id))
+        .map((r) => rowToRequest(r, profileMap.get(r.sender_id)!));
+    },
+    15_000,
   );
-
-  return rows
-    .filter((r) => profileMap.has(r.sender_id))
-    .map((r) => rowToRequest(r, profileMap.get(r.sender_id)!));
 }
 
 // ─── Accept request ───────────────────────────────────────────────────────────
@@ -192,6 +207,8 @@ export async function acceptRequest(
     const result = (raw ?? {}) as { success?: boolean; conversation_id?: string; reason?: string };
 
     if (result.success) {
+      invalidateCache('pending_requests:');
+      invalidateCache('conversations:');
       // Notify the sender in the background without blocking or throwing
       (async () => {
         try {
@@ -232,6 +249,7 @@ export async function rejectRequest(
   requestId: string,
   rejectorName: string,
 ): Promise<{ success: boolean; reason?: string }> {
+  invalidateCache('pending_requests:');
   const { data, error } = await supabase.rpc('reject_message_request', {
     p_request_id: requestId,
   });

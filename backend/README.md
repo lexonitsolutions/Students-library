@@ -1,6 +1,6 @@
-# Studexa Backend (Supabase)
+# answersbro Backend (Supabase)
 
-Studexa's frontend is a Vite + React SPA with no server of its own. Supabase is
+answersbro's frontend is a Vite + React SPA with no server of its own. Supabase is
 the entire backend: Postgres database, Auth, and file Storage, accessed
 directly from the browser via `src/lib/supabaseClient.ts` and the service
 layer in `src/services/`. This folder holds the SQL that defines that backend.
@@ -8,7 +8,7 @@ layer in `src/services/`. This folder holds the SQL that defines that backend.
 ## Architecture
 
 ```
-Studexa Web (Vite SPA)
+answersbro Web (Vite SPA)
    |
    v
 Supabase

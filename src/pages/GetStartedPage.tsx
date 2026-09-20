@@ -12,9 +12,10 @@ import {
   Sparkles,
   Trophy,
   Upload,
+  LogIn,
+  UserPlus,
 } from 'lucide-react';
 import {
-  AnimatePresence,
   motion,
   useScroll,
   useTransform,
@@ -30,36 +31,6 @@ import { useAuth } from '../hooks/useAuth';
 import { Logo } from '../components/ui/Logo';
 import { Footer } from '../components/ui/Footer';
 import { DarkModeScrollShowcase } from '../components/ui/DarkModeScrollShowcase';
-/* ── TYPEWRITER TEXT EFFECT COMPONENT ── */
-function TypewriterText({ text, delay = 0, speed = 0.03 }: { text: string; delay?: number; speed?: number }) {
-  const letters = Array.from(text);
-  return (
-    <motion.span
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-20px' }}
-      variants={{
-        hidden: { opacity: 1 },
-        visible: {
-          opacity: 1,
-          transition: { delayChildren: delay, staggerChildren: speed },
-        },
-      }}
-    >
-      {letters.map((char, index) => (
-        <motion.span
-          key={index}
-          variants={{
-            hidden: { opacity: 0 },
-            visible: { opacity: 1 },
-          }}
-        >
-          {char}
-        </motion.span>
-      ))}
-    </motion.span>
-  );
-}
 
 /* ── SCROLL-TRIGGERED NUMBER COUNT-UP COMPONENT ── */
 function CountUpNumber({
@@ -353,6 +324,7 @@ const PLATFORM_FEATURES: PlatformFeature[] = [
     highlights: [
       { title: 'Direct Student Messaging', desc: 'Ask authors specific questions about difficult theorems or solutions.' },
       { title: 'Verified Student Profiles', desc: 'Know who you are learning from with verified university tags.' },
+      { title: 'Peer Study Circles', desc: 'Form branch and semester group chats for real-time exam preparation.' },
     ],
     floatingBadge: 'Live Academic Chat',
   },
@@ -363,7 +335,7 @@ const PLATFORM_FEATURES: PlatformFeature[] = [
     categoryBadge: 'CURATED SEMESTER REPOSITORY',
     title: 'Instant access to verified semester notes & past papers',
     description:
-      'Stop searching through disorganized WhatsApp groups and expired Google Drive links. Studexa curates study materials indexed by Branch, Semester, and Subject syllabus.',
+      'Stop searching through disorganized WhatsApp groups and expired Google Drive links. answersbro curates study materials indexed by Branch, Semester, and Subject syllabus.',
     highlights: [
       { title: 'Curriculum-Aligned Structure', desc: 'Browse Engineering and Degree notes mapped by unit and semester.' },
       { title: 'Quality Moderation Queue', desc: 'Every uploaded file is reviewed and approved by student admins before publishing.' },
@@ -400,7 +372,7 @@ const SUPPORTED_BRANCHES = [
   { name: 'BCA & B.Sc Computing', count: '1,100+ Notes', tag: 'Degree' },
 ];
 
-const WATERMARK_LINE = Array(22).fill("Studexa").join("   ");
+const WATERMARK_LINE = Array(22).fill("answersbro").join("   ");
 const WATERMARK_ROWS = Array.from({ length: 18 });
 
 export function GetStartedPage() {
@@ -419,8 +391,6 @@ export function GetStartedPage() {
   // Diagonal travel: starts at TOP-RIGHT (positive X, negative Y) -> moves toward BOTTOM-LEFT (negative X, positive Y)
   const watermarkX = useTransform(scrollYProgress, [0, 0.5, 1], ["25vw", "0vw", "-25vw"]);
   const watermarkY = useTransform(scrollYProgress, [0, 0.5, 1], ["-20vh", "0vh", "20vh"]);
-
-  const activeFeature = PLATFORM_FEATURES[activeFeatureIndex];
 
   // Auto-advance through features every 6 seconds unless paused
   useEffect(() => {
@@ -455,9 +425,9 @@ export function GetStartedPage() {
     <div className="min-h-screen bg-surface text-on-surface selection:bg-primary/20 selection:text-primary">
       {/* ── TOP NAVIGATION ── */}
       <header className="sticky top-0 z-40 border-b border-card-border bg-surface-container-low/95 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3.5 sm:px-6 lg:px-8">
           <div
-            className="flex items-center cursor-pointer transition-opacity hover:opacity-85"
+            className="flex items-center cursor-pointer transition-opacity hover:opacity-85 shrink-0"
             onClick={handleLogoClick}
             role="button"
             tabIndex={0}
@@ -468,21 +438,42 @@ export function GetStartedPage() {
               }
             }}
           >
-            <Logo height={34} />
+            <Logo imgClassName="h-7 sm:h-[34px] w-auto object-contain" />
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
+            {/* Mobile Icon Buttons */}
             <button
               type="button"
               onClick={() => handleGetStarted('/signin')}
-              className="px-3.5 py-1.5 text-label-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+              title="Sign In"
+              aria-label="Sign In"
+              className="sm:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer active:scale-95"
+            >
+              <LogIn size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleGetStarted('/signup')}
+              title="Sign Up"
+              aria-label="Sign Up"
+              className="sm:hidden flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-xs hover:opacity-95 transition-all cursor-pointer active:scale-95"
+            >
+              <UserPlus size={18} />
+            </button>
+
+            {/* Desktop & Tablet Text Buttons */}
+            <button
+              type="button"
+              onClick={() => handleGetStarted('/signin')}
+              className="hidden sm:inline-flex px-3.5 py-1.5 text-label-sm font-semibold text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
             >
               Sign In
             </button>
             <button
               type="button"
               onClick={() => handleGetStarted('/signup')}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-label-sm font-bold text-white shadow-xs hover:opacity-95 transition-all cursor-pointer active:scale-95"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-label-sm font-bold text-white shadow-xs hover:opacity-95 transition-all cursor-pointer active:scale-95"
             >
               <span>Get Started</span>
               <ArrowRight size={14} />
@@ -492,7 +483,7 @@ export function GetStartedPage() {
       </header>
 
       {/* ── HERO SECTION WITH 3D ANIMATIONS ── */}
-      <section className="relative border-b border-card-border bg-surface-container-low px-4 pt-16 pb-20 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="relative border-b border-card-border bg-surface-container-low px-4 pt-5 sm:pt-14 pb-16 sm:pb-20 sm:px-6 lg:px-8 overflow-hidden">
 
         <div className="relative z-10 mx-auto max-w-5xl text-center">
           {/* Subtle ambient lighting behind hero */}
@@ -503,15 +494,15 @@ export function GetStartedPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2.5 rounded-full border border-indigo-100 bg-white shadow-xs px-4 py-1.5 text-xs font-medium text-slate-700 mb-8 transition-all hover:border-indigo-200"
+            className="inline-flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 rounded-2xl sm:rounded-full border border-indigo-100 bg-white shadow-xs px-4 py-1.5 text-xs text-slate-700 mb-4 sm:mb-8 transition-all hover:border-indigo-200 text-center mx-auto"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            <span className="font-semibold text-slate-800 flex items-center justify-center gap-1.5">
+              <span>🚀</span>
+              <span>Smart Exam Prep Platform</span>
             </span>
-            <span className="font-semibold text-slate-800">Open Academic Repository</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-indigo-600 font-bold">100% Free for University Students</span>
+            <span className="text-indigo-600 font-bold text-center">
+              Notes, PYQs &amp; Solutions
+            </span>
           </motion.div>
 
           {/* Heading */}
@@ -565,19 +556,19 @@ export function GetStartedPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5"
+            className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-2.5 max-w-[290px] sm:max-w-none mx-auto w-full"
           >
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
-              <BookOpen size={14} className="text-indigo-600" />
+            <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
+              <BookOpen size={14} className="text-indigo-600 shrink-0" />
               <span>Curated Semester Notes</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
-              <FileText size={14} className="text-violet-600" />
+            <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
+              <FileText size={14} className="text-violet-600 shrink-0" />
               <span>Past Exam Solutions</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
-              <GraduationCap size={14} className="text-emerald-600" />
-              <span>Branch & University Specific</span>
+            <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
+              <GraduationCap size={14} className="text-emerald-600 shrink-0" />
+              <span>Branch &amp; University Specific</span>
             </div>
           </motion.div>
 
@@ -586,22 +577,22 @@ export function GetStartedPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-9 flex items-center justify-center gap-3.5 flex-wrap"
+            className="mt-6 sm:mt-9 flex flex-row items-center justify-center gap-2.5 sm:gap-3.5 w-full max-w-[340px] sm:max-w-none mx-auto px-1 sm:px-0"
           >
             <button
               type="button"
               onClick={() => handleGetStarted('/signup')}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:opacity-95 px-8 py-3.5 text-sm font-bold text-white shadow-md shadow-indigo-600/25 hover:shadow-lg hover:shadow-indigo-600/35 transition-all cursor-pointer active:scale-[0.99]"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-primary hover:opacity-95 px-3.5 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-md shadow-indigo-600/25 hover:shadow-lg hover:shadow-indigo-600/35 transition-all cursor-pointer active:scale-[0.99] whitespace-nowrap"
             >
               <span>Get Started</span>
-              <ArrowRight size={16} strokeWidth={2.2} />
+              <ArrowRight size={15} strokeWidth={2.2} className="shrink-0" />
             </button>
             <button
               type="button"
               onClick={handleExplore}
-              className="inline-flex items-center justify-center gap-2.5 rounded-xl border border-card-border bg-surface-container px-6 py-3.5 text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-all cursor-pointer active:scale-[0.99]"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 sm:gap-2.5 rounded-xl border border-card-border bg-surface-container px-3 sm:px-6 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-all cursor-pointer active:scale-[0.99] whitespace-nowrap"
             >
-              <Compass size={18} strokeWidth={2.2} />
+              <Compass size={16} strokeWidth={2.2} className="shrink-0" />
               <span>Explore Library</span>
             </button>
           </motion.div>
@@ -683,7 +674,7 @@ export function GetStartedPage() {
         viewport={{ once: false, amount: 0.2 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         style={{ perspective: 1000 }}
-        className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8"
+        className="hidden md:block mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8"
         onMouseEnter={() => setIsAutoPlaying(false)}
         onMouseLeave={() => setIsAutoPlaying(true)}
       >
@@ -705,7 +696,7 @@ export function GetStartedPage() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="mt-3 text-body-md text-on-surface-variant"
           >
-            Explore how Studexa connects students with verified university course materials and peer study tools.
+            Explore how answersbro connects students with verified university course materials and peer study tools.
           </motion.p>
         </div>
 
@@ -743,242 +734,224 @@ export function GetStartedPage() {
             })}
           </div>
 
-          <div className="flex-1 min-w-0">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeFeature.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -16 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[560px] sm:min-h-[720px] xl:min-h-[480px]"
-              >
-              {/* Left Column: Feature Breakdown */}
-              <div className="space-y-6 flex flex-col justify-center">
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-                    {activeFeature.categoryBadge}
-                  </span>
-                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface mt-2 leading-tight">
-                    {activeFeature.title}
-                  </h3>
-                  <p className="text-body-sm sm:text-body-md text-on-surface-variant mt-4 leading-relaxed">
-                    {activeFeature.description}
-                  </p>
-                </div>
-
-                {/* Highlights List */}
-                <div className="space-y-4 pt-2">
-                  {activeFeature.highlights.map((h) => (
-                    <div key={h.title} className="flex items-start gap-3">
-                      <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <CheckCircle2 size={13} strokeWidth={3} />
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold text-on-surface">{h.title}: </span>
-                        <span className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">{h.desc}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Action CTA */}
-                <div className="pt-4">
-                  <button
-                    type="button"
-                    onClick={handleExplore}
-                    className="inline-flex items-center gap-2 rounded-xl bg-surface border border-card-border px-5 py-3 text-sm font-bold text-on-surface hover:bg-surface-container hover:border-primary/40 transition-all cursor-pointer shadow-sm active:scale-95"
-                  >
-                    <span>Open in Study Hub</span>
-                    <ArrowRight size={16} className="text-primary" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Column: Animated Interactive Mockup Window */}
-              <div style={{ perspective: 1200 }}>
-                <motion.div 
-                  initial={{ rotateY: -15, x: 20 }}
-                  animate={{ rotateY: 0, x: 0 }}
-                  exit={{ rotateY: 15, x: -20 }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                  className="rounded-2xl border border-card-border bg-surface-container overflow-hidden shadow-xl"
+          <div className="flex-1 min-w-0 grid grid-cols-1 grid-rows-1">
+            {PLATFORM_FEATURES.map((feature, idx) => {
+              const isActive = activeFeatureIndex === idx;
+              return (
+                <div
+                  key={feature.id}
+                  className={`col-start-1 row-start-1 grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-12 items-center transition-all duration-300 ease-out ${
+                    isActive
+                      ? 'opacity-100 pointer-events-auto z-10 translate-y-0 visible'
+                      : 'opacity-0 pointer-events-none z-0 translate-y-2 invisible'
+                  }`}
                 >
-                  {/* Browser Window Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-card-border/70 bg-surface-container-high/50">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-rose-400" />
-                      <span className="h-3 w-3 rounded-full bg-amber-400" />
-                      <span className="h-3 w-3 rounded-full bg-emerald-400" />
+                  {/* Left Column: Feature Breakdown */}
+                  <div className="space-y-6 flex flex-col justify-center">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                        {feature.categoryBadge}
+                      </span>
+                      <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface mt-2 leading-tight">
+                        {feature.title}
+                      </h3>
+                      <p className="text-body-sm sm:text-body-md text-on-surface-variant mt-4 leading-relaxed">
+                        {feature.description}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-surface border border-card-border text-[11px] text-on-surface-variant font-mono">
-                      <ShieldCheck size={12} className="text-emerald-500" />
-                      <span>studexa.app/{activeFeature.id}</span>
+
+                    {/* Highlights List */}
+                    <div className="space-y-4 pt-2">
+                      {feature.highlights.map((h) => (
+                        <div key={h.title} className="flex items-start gap-3">
+                          <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                            <CheckCircle2 size={13} strokeWidth={3} />
+                          </div>
+                          <div>
+                            <span className="text-sm font-bold text-on-surface">{h.title}: </span>
+                            <span className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">{h.desc}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="w-12" />
+
+                    {/* Action CTA */}
+                    <div className="pt-4">
+                      <button
+                        type="button"
+                        onClick={handleExplore}
+                        className="inline-flex items-center gap-2 rounded-xl bg-surface border border-card-border px-5 py-3 text-sm font-bold text-on-surface hover:bg-surface-container hover:border-primary/40 transition-all cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <span>Open in Study Hub</span>
+                        <ArrowRight size={16} className="text-primary" />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Window Body Mockup Content */}
-                  <div className="p-6 sm:p-8 min-h-[360px] flex flex-col justify-center relative">
-                    {/* MOCKUP 1: LIBRARY */}
-                    {activeFeature.id === 'library' && (
-                      <div className="space-y-4">
-                        {/* Search & Filter Bar Simulation */}
-                        <div className="flex items-center gap-2 rounded-xl bg-surface border border-card-border px-3 py-2 text-xs text-on-surface-variant">
-                          <Search size={14} className="text-primary" />
-                          <span className="font-medium text-on-surface">Data Structures & Algorithms</span>
-                          <span className="ml-auto rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                            B.Tech CSE • Sem 3
-                          </span>
+                  {/* Right Column: Interactive Mockup Window */}
+                  <div style={{ perspective: 1200 }}>
+                    <div className="rounded-2xl border border-card-border bg-surface-container overflow-hidden shadow-xl">
+                      {/* Browser Window Header */}
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-card-border/70 bg-surface-container-high/50">
+                        <div className="flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-full bg-rose-400" />
+                          <span className="h-3 w-3 rounded-full bg-amber-400" />
+                          <span className="h-3 w-3 rounded-full bg-emerald-400" />
                         </div>
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-surface border border-card-border text-[11px] text-on-surface-variant font-mono">
+                          <ShieldCheck size={12} className="text-emerald-500" />
+                          <span>answersbro.app/{feature.id}</span>
+                        </div>
+                        <div className="w-12" />
+                      </div>
 
-                        {/* Document Card Preview */}
-                        <div className="rounded-xl border border-card-border bg-surface p-4 shadow-xs space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-primary font-bold">
-                                <FileText size={20} />
+                      {/* Window Body Mockup Content */}
+                      <div className="p-6 sm:p-8 h-[370px] flex flex-col justify-center relative overflow-hidden">
+                        {/* MOCKUP 1: LIBRARY */}
+                        {feature.id === 'library' && (
+                          <div className="space-y-4">
+                            {/* Search & Filter Bar Simulation */}
+                            <div className="flex items-center gap-2 rounded-xl bg-surface border border-card-border px-3 py-2 text-xs text-on-surface-variant">
+                              <Search size={14} className="text-primary" />
+                              <span className="font-medium text-on-surface">Data Structures &amp; Algorithms</span>
+                              <span className="ml-auto rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                                B.Tech CSE • Sem 3
+                              </span>
+                            </div>
+
+                            {/* Document Card Preview */}
+                            <div className="rounded-xl border border-card-border bg-surface p-4 shadow-xs space-y-3">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-primary font-bold">
+                                    <FileText size={20} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-bold text-on-surface">Graph Algorithms &amp; Dynamic Programming</h4>
+                                    <p className="text-xs text-on-surface-variant">CS302 • Unit 4 Handwritten Lecture Notes</p>
+                                  </div>
+                                </div>
+                                <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 border border-emerald-500/20">
+                                  Verified PDF
+                                </span>
                               </div>
-                              <div>
-                                <h4 className="text-sm font-bold text-on-surface">Graph Algorithms & Dynamic Programming</h4>
-                                <p className="text-xs text-on-surface-variant">CS302 • Unit 4 Handwritten Lecture Notes</p>
+
+                              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-card-border/60 text-center text-xs">
+                                <div>
+                                  <span className="text-on-surface-variant">Pages</span>
+                                  <p className="font-bold text-on-surface">48 Pages</p>
+                                </div>
+                                <div>
+                                  <span className="text-on-surface-variant">Rating</span>
+                                  <p className="font-bold text-on-surface">★ 4.9 / 5.0</p>
+                                </div>
+                                <div>
+                                  <span className="text-on-surface-variant">Downloads</span>
+                                  <p className="font-bold text-on-surface">3,850+</p>
+                                </div>
                               </div>
                             </div>
-                            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 border border-emerald-500/20">
-                              Verified PDF
-                            </span>
                           </div>
+                        )}
 
-                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-card-border/60 text-center text-xs">
-                            <div>
-                              <span className="text-on-surface-variant">Pages</span>
-                              <p className="font-bold text-on-surface">48 Pages</p>
+                        {/* MOCKUP 2: MESSAGING */}
+                        {feature.id === 'messaging' && (
+                          <div className="space-y-3.5">
+                            {/* Student Chat Message 1 */}
+                            <div className="flex items-start gap-2.5">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                                AK
+                              </div>
+                              <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-surface border border-card-border p-3 text-xs shadow-2xs">
+                                <p className="font-bold text-on-surface mb-0.5">Arun Kumar • CSE Sem 5</p>
+                                <p className="text-on-surface-variant">
+                                  Hey! Did anyone get the solved proofs for the 2025 Mid-Sem Operating Systems paper?
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-on-surface-variant">Rating</span>
-                              <p className="font-bold text-on-surface">★ 4.9 / 5.0</p>
-                            </div>
-                            <div>
-                              <span className="text-on-surface-variant">Downloads</span>
-                              <p className="font-bold text-on-surface">3,850+</p>
+
+                            {/* Student Reply 2 */}
+                            <div className="flex items-start gap-2.5 flex-row-reverse">
+                              <div className="h-8 w-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                SN
+                              </div>
+                              <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary text-white p-3 text-xs shadow-xs space-y-2">
+                                <p className="font-bold mb-0.5">Sneha Nair (Top Contributor)</p>
+                                <p className="text-white/90">
+                                  Yes! Just uploaded the verified solutions with step-by-step diagrams:
+                                </p>
+                                <div className="rounded-xl bg-white/10 p-2 text-[11px] flex items-center justify-between gap-2">
+                                  <span className="font-mono">OS_MidSem_2025_Solved.pdf</span>
+                                  <span className="underline font-bold cursor-pointer">View Note →</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
+
+                        {/* MOCKUP 3: REPUTATION */}
+                        {feature.id === 'reputation' && (
+                          <div className="space-y-2.5">
+                            <div className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+                              University Honor Roll • Top Semester Contributors
+                            </div>
+
+                            {/* Contributor Row 1 */}
+                            <div className="flex items-center justify-between rounded-xl bg-surface border border-card-border p-2.5 shadow-2xs">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-white font-bold text-xs shadow-xs">
+                                  1
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-on-surface">Rohit Sharma (@rohit_cse)</p>
+                                  <p className="text-[11px] text-on-surface-variant">Computer Science • 32 Documents Uploaded</p>
+                                </div>
+                              </div>
+                              <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-600">
+                                1,480 Karma
+                              </span>
+                            </div>
+
+                            {/* Contributor Row 2 */}
+                            <div className="flex items-center justify-between rounded-xl bg-surface border border-card-border p-2.5 shadow-2xs">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-300 text-slate-800 font-bold text-xs">
+                                  2
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-on-surface">Priya Patel (@priya_ece)</p>
+                                  <p className="text-[11px] text-on-surface-variant">Electronics &amp; Comm • 24 Documents</p>
+                                </div>
+                              </div>
+                              <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs font-bold text-primary">
+                                1,210 Karma
+                              </span>
+                            </div>
+
+                            {/* Contributor Row 3 */}
+                            <div className="flex items-center justify-between rounded-xl bg-surface border border-card-border p-2.5 shadow-2xs">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-700/20 text-amber-800 font-bold text-xs">
+                                  3
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-on-surface">Karthik Reddy (@karthik_me)</p>
+                                  <p className="text-[11px] text-on-surface-variant">Mechanical Engg • 18 Documents</p>
+                                </div>
+                              </div>
+                              <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                                950 Karma
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-
-                    {/* MOCKUP 3: MESSAGING */}
-                    {activeFeature.id === 'messaging' && (
-                      <div className="space-y-4">
-                        {/* Student Chat Message 1 */}
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          transition={{ delay: 0.1, duration: 0.3 }}
-                          className="flex items-start gap-2.5"
-                        >
-                          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                            AK
-                          </div>
-                          <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-surface border border-card-border p-3 text-xs shadow-2xs">
-                            <p className="font-bold text-on-surface mb-0.5">Arun Kumar • CSE Sem 5</p>
-                            <p className="text-on-surface-variant min-h-[32px]">
-                              <TypewriterText text="Hey! Did anyone get the solved proofs for the 2025 Mid-Sem Operating Systems paper?" delay={0.4} />
-                            </p>
-                          </div>
-                        </motion.div>
-
-                        {/* Student Reply 2 */}
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          transition={{ delay: 2.8, duration: 0.3 }}
-                          className="flex items-start gap-2.5 flex-row-reverse"
-                        >
-                          <div className="h-8 w-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
-                            SN
-                          </div>
-                          <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary text-white p-3 text-xs shadow-xs space-y-2">
-                            <p className="font-bold mb-0.5">Sneha Nair (Top Contributor)</p>
-                            <p className="text-white/90 min-h-[16px]">
-                              <TypewriterText text="Yes! Just uploaded the verified solutions with step-by-step diagrams:" delay={3.1} speed={0.02} />
-                            </p>
-                            <motion.div 
-                              initial={{ opacity: 0, y: 5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 4.8 }}
-                              className="rounded-xl bg-white/10 p-2 text-[11px] flex items-center justify-between gap-2"
-                            >
-                              <span className="font-mono">OS_MidSem_2025_Solved.pdf</span>
-                              <span className="underline font-bold cursor-pointer">View Note →</span>
-                            </motion.div>
-                          </div>
-                        </motion.div>
-                      </div>
-                    )}
-
-                    {/* MOCKUP 4: REPUTATION */}
-                    {activeFeature.id === 'reputation' && (
-                      <div className="space-y-3">
-                        <div className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                          University Honor Roll • Top Semester Contributors
-                        </div>
-
-                        {/* Contributor Row 1 */}
-                        <div className="flex items-center justify-between rounded-xl bg-surface border border-card-border p-3 shadow-2xs">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-white font-bold text-xs shadow-xs">
-                              1
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-on-surface">Rohit Sharma (@rohit_cse)</p>
-                              <p className="text-[11px] text-on-surface-variant">Computer Science • 32 Documents Uploaded</p>
-                            </div>
-                          </div>
-                          <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 text-xs font-bold text-amber-600">
-                            1,480 Karma
-                          </span>
-                        </div>
-
-                        {/* Contributor Row 2 */}
-                        <div className="flex items-center justify-between rounded-xl bg-surface border border-card-border p-3 shadow-2xs">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-300 text-slate-800 font-bold text-xs">
-                              2
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-on-surface">Priya Patel (@priya_ece)</p>
-                              <p className="text-[11px] text-on-surface-variant">Electronics & Comm • 24 Documents</p>
-                            </div>
-                          </div>
-                          <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-xs font-bold text-primary">
-                            1,210 Karma
-                          </span>
-                        </div>
-
-                        {/* Contributor Row 3 */}
-                        <div className="flex items-center justify-between rounded-xl bg-surface border border-card-border p-3 shadow-2xs">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-700/20 text-amber-800 font-bold text-xs">
-                              3
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-on-surface">Karthik Reddy (@karthik_me)</p>
-                              <p className="text-[11px] text-on-surface-variant">Mechanical Engg • 18 Documents</p>
-                            </div>
-                          </div>
-                          <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700">
-                            950 Karma
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </motion.section>
 

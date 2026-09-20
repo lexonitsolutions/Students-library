@@ -95,17 +95,26 @@ export function GlobalSearch() {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchCacheRef = useRef<Map<string, Suggestion[]>>(new Map());
 
   // Debounced real DB search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!query.trim()) {
+    const trimmed = query.trim();
+    if (!trimmed) {
       setSuggestions([]);
       return;
     }
+
+    const cacheKey = trimmed.toLowerCase();
+    if (searchCacheRef.current.has(cacheKey)) {
+      setSuggestions(searchCacheRef.current.get(cacheKey)!);
+      return;
+    }
+
     debounceRef.current = setTimeout(async () => {
       try {
-        const rows = await listApprovedMaterials({ search: query.trim(), limit: 20 });
+        const rows = await listApprovedMaterials({ search: trimmed, limit: 20 });
         const dbSuggestions: Suggestion[] = rows.map((m) => {
           const section: SectionKey =
             m.type === 'past-paper' ? 'Past Papers' :
@@ -121,12 +130,14 @@ export function GlobalSearch() {
           };
         });
         const staticMatches = STATIC_SUGGESTIONS.filter((s) =>
-          fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, query)
+          fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, trimmed)
         );
-        setSuggestions([...dbSuggestions, ...staticMatches]);
+        const results = [...dbSuggestions, ...staticMatches];
+        searchCacheRef.current.set(cacheKey, results);
+        setSuggestions(results);
       } catch {
         const staticMatches = STATIC_SUGGESTIONS.filter((s) =>
-          fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, query)
+          fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, trimmed)
         );
         setSuggestions(staticMatches);
       }

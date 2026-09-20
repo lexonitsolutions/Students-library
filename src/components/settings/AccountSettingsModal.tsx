@@ -7,14 +7,7 @@ import { Camera, AlertCircle, X, Upload } from 'lucide-react';
 import { uploadAvatar } from '../../services/profileService';
 import { resizeImageFile } from '../../lib/imageUtils';
 import { cn } from '../../lib/cn';
-
-const AVATAR_PRESETS = [
-  'https://i.pravatar.cc/400?img=12',
-  'https://i.pravatar.cc/400?img=33',
-  'https://i.pravatar.cc/400?img=68',
-  'https://i.pravatar.cc/400?img=47',
-  'https://i.pravatar.cc/400?img=11',
-];
+import { AVATAR_PRESETS } from '../../lib/avatarPresets';
 
 interface AccountSettingsModalProps {
   open: boolean;

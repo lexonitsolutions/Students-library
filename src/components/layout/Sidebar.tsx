@@ -87,8 +87,8 @@ export function Sidebar() {
                       cn(
                         'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
                         isActive
-                          ? 'text-primary font-semibold'
-                          : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+                          ? 'text-[#24378F] dark:text-[#F8F9FC] font-semibold'
+                          : 'text-on-surface-variant hover:bg-[#EEF1FF]/60 dark:hover:bg-[#202A4A]/60 hover:text-on-surface',
                       )
                     }
                   >
@@ -98,7 +98,7 @@ export function Sidebar() {
                         {isActive && (
                           <motion.div
                             layoutId="sidebarActivePill"
-                            className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/15 dark:bg-primary/20 dark:border-primary/30 shadow-2xs"
+                            className="absolute inset-0 rounded-xl bg-[#EEF1FF] border border-[#3049B8]/15 dark:bg-[#202A4A] dark:border-[#7185E6]/30 shadow-2xs"
                             transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                           />
                         )}
@@ -110,7 +110,7 @@ export function Sidebar() {
                             strokeWidth={isActive ? 2.2 : 1.8}
                             className={cn(
                               'shrink-0 transition-colors duration-200',
-                              isActive ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface',
+                              isActive ? 'text-[#3049B8] dark:text-[#7185E6]' : 'text-on-surface-variant group-hover:text-on-surface',
                             )}
                           />
                         </div>
@@ -119,7 +119,7 @@ export function Sidebar() {
                         <span
                           className={cn(
                             'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
-                            isActive ? 'font-semibold text-primary' : 'font-medium',
+                            isActive ? 'font-semibold text-[#24378F] dark:text-[#F8F9FC]' : 'font-medium',
                             expanded
                               ? 'opacity-100 translate-x-0 max-w-[160px]'
                               : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
@@ -162,8 +162,8 @@ export function Sidebar() {
                   cn(
                     'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
                     isActive
-                      ? 'text-primary font-semibold'
-                      : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+                      ? 'text-[#24378F] dark:text-[#F8F9FC] font-semibold'
+                      : 'text-on-surface-variant hover:bg-[#EEF1FF]/60 dark:hover:bg-[#202A4A]/60 hover:text-on-surface',
                   )
                 }
               >
@@ -173,7 +173,7 @@ export function Sidebar() {
                     {isActive && (
                       <motion.div
                         layoutId="sidebarActivePill"
-                        className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/15 dark:bg-primary/20 dark:border-primary/30 shadow-2xs"
+                        className="absolute inset-0 rounded-xl bg-[#EEF1FF] border border-[#3049B8]/15 dark:bg-[#202A4A] dark:border-[#7185E6]/30 shadow-2xs"
                         transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                       />
                     )}
@@ -185,7 +185,7 @@ export function Sidebar() {
                         strokeWidth={isActive ? 2.2 : 1.8}
                         className={cn(
                           'shrink-0 transition-colors duration-200',
-                          isActive ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface',
+                          isActive ? 'text-[#3049B8] dark:text-[#7185E6]' : 'text-on-surface-variant group-hover:text-on-surface',
                         )}
                       />
                       {/* Red indicator dot for messages */}
@@ -201,7 +201,7 @@ export function Sidebar() {
                     <span
                       className={cn(
                         'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300 flex-1 flex items-center justify-between',
-                        isActive ? 'font-semibold text-primary' : 'font-medium',
+                        isActive ? 'font-semibold text-[#24378F] dark:text-[#F8F9FC]' : 'font-medium',
                         expanded
                           ? 'opacity-100 translate-x-0 max-w-[160px]'
                           : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
@@ -237,8 +237,8 @@ export function Sidebar() {
               cn(
                 'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
                 isActive
-                  ? 'text-primary font-semibold'
-                  : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+                  ? 'text-[#24378F] dark:text-[#F8F9FC] font-semibold'
+                  : 'text-on-surface-variant hover:bg-[#EEF1FF]/60 dark:hover:bg-[#202A4A]/60 hover:text-on-surface',
               )
             }
           >
@@ -247,7 +247,7 @@ export function Sidebar() {
                 {isActive && (
                   <motion.div
                     layoutId="sidebarActivePill"
-                    className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/15 dark:bg-primary/20 dark:border-primary/30 shadow-2xs"
+                    className="absolute inset-0 rounded-xl bg-[#EEF1FF] border border-[#3049B8]/15 dark:bg-[#202A4A] dark:border-[#7185E6]/30 shadow-2xs"
                     transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                   />
                 )}
@@ -258,7 +258,7 @@ export function Sidebar() {
                     strokeWidth={isActive ? 2.2 : 1.8}
                     className={cn(
                       'shrink-0 transition-colors duration-200',
-                      isActive ? 'text-primary' : '',
+                      isActive ? 'text-[#3049B8] dark:text-[#7185E6]' : '',
                     )}
                   />
                 </div>
@@ -266,7 +266,7 @@ export function Sidebar() {
                 <span
                   className={cn(
                     'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
-                    isActive ? 'font-semibold text-primary' : 'font-medium',
+                    isActive ? 'font-semibold text-[#24378F] dark:text-[#F8F9FC]' : 'font-medium',
                     expanded
                       ? 'opacity-100 translate-x-0 max-w-[160px]'
                       : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
@@ -287,8 +287,8 @@ export function Sidebar() {
                 cn(
                   'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
                   isActive
-                    ? 'text-primary font-semibold'
-                    : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface',
+                    ? 'text-[#24378F] dark:text-[#F8F9FC] font-semibold'
+                    : 'text-on-surface-variant hover:bg-[#EEF1FF]/60 dark:hover:bg-[#202A4A]/60 hover:text-on-surface',
                 )
               }
             >
@@ -297,7 +297,7 @@ export function Sidebar() {
                   {isActive && (
                     <motion.div
                       layoutId="sidebarActivePill"
-                      className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/15 dark:bg-primary/20 dark:border-primary/30 shadow-2xs"
+                      className="absolute inset-0 rounded-xl bg-[#EEF1FF] border border-[#3049B8]/15 dark:bg-[#202A4A] dark:border-[#7185E6]/30 shadow-2xs"
                       transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                     />
                   )}

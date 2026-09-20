@@ -87,7 +87,10 @@ export function LibraryPage() {
 
   const [view, setView] = useState<'grid' | 'list'>('list');
   const [items, setItems] = useState<Material[]>([]);
-  const [counts, setCounts] = useState<{ saved: number; uploads: number }>({ saved: 0, uploads: 0 });
+  const [counts, setCounts] = useState<{ saved: number; uploads: number }>(() => ({
+    saved: user?.stats?.saved ?? 0,
+    uploads: user?.stats?.uploads ?? 0,
+  }));
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
 
@@ -104,6 +107,15 @@ export function LibraryPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editSubject, setEditSubject] = useState('');
+
+  useEffect(() => {
+    if (user?.stats) {
+      setCounts((prev) => ({
+        saved: Math.max(prev.saved, user.stats.saved ?? 0),
+        uploads: Math.max(prev.uploads, user.stats.uploads ?? 0),
+      }));
+    }
+  }, [user?.stats?.saved, user?.stats?.uploads]);
 
   useEffect(() => {
     if (tabParam === 'uploads' || tabParam === 'manage-uploads') {
@@ -126,33 +138,20 @@ export function LibraryPage() {
     }
   };
 
-  // Preload counts
-  useEffect(() => {
-    if (!user?.id) return;
-    Promise.all([
-      listSavedMaterialsForUI(user.id),
-      listMyUploadsForUI(user.id),
-    ])
-      .then(([saved, uploads]) => {
-        setCounts({ saved: saved.length, uploads: uploads.length });
-      })
-      .catch(() => {});
-  }, [user?.id]);
-
   const loadData = async () => {
-    if (!user) return;
+    if (!user?.id) return;
     setLoading(true);
     try {
       if (activeTab === 'Saved') {
-        const data = user.id ? await listSavedMaterialsForUI(user.id) : [];
+        const data = await listSavedMaterialsForUI(user.id);
         setItems(data);
         setCounts((prev) => ({ ...prev, saved: data.length }));
       } else if (activeTab === 'Manage Uploads') {
-        const data = user.id ? await listMyUploadsForUI(user.id) : [];
+        const data = await listMyUploadsForUI(user.id);
         setItems(data);
         setCounts((prev) => ({ ...prev, uploads: data.length }));
       } else if (activeTab === 'Recent Activity') {
-        const activities = user.id ? await listRecentActivity(user.id) : [];
+        const activities = await listRecentActivity(user.id);
         setActivityItems(activities);
       } else {
         setItems([]);
@@ -166,7 +165,7 @@ export function LibraryPage() {
 
   useEffect(() => {
     loadData();
-  }, [activeTab, user]);
+  }, [activeTab, user?.id]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {

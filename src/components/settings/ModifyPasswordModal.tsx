@@ -253,7 +253,7 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
                     </motion.p>
                     {isGoogleLinked && (
                       <p className="text-[11px] text-on-surface-variant">
-                        Signed in via Google? If you haven't created a Studexa password yet,{' '}
+                        Signed in via Google? If you haven't created an answersbro password yet,{' '}
                         <button
                           type="button"
                           onClick={() => {
@@ -306,7 +306,7 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
               ) : (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-2.5 flex items-center gap-2.5 text-xs text-primary font-medium">
                   <KeyRound size={16} className="shrink-0 text-primary" />
-                  <span>Set a password to use with your Studexa account.</span>
+                  <span>Set a password to use with your answersbro account.</span>
                 </div>
               )}
 

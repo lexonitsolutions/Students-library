@@ -17,6 +17,16 @@ export function cleanDocumentTitle(rawTitle?: string | null): string {
     .trim();
 }
 
+export function formatUploaderName(name?: string | null): string {
+  if (!name) return 'Past user';
+  const trimmed = name.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower.includes('studex') || lower === 'anonymous student' || lower === 'anonymous') {
+    return 'Past user';
+  }
+  return trimmed;
+}
+
 export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefined, isSaved = false, isLiked = false): Material {
   let finalUploaderName = uploader?.name;
   let finalAvatar = uploader?.avatar_url;
@@ -44,6 +54,13 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     }
   }
 
+  finalUploaderName = formatUploaderName(finalUploaderName);
+
+  let finalUsername = uploader?.username;
+  if (finalUsername && finalUsername.toLowerCase().includes('studex')) {
+    finalUsername = 'pastuser';
+  }
+
   let rejectionReason: string | undefined = undefined;
   let rejectedByAdminName: string | undefined = undefined;
   let rejectedByAdminAvatar: string | undefined = undefined;
@@ -65,9 +82,9 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
     semester: row.semester ?? '',
     type: row.type,
     uploaderId: row.uploader_id,
-    uploaderName: finalUploaderName || 'Anonymous Student',
-    uploaderUsername: uploader?.username,
-    uploaderAvatar: finalAvatar || `https://i.pravatar.cc/80?u=${row.uploader_id}`,
+    uploaderName: finalUploaderName,
+    uploaderUsername: finalUsername,
+    uploaderAvatar: finalAvatar || '',
     uploaderUniversity: finalUniversity || undefined,
     uploaderCollege: finalCollege || undefined,
     uploaderLocation: finalLocation || undefined,

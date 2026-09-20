@@ -50,7 +50,7 @@ function DocumentCoverPreview({
       bg: 'bg-gradient-to-br from-slate-950 via-indigo-950 to-[#1e1b4b]',
       border: 'border-indigo-500/25',
       accent: 'bg-indigo-400',
-      icon: <Cpu size={16} className="text-indigo-400" />,
+      icon: <Cpu size={16} className="text-[#7185E6]" />,
     },
     blue: {
       bg: 'bg-gradient-to-br from-slate-950 via-sky-950 to-[#0c4a6e]',
@@ -161,7 +161,7 @@ const SHUTTER_CLOSE_START = SHOWCASE_END; // 0.86 → 1.00 : shutters return
 /* ──────────────────────────────────────────────────────────────────────
    PreviousDarkModeSectionContent
    The exact previous Dark Mode section content as requested by the user:
-   deep dark #0a0a0a surface, "NATIVE DARK MODE" badge, heading,
+   deep dark #101522 surface, "NATIVE DARK MODE" badge, heading,
    paragraph, and the realistic Light/Dark split mockup card.
    ────────────────────────────────────────────────────────────────────── */
 
@@ -169,17 +169,17 @@ function PreviousDarkModeSectionContent() {
   return (
     <div className="w-full h-full bg-surface flex flex-col justify-center items-center select-none relative overflow-hidden">
       
-      {/* ── ONLY THE MARKED AREA IS DARK (#0a0a0a) WITH REDUCED TOP & BOTTOM SPACE ── */}
-      <div className="w-full bg-[#0a0a0a] border-y border-slate-800 py-8 sm:py-10 lg:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden shadow-2xl">
+      {/* ── ONLY THE MARKED AREA IS DARK (#101522) WITH REDUCED TOP & BOTTOM SPACE ── */}
+      <div className="w-full bg-[#101522] border-y border-[#30394D] py-8 sm:py-10 lg:py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden shadow-2xl">
         {/* Background depth glows inside the dark banner */}
-        <div className="pointer-events-none absolute -top-40 left-1/4 h-[350px] w-[500px] rounded-full bg-indigo-900/15 blur-[120px]" />
-        <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[350px] w-[500px] rounded-full bg-purple-900/15 blur-[120px]" />
+        <div className="pointer-events-none absolute -top-40 left-1/4 h-[350px] w-[500px] rounded-full bg-[#202A4A]/25 blur-[120px]" />
+        <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[350px] w-[500px] rounded-full bg-[#3A2B19]/25 blur-[120px]" />
 
         <div className="mx-auto max-w-7xl w-full flex flex-col lg:flex-row items-center gap-8 lg:gap-14 relative z-10">
         
         {/* Left column: Text & Badge */}
         <div className="flex-1 text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 mb-5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#202A4A] text-[#7185E6] border border-[#7185E6]/30 mb-5">
             <Moon size={14} />
             <span>NATIVE DARK MODE</span>
           </div>
@@ -187,9 +187,9 @@ function PreviousDarkModeSectionContent() {
             Study comfortably, <br className="hidden lg:block" /> day or night.
           </h2>
           <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-            Late night cramming? Studexa features a gorgeous, fully-integrated dark theme that's easy on the eyes. Switch seamlessly depending on your study environment.
+            Late night cramming? answersbro features a gorgeous, fully-integrated dark theme that's easy on the eyes. Switch seamlessly depending on your study environment.
           </p>
-          <div className="mt-6 flex items-center justify-center lg:justify-start gap-2 text-xs text-indigo-400 font-mono">
+          <div className="mt-6 flex items-center justify-center lg:justify-start gap-2 text-xs text-[#7185E6] font-mono">
             <span className="inline-block animate-bounce">↓</span>
             <span>Scroll down to enter Dark Mode showcase</span>
           </div>
@@ -197,43 +197,55 @@ function PreviousDarkModeSectionContent() {
 
         {/* Right column: Split Mockup */}
         <div className="flex-1 w-full relative" style={{ perspective: 1200 }}>
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-800 max-w-[480px] mx-auto bg-[#0f1115]">
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-[#30394D] max-w-[480px] mx-auto bg-[#171D2B]">
             <div className="flex">
               {/* Light Side */}
-              <div className="w-1/2 bg-white p-5 sm:p-6 border-r border-slate-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sun size={16} className="text-amber-500" />
-                  <span className="text-xs font-bold text-slate-800">Light Mode</span>
-                </div>
+              <div className="w-1/2 bg-white p-4 sm:p-5 border-r border-[#E9E2D8] flex flex-col justify-between">
                 <div className="space-y-3">
-                  <div className="h-3.5 w-3/4 rounded bg-slate-100" />
-                  <div className="h-3.5 w-full rounded bg-slate-100" />
-                  <div className="h-20 w-full rounded-xl bg-slate-50 border border-slate-200 p-3 mt-4">
-                    <div className="h-3 w-1/2 rounded bg-slate-200 mb-2" />
-                    <div className="h-3 w-1/3 rounded bg-indigo-100" />
+                  <div className="flex items-center gap-2">
+                    <Sun size={15} className="text-amber-500" />
+                    <span className="text-xs font-bold text-slate-800">Light Mode</span>
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">Good morning</h4>
+                    <p className="text-[10px] text-slate-500 truncate">Resume your studies</p>
+                  </div>
+                  <div className="rounded-xl bg-[#FFF9EF] border border-[#E9E2D8] p-2.5 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-bold text-[#3049B8] bg-[#EEF1FF] px-1.5 py-0.2 rounded">PDF</span>
+                      <span className="text-[9px] text-slate-500">★ 4.9</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-800 line-clamp-2 leading-snug">Operating Systems Notes</p>
+                    <p className="text-[9px] text-slate-400">Alex K. · 48 pgs</p>
                   </div>
                 </div>
               </div>
 
               {/* Dark Side */}
-              <div className="w-1/2 bg-[#0f1115] p-5 sm:p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Moon size={16} className="text-indigo-400" />
-                  <span className="text-xs font-bold text-slate-100">Dark Mode</span>
-                </div>
+              <div className="w-1/2 bg-[#171D2B] p-4 sm:p-5 flex flex-col justify-between">
                 <div className="space-y-3">
-                  <div className="h-3.5 w-3/4 rounded bg-[#1f2937]" />
-                  <div className="h-3.5 w-full rounded bg-[#1f2937]" />
-                  <div className="h-20 w-full rounded-xl bg-[#171e2b] border border-[#2d3748] p-3 mt-4">
-                    <div className="h-3 w-1/2 rounded bg-[#374151] mb-2" />
-                    <div className="h-3 w-1/3 rounded bg-indigo-500/30" />
+                  <div className="flex items-center gap-2">
+                    <Moon size={15} className="text-[#7185E6]" />
+                    <span className="text-xs font-bold text-slate-100">Dark Mode</span>
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-white leading-tight">Good evening</h4>
+                    <p className="text-[10px] text-slate-400 truncate">Resume your studies</p>
+                  </div>
+                  <div className="rounded-xl bg-[#202738] border border-[#30394D] p-2.5 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-bold text-[#7185E6] bg-[#202A4A] px-1.5 py-0.2 rounded">PDF</span>
+                      <span className="text-[9px] text-slate-400">★ 4.9</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-white line-clamp-2 leading-snug">Deep Learning Notes</p>
+                    <p className="text-[9px] text-slate-500">Jordan L. · 54 pgs</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Central Divider Glow */}
-            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-transparent via-primary/60 to-transparent shadow-[0_0_15px_rgba(99,102,241,0.6)]" />
+            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-transparent via-primary/60 to-transparent shadow-[0_0_15px_rgba(99,102,241,0.6)] pointer-events-none" />
           </div>
         </div>
 
@@ -244,13 +256,218 @@ function PreviousDarkModeSectionContent() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   MobileDarkModeDashboardCard
+   Dedicated clean static dashboard card for mobile screens.
+   Completely removes the 600vh scroll-trap exploring feature on mobile,
+   and features the answersbro dashboard card with Light Mode and Dark Mode.
+   ══════════════════════════════════════════════════════════════════════ */
+
+function MobileDarkModeDashboardCard() {
+  const [viewMode, setViewMode] = useState<'split' | 'light' | 'dark'>('split');
+
+  return (
+    <div className="block md:hidden w-full bg-[#101522] border-y border-[#30394D] py-10 px-4 relative overflow-hidden shadow-2xl select-none">
+      {/* Background depth glows */}
+      <div className="pointer-events-none absolute -top-24 left-1/4 h-[260px] w-[350px] rounded-full bg-[#202A4A]/25 blur-[100px]" />
+      <div className="pointer-events-none absolute -bottom-24 right-1/4 h-[260px] w-[350px] rounded-full bg-[#3A2B19]/25 blur-[100px]" />
+
+      <div className="mx-auto max-w-lg w-full relative z-10 space-y-6">
+        {/* Text Header */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#202A4A] text-[#7185E6] border border-[#7185E6]/30">
+            <Moon size={13} />
+            <span>NATIVE DARK MODE</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+            Study comfortably, <br /> day or night.
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+            Late night cramming? answersbro features a gorgeous, fully-integrated dark theme that's easy on the eyes. Switch seamlessly depending on your study environment.
+          </p>
+        </div>
+
+        {/* Dashboard Mockup Card */}
+        <div className="rounded-2xl overflow-hidden shadow-2xl border border-[#30394D] bg-[#171D2B]">
+          {/* Card Window Header */}
+          <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-[#30394D] bg-[#202738]">
+            {/* Window control dots */}
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            </div>
+
+            {/* Mode Switcher Buttons */}
+            <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-[#30394D] text-[10px] font-bold">
+              <button
+                type="button"
+                onClick={() => setViewMode('split')}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                  viewMode === 'split' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Split
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('light')}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                  viewMode === 'light' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sun size={10} /> Light
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('dark')}
+                className={`px-2 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                  viewMode === 'dark' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Moon size={10} /> Dark
+              </button>
+            </div>
+          </div>
+
+          {/* Card Body */}
+          <div className="relative overflow-hidden">
+            {/* 1. SPLIT VIEW */}
+            {viewMode === 'split' && (
+              <div className="flex relative">
+                {/* Light Side */}
+                <div className="w-1/2 bg-white p-3.5 flex flex-col justify-between border-r border-[#E9E2D8]">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-1">
+                      <Sun size={12} className="text-amber-500" />
+                      <span className="text-[10px] font-bold text-slate-700">Light Mode</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900 leading-tight">Good morning</h4>
+                      <p className="text-[9px] text-slate-500 truncate">Resume your studies</p>
+                    </div>
+                    {/* Material Item */}
+                    <div className="rounded-lg bg-[#FFF9EF] border border-[#E9E2D8] p-2 space-y-1 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8px] font-bold text-[#3049B8] bg-[#EEF1FF] px-1 py-0.2 rounded">PDF</span>
+                        <span className="text-[8px] text-slate-500">★ 4.9</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-800 line-clamp-2 leading-snug">Operating Systems Notes</p>
+                      <p className="text-[8px] text-slate-400">Alex K. · 48 pgs</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dark Side */}
+                <div className="w-1/2 bg-[#171D2B] p-3.5 flex flex-col justify-between">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-1">
+                      <Moon size={12} className="text-[#7185E6]" />
+                      <span className="text-[10px] font-bold text-slate-200">Dark Mode</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-extrabold text-white leading-tight">Good evening</h4>
+                      <p className="text-[9px] text-slate-400 truncate">Resume your studies</p>
+                    </div>
+                    {/* Material Item */}
+                    <div className="rounded-lg bg-[#202738] border border-[#30394D] p-2 space-y-1 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8px] font-bold text-[#7185E6] bg-[#202A4A] px-1 py-0.2 rounded">PDF</span>
+                        <span className="text-[8px] text-slate-400">★ 4.9</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-white line-clamp-2 leading-snug">Deep Learning Notes</p>
+                      <p className="text-[8px] text-slate-500">Jordan L. · 54 pgs</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Central Divider Glow */}
+                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-transparent via-primary/70 to-transparent shadow-[0_0_12px_rgba(99,102,241,0.8)] pointer-events-none" />
+              </div>
+            )}
+
+            {/* 2. FULL LIGHT VIEW */}
+            {viewMode === 'light' && (
+              <div className="bg-white p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-slate-900">Good morning, Student</h4>
+                    <p className="text-[10px] text-slate-500">Let's continue your studies where you left off.</p>
+                  </div>
+                  <span className="rounded-full bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 text-[9px] font-bold flex items-center gap-1">
+                    <Sun size={10} /> Light Mode
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-[#FFF9EF] border border-[#E9E2D8] p-2.5 shadow-2xs flex flex-col justify-between h-24">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] font-bold text-[#3049B8] bg-[#EEF1FF] px-1.5 py-0.2 rounded">PDF</span>
+                        <span className="text-[8px] text-slate-500">★ 4.9</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-800 line-clamp-2 leading-tight">Operating Systems Concurrency</p>
+                    </div>
+                    <span className="text-[8px] text-slate-400">Alex K. · 48 Pages</span>
+                  </div>
+                  <div className="rounded-xl bg-[#FFF9EF] border border-[#E9E2D8] p-2.5 shadow-2xs flex flex-col justify-between h-24">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.2 rounded">DOCX</span>
+                        <span className="text-[8px] text-slate-500">★ 4.8</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-800 line-clamp-2 leading-tight">Discrete Math PYQs 2023</p>
+                    </div>
+                    <span className="text-[8px] text-slate-400">Sarah M. · 32 Pages</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. FULL DARK VIEW */}
+            {viewMode === 'dark' && (
+              <div className="bg-[#171D2B] p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-[#30394D] pb-2">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-white">Good evening, Student</h4>
+                    <p className="text-[10px] text-slate-400">Let's continue your studies where you left off.</p>
+                  </div>
+                  <span className="rounded-full bg-[#202A4A] border border-[#7185E6]/30 text-[#7185E6] px-2 py-0.5 text-[9px] font-bold flex items-center gap-1">
+                    <Moon size={10} /> Dark Mode
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-[#202738] border border-[#30394D] p-2.5 shadow-2xs flex flex-col justify-between h-24">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] font-bold text-[#7185E6] bg-[#202A4A] px-1.5 py-0.2 rounded">PDF</span>
+                        <span className="text-[8px] text-slate-400">★ 4.9</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-white line-clamp-2 leading-tight">Deep Learning Architectures</p>
+                    </div>
+                    <span className="text-[8px] text-slate-400">Jordan L. · 54 Pages</span>
+                  </div>
+                  <div className="rounded-xl bg-[#202738] border border-[#30394D] p-2.5 shadow-2xs flex flex-col justify-between h-24">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] font-bold text-sky-300 bg-sky-500/20 px-1.5 py-0.2 rounded">DOCX</span>
+                        <span className="text-[8px] text-slate-400">★ 4.8</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-white line-clamp-2 leading-tight">Distributed Systems Guide</p>
+                    </div>
+                    <span className="text-[8px] text-slate-400">David Y. · 36 Pages</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    DarkModeScrollShowcase
-   A 100 % scroll-controlled dark-mode showcase.
-   Initially shows the exact previous Dark Mode section content.
-   As the user scrolls:
-   - TOP half moves upward
-   - BOTTOM half moves downward
-   from that content height, revealing the full 4-page Dark Mode showcase.
+   A 100 % scroll-controlled dark-mode showcase on desktop/tablets.
    ══════════════════════════════════════════════════════════════════════ */
 
 export function DarkModeScrollShowcase() {
@@ -314,19 +531,24 @@ export function DarkModeScrollShowcase() {
 
   /* ═══════════════════════ RENDER ═══════════════════════════════════ */
   return (
-    <div
-      ref={containerRef}
-      className="relative"
-      style={{ height: '600vh' }}           /* tall scroll runway */
-    >
+    <>
+      {/* ── MOBILE SCREENS: Clean static dashboard card with light/dark modes (NO 600vh scroll-trap exploring feature) ── */}
+      <MobileDarkModeDashboardCard />
+
+      {/* ── DESKTOP & TABLETS: Full 600vh scroll-controlled showcase ── */}
+      <div
+        ref={containerRef}
+        className="hidden md:block relative"
+        style={{ height: '600vh' }}           /* tall scroll runway */
+      >
       <div className="sticky top-0 h-screen w-full overflow-hidden">
 
         {/* ── Layer 0: Dark background ── */}
-        <div className="absolute inset-0 bg-[#080a0f]" />
+        <div className="absolute inset-0 bg-[#101522]" />
 
         {/* Ambient depth glows */}
-        <div className="pointer-events-none absolute -top-40 left-1/4 h-[350px] w-[500px] rounded-full bg-indigo-900/10 blur-[120px]" />
-        <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[350px] w-[500px] rounded-full bg-purple-900/10 blur-[120px]" />
+        <div className="pointer-events-none absolute -top-40 left-1/4 h-[350px] w-[500px] rounded-full bg-[#202A4A]/20 blur-[120px]" />
+        <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[350px] w-[500px] rounded-full bg-[#3A2B19]/20 blur-[120px]" />
 
         {/* ── Layer 1: Showcase content (z-10, behind the shutters) ── */}
         <div
@@ -334,11 +556,11 @@ export function DarkModeScrollShowcase() {
           style={{ opacity: contentOpacity, willChange: 'opacity' }}
         >
           {/* ─── TOP NAVIGATION BAR ─── */}
-          <header className="shrink-0 flex items-center justify-between border-b border-slate-800/80 bg-[#0c0f17]/90 px-4 py-3 sm:px-8 backdrop-blur-md">
+          <header className="shrink-0 flex items-center justify-between border-b border-[#30394D] bg-[#171D2B]/90 px-4 py-3 sm:px-8 backdrop-blur-md">
             <div className="flex items-center gap-3 sm:gap-6">
               <Logo height={30} />
-              <div className="hidden md:flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-bold text-indigo-300">
-                <Moon size={12} className="text-indigo-400" />
+              <div className="hidden md:flex items-center gap-2 rounded-full border border-[#7185E6]/20 bg-[#202A4A] px-3 py-1 text-[11px] font-bold text-[#7185E6]">
+                <Moon size={12} className="text-[#7185E6]" />
                 <span>DARK THEME SHOWCASE</span>
               </div>
             </div>
@@ -359,7 +581,7 @@ export function DarkModeScrollShowcase() {
                         : 'text-slate-500'
                     }`}
                   >
-                    <span className="text-[10px] font-mono text-indigo-400">{pg.step}</span>
+                    <span className="text-[10px] font-mono text-[#7185E6]">{pg.step}</span>
                     <span className="hidden sm:inline">{pg.label}</span>
                   </span>
                 );
@@ -383,18 +605,18 @@ export function DarkModeScrollShowcase() {
                 willChange: 'transform',
               }}
             >
-              {/* ═══ PAGE 1 — DASHBOARD (ORIGINAL STUDEXA DESIGN) ═══ */}
+              {/* ═══ PAGE 1 — DASHBOARD (ORIGINAL ANSWERSBRO DESIGN) ═══ */}
               <div
                 style={{ height: `${100 / PAGE_COUNT}%` }}
                 className="overflow-hidden px-2 sm:px-6 py-2 sm:py-4 flex flex-col justify-start"
               >
                 <div className="mx-auto w-full max-w-7xl flex-1 min-h-0">
-                  <div className="rounded-2xl border border-slate-800/90 bg-[#0b0e17] shadow-2xl overflow-hidden flex h-full">
+                  <div className="rounded-2xl border border-[#30394D] bg-[#171D2B] shadow-2xl overflow-hidden flex h-full">
                     
                     {/* Left Mini Sidebar (from original design) */}
-                    <div className="hidden md:flex w-14 shrink-0 flex-col items-center justify-between border-r border-slate-800/70 bg-[#080a10] py-4">
+                    <div className="hidden md:flex w-14 shrink-0 flex-col items-center justify-between border-r border-[#30394D] bg-[#101522] py-4">
                       <div className="flex flex-col items-center gap-4">
-                        <button type="button" className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-xs">
+                        <button type="button" className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#202A4A] text-[#7185E6] border border-[#7185E6]/30 shadow-xs">
                           <Home size={16} />
                         </button>
                         <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
@@ -415,7 +637,7 @@ export function DarkModeScrollShowcase() {
                         <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
                           <Headphones size={15} />
                         </button>
-                        <div className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-indigo-400/30">
+                        <div className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-[#7185E6]/40">
                           <img src="/images/dashboard/student_avatar.png" alt="Jordan Lee" className="h-full w-full object-cover" />
                         </div>
                       </div>
@@ -425,7 +647,7 @@ export function DarkModeScrollShowcase() {
                     <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-between overflow-y-auto space-y-4">
                       
                       {/* Top Header: Greeting + Upload button */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#30394D] pb-3">
                         <div>
                           <h3 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight">
                             Good evening, Jordan Lee
@@ -450,13 +672,13 @@ export function DarkModeScrollShowcase() {
 
                         {/* Tabs */}
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-lg bg-slate-800/90 border border-slate-700/80 px-3 py-1.5 text-xs font-bold text-white flex items-center gap-1.5 shadow-xs">
-                            Materials <span className="rounded-full bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 text-[10px]">4</span>
+                          <span className="rounded-lg bg-slate-800/90 border border-[#30394D] px-3 py-1.5 text-xs font-bold text-white flex items-center gap-1.5 shadow-xs">
+                            Materials <span className="rounded-full bg-[#202A4A] text-[#7185E6] px-1.5 py-0.2 text-[10px]">4</span>
                           </span>
-                          <span className="rounded-lg bg-slate-900/80 border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                          <span className="rounded-lg bg-slate-900/80 border border-[#30394D] px-3 py-1.5 text-xs font-medium text-slate-400 flex items-center gap-1.5">
                             Past Papers <span className="rounded-full bg-slate-800 text-slate-400 px-1.5 py-0.2 text-[10px]">2</span>
                           </span>
-                          <span className="rounded-lg bg-slate-900/80 border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                          <span className="rounded-lg bg-slate-900/80 border border-[#30394D] px-3 py-1.5 text-xs font-medium text-slate-400 flex items-center gap-1.5">
                             Assignments & Docs <span className="rounded-full bg-slate-800 text-slate-400 px-1.5 py-0.2 text-[10px]">0</span>
                           </span>
                         </div>
@@ -465,11 +687,11 @@ export function DarkModeScrollShowcase() {
                       {/* Search Bar + Preferences */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-2 flex-1 max-w-md">
-                          <div className="flex-1 flex items-center gap-2 rounded-xl bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs text-slate-400">
+                          <div className="flex-1 flex items-center gap-2 rounded-xl bg-slate-900 border border-[#30394D] px-3 py-1.5 text-xs text-slate-400">
                             <Search size={13} className="text-slate-500" />
                             <span>Search in materials...</span>
                           </div>
-                          <button type="button" className="flex items-center gap-1.5 rounded-xl bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300">
+                          <button type="button" className="flex items-center gap-1.5 rounded-xl bg-slate-900 border border-[#30394D] px-3 py-1.5 text-xs font-medium text-slate-300">
                             <Filter size={12} /> Filter
                           </button>
                         </div>
@@ -484,7 +706,7 @@ export function DarkModeScrollShowcase() {
                           {
                             code: 'CS-401',
                             badge: 'PDF',
-                            badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+                            badgeBg: 'bg-[#202A4A] text-[#7185E6] border-[#7185E6]/30',
                             title: 'Neural Networks & Deep Learning',
                             subtitle: 'Lecture Notes · Units 1–5',
                             meta: '48 pages • PDF • 4.2 MB',
@@ -532,7 +754,7 @@ export function DarkModeScrollShowcase() {
                         ].map((card) => (
                           <div
                             key={card.title}
-                            className="rounded-xl border border-slate-800 bg-[#121623] p-2.5 flex flex-col justify-between hover:border-slate-700 transition-colors shadow-sm"
+                            className="rounded-xl border border-[#30394D] bg-[#202738] p-2.5 flex flex-col justify-between hover:border-slate-700 transition-colors shadow-sm"
                           >
                             <div>
                               {/* Vector Document Cover Preview */}
@@ -560,10 +782,10 @@ export function DarkModeScrollShowcase() {
                             </div>
 
                             {/* Author & Actions */}
-                            <div className="mt-2 pt-2 border-t border-slate-800/80 flex flex-col gap-1.5">
+                            <div className="mt-2 pt-2 border-t border-[#30394D] flex flex-col gap-1.5">
                               <div className="flex items-center justify-between text-[10px] text-slate-400">
                                 <span className="flex items-center gap-1 truncate max-w-[90px]">
-                                  <span className="h-3.5 w-3.5 rounded-full bg-indigo-500/30 text-indigo-300 text-[8px] font-bold flex items-center justify-center">
+                                  <span className="h-3.5 w-3.5 rounded-full bg-indigo-500/30 text-[#7185E6] text-[8px] font-bold flex items-center justify-center">
                                     {card.author.charAt(0)}
                                   </span>
                                   <span className="truncate">{card.author}</span>
@@ -574,7 +796,7 @@ export function DarkModeScrollShowcase() {
                               </div>
 
                               <div className="flex items-center justify-between text-[11px] pt-1">
-                                <span className="text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer">
+                                <span className="text-[#7185E6] hover:text-[#7185E6] font-semibold cursor-pointer">
                                   View
                                 </span>
                                 <span className="text-slate-400 hover:text-slate-300 cursor-pointer flex items-center gap-1">
@@ -587,19 +809,19 @@ export function DarkModeScrollShowcase() {
                       </div>
 
                       {/* Recently Uploaded List with Dummy Data */}
-                      <div className="pt-2 border-t border-slate-800/80">
+                      <div className="pt-2 border-t border-[#30394D]">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-bold text-slate-300">
                             Recently Uploaded
                           </span>
-                          <span className="text-[10px] text-indigo-400 hover:underline cursor-pointer">
+                          <span className="text-[10px] text-[#7185E6] hover:underline cursor-pointer">
                             View all uploads
                           </span>
                         </div>
                         <div className="space-y-1.5">
-                          <div className="rounded-lg bg-slate-900/60 border border-slate-800/70 px-3 py-1.5 flex items-center justify-between text-xs">
+                          <div className="rounded-lg bg-slate-900/60 border border-[#30394D] px-3 py-1.5 flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
-                              <FileText size={13} className="text-indigo-400" />
+                              <FileText size={13} className="text-[#7185E6]" />
                               <span className="font-semibold text-slate-200 text-[11px]">Database Systems & Indexing Internals</span>
                               <span className="text-[10px] text-slate-500">· Computer Science</span>
                             </div>
@@ -608,7 +830,7 @@ export function DarkModeScrollShowcase() {
                               <Bookmark size={12} className="text-slate-500" />
                             </div>
                           </div>
-                          <div className="rounded-lg bg-slate-900/60 border border-slate-800/70 px-3 py-1.5 flex items-center justify-between text-xs">
+                          <div className="rounded-lg bg-slate-900/60 border border-[#30394D] px-3 py-1.5 flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <FileText size={13} className="text-emerald-400" />
                               <span className="font-semibold text-slate-200 text-[11px]">Linear Algebra & Vector Calculus Notes</span>
@@ -627,16 +849,16 @@ export function DarkModeScrollShowcase() {
                 </div>
               </div>
 
-              {/* ═══ PAGE 2 — LIBRARY (ORIGINAL STUDEXA DESIGN) ═══ */}
+              {/* ═══ PAGE 2 — LIBRARY (ORIGINAL ANSWERSBRO DESIGN) ═══ */}
               <div
                 style={{ height: `${100 / PAGE_COUNT}%` }}
                 className="overflow-hidden px-2 sm:px-6 py-2 sm:py-4 flex flex-col justify-start"
               >
                 <div className="mx-auto w-full max-w-7xl flex-1 min-h-0">
-                  <div className="rounded-2xl border border-slate-800/90 bg-[#0b0e17] shadow-2xl overflow-hidden flex h-full">
+                  <div className="rounded-2xl border border-[#30394D] bg-[#171D2B] shadow-2xl overflow-hidden flex h-full">
                     
                     {/* Left Mini Sidebar */}
-                    <div className="hidden md:flex w-14 shrink-0 flex-col items-center justify-between border-r border-slate-800/70 bg-[#080a10] py-4">
+                    <div className="hidden md:flex w-14 shrink-0 flex-col items-center justify-between border-r border-[#30394D] bg-[#101522] py-4">
                       <div className="flex flex-col items-center gap-4">
                         <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
                           <Home size={16} />
@@ -651,7 +873,7 @@ export function DarkModeScrollShowcase() {
                           <Upload size={16} />
                         </button>
                         {/* Active: Library */}
-                        <button type="button" className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-xs">
+                        <button type="button" className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#202A4A] text-[#7185E6] border border-[#7185E6]/30 shadow-xs">
                           <BookOpen size={16} />
                         </button>
                       </div>
@@ -660,7 +882,7 @@ export function DarkModeScrollShowcase() {
                         <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
                           <Headphones size={15} />
                         </button>
-                        <div className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-indigo-400/30">
+                        <div className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-[#7185E6]/40">
                           <img src="/images/dashboard/student_avatar.png" alt="Jordan Lee" className="h-full w-full object-cover" />
                         </div>
                       </div>
@@ -670,7 +892,7 @@ export function DarkModeScrollShowcase() {
                     <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-between overflow-y-auto space-y-4">
                       
                       {/* Top Header: Title + Upload button + Grid/List toggle */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#30394D] pb-3">
                         <div>
                           <h3 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight">
                             Your Library
@@ -684,7 +906,7 @@ export function DarkModeScrollShowcase() {
                             <Plus size={14} />
                             <span>Upload Material</span>
                           </button>
-                          <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900/80 p-0.5">
+                          <div className="flex items-center rounded-lg border border-[#30394D] bg-slate-900/80 p-0.5">
                             <span className="rounded p-1 text-slate-400"><LayoutGrid size={13} /></span>
                             <span className="rounded p-1 text-slate-600"><List size={13} /></span>
                           </div>
@@ -692,10 +914,10 @@ export function DarkModeScrollShowcase() {
                       </div>
 
                       {/* Tabs */}
-                      <div className="flex items-center gap-4 border-b border-slate-800/60 pb-2">
-                        <button type="button" className="text-xs font-bold text-indigo-400 border-b-2 border-indigo-500 pb-2 -mb-2.5 flex items-center gap-1.5">
+                      <div className="flex items-center gap-4 border-b border-[#30394D] pb-2">
+                        <button type="button" className="text-xs font-bold text-[#7185E6] border-b-2 border-indigo-500 pb-2 -mb-2.5 flex items-center gap-1.5">
                           <span>Saved</span>
-                          <span className="rounded-full bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 text-[10px]">3</span>
+                          <span className="rounded-full bg-[#202A4A] text-[#7185E6] px-1.5 py-0.2 text-[10px]">3</span>
                         </button>
                         <button type="button" className="text-xs font-medium text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
                           <span>Manage Uploads</span>
@@ -714,7 +936,7 @@ export function DarkModeScrollShowcase() {
                             <CheckCircle2 size={13} className="text-emerald-400" />
                             <span>3 Study Materials Saved</span>
                           </span>
-                          <span className="text-[11px] text-indigo-400">124 Total Pages • 10.6 MB Offline</span>
+                          <span className="text-[11px] text-[#7185E6]">124 Total Pages • 10.6 MB Offline</span>
                         </div>
 
                         {[
@@ -725,7 +947,7 @@ export function DarkModeScrollShowcase() {
                             tag: 'AI & Data Science',
                             savedTime: 'Saved 2 days ago',
                             badge: 'PDF',
-                            badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+                            badgeColor: 'bg-[#202A4A] text-[#7185E6] border-[#7185E6]/30',
                           },
                           {
                             title: 'Distributed Systems & Cloud Computing Master Notes',
@@ -748,10 +970,10 @@ export function DarkModeScrollShowcase() {
                         ].map((item) => (
                           <div
                             key={item.title}
-                            className="rounded-xl border border-slate-800/90 bg-[#121623] p-3 flex items-center justify-between hover:border-slate-700 transition-colors shadow-sm"
+                            className="rounded-xl border border-[#30394D] bg-[#202738] p-3 flex items-center justify-between hover:border-slate-700 transition-colors shadow-sm"
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600/15 border border-indigo-500/25 text-indigo-400">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600/15 border border-indigo-500/25 text-[#7185E6]">
                                 <FileText size={18} />
                               </div>
                               <div className="min-w-0">
@@ -776,14 +998,14 @@ export function DarkModeScrollShowcase() {
                             <div className="flex items-center gap-2 shrink-0 ml-3">
                               <button
                                 type="button"
-                                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 px-3 py-1.5 text-xs font-semibold text-indigo-300 transition-colors"
+                                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-[#202A4A] hover:bg-indigo-600/30 border border-[#7185E6]/30 px-3 py-1.5 text-xs font-semibold text-[#7185E6] transition-colors"
                               >
                                 <BookOpen size={12} />
                                 <span>Read</span>
                               </button>
                               <button
                                 type="button"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-indigo-400 hover:text-white"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#30394D] bg-slate-900 text-[#7185E6] hover:text-white"
                               >
                                 <Bookmark size={14} className="fill-indigo-400/40" />
                               </button>
@@ -797,22 +1019,22 @@ export function DarkModeScrollShowcase() {
                 </div>
               </div>
 
-              {/* ═══ PAGE 3 — MESSAGES (ORIGINAL STUDEXA DESIGN) ═══ */}
+              {/* ═══ PAGE 3 — MESSAGES (ORIGINAL ANSWERSBRO DESIGN) ═══ */}
               <div
                 style={{ height: `${100 / PAGE_COUNT}%` }}
                 className="overflow-hidden px-2 sm:px-6 py-2 sm:py-4 flex flex-col justify-start"
               >
                 <div className="mx-auto w-full max-w-7xl flex-1 min-h-0">
-                  <div className="rounded-2xl border border-slate-800/90 bg-[#0b0e17] shadow-2xl overflow-hidden flex h-full">
+                  <div className="rounded-2xl border border-[#30394D] bg-[#171D2B] shadow-2xl overflow-hidden flex h-full">
                     
                     {/* Left Mini Sidebar */}
-                    <div className="hidden md:flex w-14 shrink-0 flex-col items-center justify-between border-r border-slate-800/70 bg-[#080a10] py-4">
+                    <div className="hidden md:flex w-14 shrink-0 flex-col items-center justify-between border-r border-[#30394D] bg-[#101522] py-4">
                       <div className="flex flex-col items-center gap-4">
                         <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
                           <Home size={16} />
                         </button>
                         {/* Active: Messages */}
-                        <button type="button" className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-xs">
+                        <button type="button" className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#202A4A] text-[#7185E6] border border-[#7185E6]/30 shadow-xs">
                           <MessageSquare size={16} />
                         </button>
                         <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
@@ -830,7 +1052,7 @@ export function DarkModeScrollShowcase() {
                         <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
                           <Headphones size={15} />
                         </button>
-                        <div className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-indigo-400/30">
+                        <div className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-[#7185E6]/40">
                           <img src="/images/dashboard/student_avatar.png" alt="Jordan Lee" className="h-full w-full object-cover" />
                         </div>
                       </div>
@@ -840,14 +1062,14 @@ export function DarkModeScrollShowcase() {
                     <div className="flex-1 min-w-0 flex flex-col md:flex-row h-full">
                       
                       {/* Left: Messages & Contact List */}
-                      <div className="w-full md:w-64 lg:w-72 shrink-0 border-r border-slate-800/70 p-3 sm:p-4 flex flex-col space-y-3 bg-[#0a0d15]/60">
+                      <div className="w-full md:w-64 lg:w-72 shrink-0 border-r border-[#30394D] p-3 sm:p-4 flex flex-col space-y-3 bg-[#171D2B]/60">
                         {/* Header */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <MessageSquare size={16} className="text-indigo-400" />
+                            <MessageSquare size={16} className="text-[#7185E6]" />
                             <h3 className="text-sm font-bold text-white">Messages</h3>
                           </div>
-                          <button type="button" className="flex items-center gap-1 rounded-lg bg-indigo-600/20 border border-indigo-500/30 px-2 py-1 text-[11px] font-bold text-indigo-300 hover:bg-indigo-600/30">
+                          <button type="button" className="flex items-center gap-1 rounded-lg bg-[#202A4A] border border-[#7185E6]/30 px-2 py-1 text-[11px] font-bold text-[#7185E6] hover:bg-indigo-600/30">
                             <Plus size={12} /> New
                           </button>
                         </div>
@@ -855,7 +1077,7 @@ export function DarkModeScrollShowcase() {
                         {/* Filter Tabs */}
                         <div className="flex items-center gap-1.5 text-xs">
                           <span className="rounded-lg bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-white flex items-center gap-1">
-                            Chats <span className="rounded-full bg-indigo-500/20 text-indigo-300 px-1 text-[9px]">3</span>
+                            Chats <span className="rounded-full bg-[#202A4A] text-[#7185E6] px-1 text-[9px]">3</span>
                           </span>
                           <span className="rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-400">Requests</span>
                           <span className="rounded-lg px-2 py-1 text-[11px] font-medium text-slate-400 flex items-center gap-1">
@@ -870,12 +1092,12 @@ export function DarkModeScrollShowcase() {
                               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-white font-bold text-[11px] shadow-xs">
                                 SC
                               </div>
-                              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#0a0d15]" />
+                              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#171D2B]" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold text-white truncate">Sarah Chen</span>
-                                <span className="text-[9px] text-indigo-400 font-semibold">10m ago</span>
+                                <span className="text-[9px] text-[#7185E6] font-semibold">10m ago</span>
                               </div>
                               <p className="text-[11px] text-slate-300 truncate mt-0.5 font-medium">Can you send the Unit 3 assignment?</p>
                             </div>
@@ -887,7 +1109,7 @@ export function DarkModeScrollShowcase() {
                               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white font-bold text-[11px]">
                                 DM
                               </div>
-                              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-slate-500 ring-2 ring-[#0a0d15]" />
+                              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-slate-500 ring-2 ring-[#171D2B]" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
@@ -903,7 +1125,7 @@ export function DarkModeScrollShowcase() {
                               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-white font-bold text-[11px]">
                                 ER
                               </div>
-                              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#0a0d15]" />
+                              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#171D2B]" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
@@ -917,9 +1139,9 @@ export function DarkModeScrollShowcase() {
                       </div>
 
                       {/* Right: Peer-to-Peer Student Messaging Hero */}
-                      <div className="flex-1 p-5 sm:p-8 flex flex-col items-center justify-center text-center overflow-y-auto space-y-5 bg-[#0b0e17]">
+                      <div className="flex-1 p-5 sm:p-8 flex flex-col items-center justify-center text-center overflow-y-auto space-y-5 bg-[#171D2B]">
                         {/* Central Icon */}
-                        <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600/15 border border-indigo-500/25 text-indigo-400 shadow-md">
+                        <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600/15 border border-indigo-500/25 text-[#7185E6] shadow-md">
                           <MessageSquare size={24} />
                           <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                             <Shield size={10} />
@@ -938,9 +1160,9 @@ export function DarkModeScrollShowcase() {
 
                         {/* 3 Feature Badges Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-xl text-left">
-                          <div className="rounded-xl border border-slate-800 bg-[#0e121e] p-3">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-300 mb-1">
-                              <Users size={13} className="text-indigo-400" />
+                          <div className="rounded-xl border border-[#30394D] bg-[#202738] p-3">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[#7185E6] mb-1">
+                              <Users size={13} className="text-[#7185E6]" />
                               <span>Verified Peers</span>
                             </div>
                             <p className="text-[11px] text-slate-400 leading-normal">
@@ -948,9 +1170,9 @@ export function DarkModeScrollShowcase() {
                             </p>
                           </div>
 
-                          <div className="rounded-xl border border-slate-800 bg-[#0e121e] p-3">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-300 mb-1">
-                              <Shield size={13} className="text-indigo-400" />
+                          <div className="rounded-xl border border-[#30394D] bg-[#202738] p-3">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[#7185E6] mb-1">
+                              <Shield size={13} className="text-[#7185E6]" />
                               <span>Request-Gated</span>
                             </div>
                             <p className="text-[11px] text-slate-400 leading-normal">
@@ -958,9 +1180,9 @@ export function DarkModeScrollShowcase() {
                             </p>
                           </div>
 
-                          <div className="rounded-xl border border-slate-800 bg-[#0e121e] p-3">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-300 mb-1">
-                              <Zap size={13} className="text-indigo-400" />
+                          <div className="rounded-xl border border-[#30394D] bg-[#202738] p-3">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-[#7185E6] mb-1">
+                              <Zap size={13} className="text-[#7185E6]" />
                               <span>Realtime Sync</span>
                             </div>
                             <p className="text-[11px] text-slate-400 leading-normal">
@@ -982,16 +1204,16 @@ export function DarkModeScrollShowcase() {
                 </div>
               </div>
 
-              {/* ═══ PAGE 4 — PROFILE (ORIGINAL STUDEXA DESIGN) ═══ */}
+              {/* ═══ PAGE 4 — PROFILE (ORIGINAL ANSWERSBRO DESIGN) ═══ */}
               <div
                 style={{ height: `${100 / PAGE_COUNT}%` }}
                 className="overflow-hidden px-2 sm:px-6 py-2 sm:py-4 flex flex-col justify-start"
               >
                 <div className="mx-auto w-full max-w-7xl flex-1 min-h-0">
-                  <div className="rounded-2xl border border-slate-800/90 bg-[#0b0e17] shadow-2xl overflow-hidden flex h-full">
+                  <div className="rounded-2xl border border-[#30394D] bg-[#171D2B] shadow-2xl overflow-hidden flex h-full">
                     
                     {/* Left Mini Sidebar */}
-                    <div className="hidden md:flex w-14 shrink-0 flex-col items-center justify-between border-r border-slate-800/70 bg-[#080a10] py-4">
+                    <div className="hidden md:flex w-14 shrink-0 flex-col items-center justify-between border-r border-[#30394D] bg-[#101522] py-4">
                       <div className="flex flex-col items-center gap-4">
                         <button type="button" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
                           <Home size={16} />
@@ -1015,7 +1237,7 @@ export function DarkModeScrollShowcase() {
                           <Headphones size={15} />
                         </button>
                         {/* Active: Profile Avatar */}
-                        <div className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-indigo-400/30">
+                        <div className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-[#7185E6]/40">
                           <img src="/images/dashboard/student_avatar.png" alt="Jordan Lee" className="h-full w-full object-cover" />
                         </div>
                       </div>
@@ -1025,7 +1247,7 @@ export function DarkModeScrollShowcase() {
                     <div className="flex-1 min-w-0 p-3 sm:p-5 flex flex-col justify-between overflow-y-auto space-y-3">
                       
                       {/* Top Profile Banner with Dummy Profile Data */}
-                      <div className="relative rounded-xl overflow-hidden border border-slate-800/90 bg-[#121623]">
+                      <div className="relative rounded-xl overflow-hidden border border-[#30394D] bg-[#202738]">
                         {/* Cover image header */}
                         <div className="h-20 sm:h-24 w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 relative p-3 flex justify-end">
                           <button type="button" className="flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-slate-300 hover:text-white backdrop-blur-xs">
@@ -1038,7 +1260,7 @@ export function DarkModeScrollShowcase() {
                           <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-8 sm:-mt-10 gap-3">
                             <div className="flex items-end gap-3">
                               <div className="relative">
-                                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden ring-4 ring-[#121623] shadow-lg bg-slate-800">
+                                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden ring-4 ring-[#202738] shadow-lg bg-slate-800">
                                   <img src="/images/dashboard/student_avatar.png" alt="Jordan Lee" className="h-full w-full object-cover" />
                                 </div>
                                 <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xs">
@@ -1048,7 +1270,7 @@ export function DarkModeScrollShowcase() {
                               <div className="mb-0.5">
                                 <div className="flex items-center gap-2">
                                   <h3 className="text-base sm:text-xl font-bold text-white">Jordan Lee</h3>
-                                  <span className="rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 text-[9px] font-bold">
+                                  <span className="rounded-full bg-[#202A4A] text-[#7185E6] border border-[#7185E6]/30 px-2 py-0.5 text-[9px] font-bold">
                                     VERIFIED STUDENT
                                   </span>
                                 </div>
@@ -1081,16 +1303,16 @@ export function DarkModeScrollShowcase() {
                         
                         {/* Left Column: Uploads List */}
                         <div className="lg:col-span-8 space-y-2">
-                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <div className="flex items-center justify-between border-b border-[#30394D] pb-2">
                             <div className="flex items-center gap-2">
                               <button type="button" className="rounded-lg bg-slate-800 px-3 py-1 text-xs font-bold text-white shadow-xs">
-                                My Uploads <span className="text-[10px] text-indigo-400">4</span>
+                                My Uploads <span className="text-[10px] text-[#7185E6]">4</span>
                               </button>
                               <button type="button" className="px-3 py-1 text-xs font-medium text-slate-400 hover:text-white">
                                 Recent Activity <span className="text-[10px] text-slate-500">5</span>
                               </button>
                             </div>
-                            <span className="text-[11px] text-indigo-400 hover:underline cursor-pointer">View All (4)</span>
+                            <span className="text-[11px] text-[#7185E6] hover:underline cursor-pointer">View All (4)</span>
                           </div>
 
                           <div className="space-y-1.5">
@@ -1100,9 +1322,9 @@ export function DarkModeScrollShowcase() {
                               { title: 'Database Query Optimization & Indexing Guide', tag: 'Databases', time: 'Uploaded 2 weeks ago' },
                               { title: 'Discrete Mathematics & Graph Theory Formulas', tag: 'Mathematics', time: 'Uploaded 3 weeks ago' },
                             ].map((item) => (
-                              <div key={item.title} className="rounded-xl border border-slate-800/80 bg-[#121623] p-2.5 flex items-center justify-between hover:border-slate-700 transition-colors">
+                              <div key={item.title} className="rounded-xl border border-[#30394D] bg-[#202738] p-2.5 flex items-center justify-between hover:border-slate-700 transition-colors">
                                 <div className="flex items-center gap-2.5">
-                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#202A4A] text-[#7185E6] border border-[#7185E6]/20">
                                     <FileText size={13} />
                                   </div>
                                   <div>
@@ -1119,13 +1341,13 @@ export function DarkModeScrollShowcase() {
                         </div>
 
                         {/* Right Column: Academic Details Card */}
-                        <div className="lg:col-span-4 rounded-xl border border-slate-800/80 bg-[#121623] p-3 flex flex-col justify-between space-y-2.5">
+                        <div className="lg:col-span-4 rounded-xl border border-[#30394D] bg-[#202738] p-3 flex flex-col justify-between space-y-2.5">
                           <div>
-                            <div className="flex items-center justify-between border-b border-slate-800/70 pb-1.5 mb-2">
+                            <div className="flex items-center justify-between border-b border-[#30394D] pb-1.5 mb-2">
                               <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                                <Users size={12} className="text-indigo-400" /> Academic Details
+                                <Users size={12} className="text-[#7185E6]" /> Academic Details
                               </span>
-                              <span className="text-[10px] text-indigo-400 hover:underline cursor-pointer">Edit</span>
+                              <span className="text-[10px] text-[#7185E6] hover:underline cursor-pointer">Edit</span>
                             </div>
                             
                             <div className="space-y-1.5 text-[11px]">
@@ -1143,19 +1365,19 @@ export function DarkModeScrollShowcase() {
                               </div>
                               <div className="pt-0.5">
                                 <span className="text-slate-500 text-[10px] block">Student QuickID</span>
-                                <span className="text-indigo-400 font-mono font-bold text-xs">STU-9402-X</span>
+                                <span className="text-[#7185E6] font-mono font-bold text-xs">STU-9402-X</span>
                               </div>
                             </div>
                           </div>
 
                           {/* Preferred Subjects */}
-                          <div className="pt-2 border-t border-slate-800/70">
+                          <div className="pt-2 border-t border-[#30394D]">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
                               Preferred Subjects
                             </span>
                             <div className="flex flex-wrap gap-1">
                               {['Machine Learning', 'Distributed Systems', 'Algorithms', 'Cloud Computing', 'Cybersecurity'].map((sub) => (
-                                <span key={sub} className="rounded bg-slate-900 border border-slate-800 px-1.5 py-0.5 text-[9px] font-medium text-slate-300">
+                                <span key={sub} className="rounded bg-slate-900 border border-[#30394D] px-1.5 py-0.5 text-[9px] font-medium text-slate-300">
                                   {sub}
                                 </span>
                               ))}
@@ -1173,10 +1395,10 @@ export function DarkModeScrollShowcase() {
           </div>
 
           {/* ─── FOOTER ─── */}
-          <div className="shrink-0 px-4 sm:px-8 py-3 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
+          <div className="shrink-0 px-4 sm:px-8 py-3 border-t border-[#30394D] flex items-center justify-between text-xs text-slate-500">
             <span className="flex items-center gap-1.5">
-              <ShieldCheck size={13} className="text-indigo-400" />
-              <span>Authentic Studexa dark components · Zero neon glare</span>
+              <ShieldCheck size={13} className="text-[#7185E6]" />
+              <span>Authentic answersbro dark components · Zero neon glare</span>
             </span>
             <span className="hidden sm:flex items-center gap-1.5 text-slate-500 font-mono">
               <span className="inline-block animate-bounce">↓</span> keep scrolling
@@ -1218,5 +1440,6 @@ export function DarkModeScrollShowcase() {
 
       </div>
     </div>
+    </>
   );
 }

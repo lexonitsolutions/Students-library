@@ -9,6 +9,13 @@ let lastFetchedTime = 0;
 let inFlightFetch: Promise<void> | null = null;
 const FETCH_COOLDOWN_MS = 5000; // 5 seconds cooldown
 
+// Module-level singleton channels and subscriber count
+let activeUserChannelId: string | null = null;
+let activeMsgChannel: ReturnType<typeof supabase.channel> | null = null;
+let activeReqChannel: ReturnType<typeof supabase.channel> | null = null;
+let activeQueryChannel: ReturnType<typeof supabase.channel> | null = null;
+let subscriberCount = 0;
+
 export function triggerUnreadMessagesRefresh() {
   lastFetchedTime = 0; // force refresh
   if (typeof window !== 'undefined') {
@@ -143,68 +150,68 @@ export function useUnreadMessages() {
     // Listen to manual dispatch events
     window.addEventListener('refresh_unread_messages', handleRealtimeChange);
 
-    // Unique channel suffixes ensure that multiple concurrent components (e.g. Sidebar + MobileDrawer)
-    // do not collide or throw "duplicate channel" errors in the Supabase realtime client.
-    const instanceId = Math.random().toString(36).substring(2, 7);
+    subscriberCount++;
 
-    // Subscribe to messages changes
-    const msgChannelName = `global_unread_msgs_${user.id}_${instanceId}`;
-    const msgChannel = supabase
-      .channel(msgChannelName)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        handleRealtimeChange,
-      )
-      .subscribe();
+    // Establish singleton channels for this user only once across all components
+    if (activeUserChannelId !== user.id) {
+      if (activeMsgChannel) supabase.removeChannel(activeMsgChannel);
+      if (activeReqChannel) supabase.removeChannel(activeReqChannel);
+      if (activeQueryChannel) supabase.removeChannel(activeQueryChannel);
 
-    // Subscribe to message_requests changes (when a student sends a request to user)
-    const reqChannelName = `global_unread_reqs_${user.id}_${instanceId}`;
-    const reqChannel = supabase
-      .channel(reqChannelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'message_requests',
-          filter: `receiver_id=eq.${user.id}`,
-        },
-        handleRealtimeChange,
-      )
-      .subscribe();
+      activeUserChannelId = user.id;
 
-    // Subscribe to student_queries changes for admins
-    let queryChannel: ReturnType<typeof supabase.channel> | null = null;
-    if (user.role === 'admin') {
-      const queryChannelName = `global_unread_queries_${user.id}_${instanceId}`;
-      queryChannel = supabase
-        .channel(queryChannelName)
+      activeMsgChannel = supabase
+        .channel(`global_unread_msgs_${user.id}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'student_queries' },
+          { event: '*', schema: 'public', table: 'messages' },
           handleRealtimeChange,
         )
         .subscribe();
+
+      activeReqChannel = supabase
+        .channel(`global_unread_reqs_${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'message_requests',
+            filter: `receiver_id=eq.${user.id}`,
+          },
+          handleRealtimeChange,
+        )
+        .subscribe();
+
+      if (user.role === 'admin') {
+        activeQueryChannel = supabase
+          .channel(`global_unread_queries_${user.id}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'student_queries' },
+            handleRealtimeChange,
+          )
+          .subscribe();
+      }
     }
 
     return () => {
       window.removeEventListener('refresh_unread_messages', handleRealtimeChange);
-      try {
-        supabase.removeChannel(msgChannel);
-      } catch {
-        // ignore
-      }
-      try {
-        supabase.removeChannel(reqChannel);
-      } catch {
-        // ignore
-      }
-      if (queryChannel) {
-        try {
-          supabase.removeChannel(queryChannel);
-        } catch {
-          // ignore
+      subscriberCount--;
+      if (subscriberCount <= 0) {
+        subscriberCount = 0;
+        activeUserChannelId = null;
+        if (activeMsgChannel) {
+          supabase.removeChannel(activeMsgChannel);
+          activeMsgChannel = null;
+        }
+        if (activeReqChannel) {
+          supabase.removeChannel(activeReqChannel);
+          activeReqChannel = null;
+        }
+        if (activeQueryChannel) {
+          supabase.removeChannel(activeQueryChannel);
+          activeQueryChannel = null;
         }
       }
     };

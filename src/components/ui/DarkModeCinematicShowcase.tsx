@@ -202,14 +202,14 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
           duration: 1.3,
           ease: cinematicEase,
         }}
-        className="fixed top-0 left-0 right-0 h-[50vh] z-[70] bg-[#f8f9fc] border-b border-indigo-500/20 shadow-2xl flex flex-col justify-end overflow-hidden"
+        className="fixed top-0 left-0 right-0 h-[50vh] z-[70] bg-[#FFF9EF] border-b border-[#7185E6]/20 shadow-2xl flex flex-col justify-end overflow-hidden"
       >
         <div className="p-6 sm:p-8 flex items-center justify-between text-slate-400 opacity-60">
           <div className="flex items-center gap-3">
             <Logo height={28} />
           </div>
           <span className="text-[11px] font-mono tracking-widest uppercase">
-            Studexa // Day Mode
+            answersbro // Day Mode
           </span>
         </div>
         {/* Subtle split seam lighting line at bottom edge of top panel */}
@@ -226,7 +226,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
           duration: 1.3,
           ease: cinematicEase,
         }}
-        className="fixed bottom-0 left-0 right-0 h-[50vh] z-[70] bg-[#f8f9fc] border-t border-indigo-500/20 shadow-2xl flex flex-col justify-start overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 h-[50vh] z-[70] bg-[#FFF9EF] border-t border-[#7185E6]/20 shadow-2xl flex flex-col justify-start overflow-hidden"
       >
         {/* Subtle split seam lighting line at top edge of bottom panel */}
         <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-80" />
@@ -239,21 +239,21 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
       </motion.div>
 
       {/* ── 2. FULL-SCREEN DEDICATED DARK MODE SHOWCASE WINDOW ── */}
-      <div className="fixed inset-0 z-50 bg-[#080a0f] text-slate-100 flex flex-col overflow-hidden font-sans">
+      <div className="fixed inset-0 z-50 bg-[#101522] text-slate-100 flex flex-col overflow-hidden font-sans">
         
         {/* Ambient deep dark glows (subtle, non-neon, professional depth) */}
-        <div className="pointer-events-none absolute -top-40 left-1/4 h-[350px] w-[500px] rounded-full bg-indigo-900/10 blur-[120px]" />
+        <div className="pointer-events-none absolute -top-40 left-1/4 h-[350px] w-[500px] rounded-full bg-[#202A4A]/20 blur-[120px]" />
         <div className="pointer-events-none absolute -bottom-40 right-1/4 h-[350px] w-[500px] rounded-full bg-purple-900/10 blur-[120px]" />
 
         {/* ── SHOWCASE TOP NAVIGATION BAR ── */}
-        <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#0c0f17]/90 px-4 py-3 sm:px-8 backdrop-blur-md">
+        <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-[#30394D] bg-[#171D2B]/90 px-4 py-3 sm:px-8 backdrop-blur-md">
           <div className="flex items-center gap-3 sm:gap-6">
             <div className="flex items-center">
               <Logo height={30} />
             </div>
 
-            <div className="hidden md:flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-bold text-indigo-300">
-              <Moon size={12} className="text-indigo-400" />
+            <div className="hidden md:flex items-center gap-2 rounded-full border border-[#7185E6]/20 bg-[#202A4A] px-3 py-1 text-[11px] font-bold text-[#7185E6]">
+              <Moon size={12} className="text-[#7185E6]" />
               <span>NATIVE DARK THEME SHOWCASE</span>
             </div>
           </div>
@@ -280,7 +280,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                       : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
-                  <span className="text-[10px] font-mono text-indigo-400">
+                  <span className="text-[10px] font-mono text-[#7185E6]">
                     {page.step}
                   </span>
                   <span className="hidden sm:inline">{page.label}</span>
@@ -305,7 +305,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
             <button
               type="button"
               onClick={() => setIsPaused((prev) => !prev)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/80 text-slate-300 hover:border-slate-700 hover:text-white transition-colors cursor-pointer"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#30394D] bg-slate-900/80 text-slate-300 hover:border-slate-700 hover:text-white transition-colors cursor-pointer"
               title={isPaused ? 'Resume tour' : 'Pause tour'}
             >
               {isPaused ? <Play size={14} /> : <Pause size={14} />}
@@ -317,7 +317,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                 type="button"
                 onClick={handlePrev}
                 disabled={activePageIndex === 0}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/80 text-slate-300 hover:border-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#30394D] bg-slate-900/80 text-slate-300 hover:border-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 title="Previous Screen"
               >
                 <ArrowLeft size={14} />
@@ -325,7 +325,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
               <button
                 type="button"
                 onClick={handleNext}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/80 text-slate-300 hover:border-slate-700 hover:text-white transition-colors cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#30394D] bg-slate-900/80 text-slate-300 hover:border-slate-700 hover:text-white transition-colors cursor-pointer"
                 title={activePageIndex === SHOWCASE_PAGES.length - 1 ? 'Finish & Return' : 'Next Screen'}
               >
                 <ArrowRight size={14} />
@@ -350,9 +350,9 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
           <div className="mx-auto w-full max-w-6xl">
             
             {/* Screen Header Info Pill */}
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/60 pb-4">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#30394D] pb-4">
               <div>
-                <span className="text-[10px] font-bold tracking-wider text-indigo-400 uppercase">
+                <span className="text-[10px] font-bold tracking-wider text-[#7185E6] uppercase">
                   {activePage.badge}
                 </span>
                 <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
@@ -375,10 +375,10 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 1.02, y: -12 }}
                     transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
-                    className="rounded-2xl border border-slate-800 bg-[#0e111a] shadow-2xl p-4 sm:p-6 space-y-6"
+                    className="rounded-2xl border border-[#30394D] bg-[#171D2B] shadow-2xl p-4 sm:p-6 space-y-6"
                   >
                     {/* Dashboard Header Bar */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#30394D] pb-5">
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
@@ -404,13 +404,13 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
 
                     {/* Category Filter Tabs */}
                     <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                      <span className="rounded-lg bg-indigo-500/20 border border-indigo-500/30 px-3 py-1.5 text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                      <span className="rounded-lg bg-[#202A4A] border border-[#7185E6]/30 px-3 py-1.5 text-xs font-bold text-[#7185E6] flex items-center gap-1.5">
                         <FileText size={13} /> Study Notes (128)
                       </span>
-                      <span className="rounded-lg bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <span className="rounded-lg bg-slate-900 border border-[#30394D] px-3 py-1.5 text-xs font-medium text-slate-400 flex items-center gap-1.5">
                         <Clock size={13} /> Past Exam Papers (42)
                       </span>
-                      <span className="rounded-lg bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <span className="rounded-lg bg-slate-900 border border-[#30394D] px-3 py-1.5 text-xs font-medium text-slate-400 flex items-center gap-1.5">
                         <Sparkles size={13} /> Cheatsheets (18)
                       </span>
                     </div>
@@ -418,10 +418,10 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                     {/* Dashboard Material Cards Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Card 1 */}
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-4 flex flex-col justify-between hover:border-slate-700 transition-colors">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-4 flex flex-col justify-between hover:border-slate-700 transition-colors">
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="rounded-md bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold text-indigo-400 border border-indigo-500/20">
+                            <span className="rounded-md bg-[#202A4A] px-2 py-0.5 text-[10px] font-bold text-[#7185E6] border border-[#7185E6]/20">
                               PDF • 4.2 MB
                             </span>
                             <span className="text-[11px] text-amber-400 font-semibold">★ 4.9 (1.2k)</span>
@@ -433,16 +433,16 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                             Unit 1 to 4 handwritten diagrams, fault tolerance models, and Raft election proofs.
                           </p>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                        <div className="mt-4 pt-3 border-t border-[#30394D] flex items-center justify-between text-xs">
                           <span className="text-slate-400">Alex K. • NIT Trichy</span>
-                          <button type="button" className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold">
+                          <button type="button" className="text-[#7185E6] hover:text-[#7185E6] flex items-center gap-1 font-semibold">
                             <Download size={13} /> View
                           </button>
                         </div>
                       </div>
 
                       {/* Card 2 */}
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-4 flex flex-col justify-between hover:border-slate-700 transition-colors">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-4 flex flex-col justify-between hover:border-slate-700 transition-colors">
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="rounded-md bg-purple-500/10 px-2 py-0.5 text-[10px] font-bold text-purple-400 border border-purple-500/20">
@@ -457,16 +457,16 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                             Step-by-step solutions for multi-threading deadlocks and virtual memory paging.
                           </p>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                        <div className="mt-4 pt-3 border-t border-[#30394D] flex items-center justify-between text-xs">
                           <span className="text-slate-400">Sneha Nair (Top Author)</span>
-                          <button type="button" className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold">
+                          <button type="button" className="text-[#7185E6] hover:text-[#7185E6] flex items-center gap-1 font-semibold">
                             <Download size={13} /> View
                           </button>
                         </div>
                       </div>
 
                       {/* Card 3 */}
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-4 flex flex-col justify-between hover:border-slate-700 transition-colors">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-4 flex flex-col justify-between hover:border-slate-700 transition-colors">
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
@@ -481,9 +481,9 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                             Quick reference formulas for Dijkstra, Bellman-Ford, Prim, and Kruskal algorithms.
                           </p>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                        <div className="mt-4 pt-3 border-t border-[#30394D] flex items-center justify-between text-xs">
                           <span className="text-slate-400">Prof. Rao M.</span>
-                          <button type="button" className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold">
+                          <button type="button" className="text-[#7185E6] hover:text-[#7185E6] flex items-center gap-1 font-semibold">
                             <Download size={13} /> View
                           </button>
                         </div>
@@ -500,10 +500,10 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 1.02, y: -12 }}
                     transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
-                    className="rounded-2xl border border-slate-800 bg-[#0e111a] shadow-2xl p-4 sm:p-6 space-y-6"
+                    className="rounded-2xl border border-[#30394D] bg-[#171D2B] shadow-2xl p-4 sm:p-6 space-y-6"
                   >
                     {/* Library Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#30394D] pb-5">
                       <div>
                         <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
                           My Academic Library
@@ -514,7 +514,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                       </div>
 
                       {/* Tab Controls */}
-                      <div className="flex items-center gap-1 rounded-xl bg-slate-900 p-1 border border-slate-800">
+                      <div className="flex items-center gap-1 rounded-xl bg-slate-900 p-1 border border-[#30394D]">
                         <button type="button" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
                           Saved (18)
                         </button>
@@ -529,7 +529,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
 
                     {/* Search & Action Bar */}
                     <div className="flex items-center justify-between gap-4">
-                      <div className="flex-1 flex items-center gap-2 rounded-xl bg-slate-900 border border-slate-800 px-3.5 py-2 text-xs text-slate-300">
+                      <div className="flex-1 flex items-center gap-2 rounded-xl bg-slate-900 border border-[#30394D] px-3.5 py-2 text-xs text-slate-300">
                         <Search size={14} className="text-slate-500" />
                         <span>Filter saved notes by subject, unit, or professor...</span>
                       </div>
@@ -539,9 +539,9 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                     {/* Library Items List */}
                     <div className="space-y-3">
                       {/* Row 1 */}
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
                         <div className="flex items-center gap-3.5">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold text-xs">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#202A4A] text-[#7185E6] border border-[#7185E6]/20 font-bold text-xs">
                             PDF
                           </div>
                           <div>
@@ -564,7 +564,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                       </div>
 
                       {/* Row 2 */}
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
                         <div className="flex items-center gap-3.5">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 font-bold text-xs">
                             PDF
@@ -589,7 +589,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                       </div>
 
                       {/* Row 3 */}
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
                         <div className="flex items-center gap-3.5">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold text-xs">
                             DOC
@@ -624,16 +624,16 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 1.02, y: -12 }}
                     transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
-                    className="rounded-2xl border border-slate-800 bg-[#0e111a] shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[460px]"
+                    className="rounded-2xl border border-[#30394D] bg-[#171D2B] shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[460px]"
                   >
                     {/* Left: Chat Contacts Sidebar */}
-                    <div className="md:col-span-4 border-r border-slate-800/80 bg-[#0b0e16] p-4 flex flex-col space-y-4">
+                    <div className="md:col-span-4 border-r border-[#30394D] bg-[#171D2B] p-4 flex flex-col space-y-4">
                       <div>
                         <h3 className="text-sm font-bold text-white tracking-tight">Study Circles</h3>
                         <p className="text-[11px] text-slate-400">Direct peer discussions</p>
                       </div>
 
-                      <div className="flex items-center gap-2 rounded-lg bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs text-slate-400">
+                      <div className="flex items-center gap-2 rounded-lg bg-slate-900 border border-[#30394D] px-3 py-1.5 text-xs text-slate-400">
                         <Search size={13} />
                         <span>Search messages...</span>
                       </div>
@@ -645,12 +645,12 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white font-bold text-xs">
                               SN
                             </div>
-                            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0b0e16]" />
+                            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#171D2B]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-white truncate">Sneha Nair</span>
-                              <span className="text-[10px] text-indigo-400 font-mono">10:45 AM</span>
+                              <span className="text-[10px] text-[#7185E6] font-mono">10:45 AM</span>
                             </div>
                             <p className="text-[11px] text-slate-300 truncate mt-0.5">
                               Yes! Just uploaded the verified proof...
@@ -696,9 +696,9 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                     </div>
 
                     {/* Right: Active Chat Area */}
-                    <div className="md:col-span-8 flex flex-col justify-between p-4 sm:p-5 bg-[#0e111a]">
+                    <div className="md:col-span-8 flex flex-col justify-between p-4 sm:p-5 bg-[#171D2B]">
                       {/* Active Chat Header */}
-                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                      <div className="flex items-center justify-between border-b border-[#30394D] pb-3">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white font-bold text-xs">
                             SN
@@ -706,7 +706,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-bold text-white">Sneha Nair</span>
-                              <span className="rounded bg-indigo-500/20 px-1.5 py-0.2 text-[9px] font-bold text-indigo-400">
+                              <span className="rounded bg-[#202A4A] px-1.5 py-0.2 text-[9px] font-bold text-[#7185E6]">
                                 Top Contributor
                               </span>
                             </div>
@@ -741,7 +741,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                             {/* Document attachment card */}
                             <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-900 border border-slate-700 p-2.5">
                               <div className="flex items-center gap-2">
-                                <FileText size={16} className="text-indigo-400" />
+                                <FileText size={16} className="text-[#7185E6]" />
                                 <div>
                                   <div className="font-bold text-slate-100 text-[11px]">
                                     OS_MidSem_2025_Solved.pdf
@@ -749,7 +749,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                                   <div className="text-[10px] text-slate-400">3.4 MB • 6 Pages</div>
                                 </div>
                               </div>
-                              <span className="text-indigo-400 hover:text-indigo-300 font-bold text-[11px] cursor-pointer">
+                              <span className="text-[#7185E6] hover:text-[#7185E6] font-bold text-[11px] cursor-pointer">
                                 View Note →
                               </span>
                             </div>
@@ -758,12 +758,12 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                       </div>
 
                       {/* Bottom Chat Input Bar */}
-                      <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2">
+                      <div className="pt-2 border-t border-[#30394D] flex items-center gap-2">
                         <input
                           type="text"
                           readOnly
                           value="Thanks Sneha! Reviewing the semaphore steps now..."
-                          className="flex-1 rounded-xl bg-slate-900 border border-slate-800 px-4 py-2.5 text-xs text-slate-300 focus:outline-none"
+                          className="flex-1 rounded-xl bg-slate-900 border border-[#30394D] px-4 py-2.5 text-xs text-slate-300 focus:outline-none"
                         />
                         <button
                           type="button"
@@ -784,13 +784,13 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 1.02, y: -12 }}
                     transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
-                    className="rounded-2xl border border-slate-800 bg-[#0e111a] shadow-2xl p-4 sm:p-6 space-y-6"
+                    className="rounded-2xl border border-[#30394D] bg-[#171D2B] shadow-2xl p-4 sm:p-6 space-y-6"
                   >
                     {/* Profile Banner & Identity Header */}
-                    <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-[#131724]">
+                    <div className="relative rounded-xl overflow-hidden border border-[#30394D] bg-[#202738]">
                       {/* Cover Photo */}
                       <div className="h-28 sm:h-32 w-full bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 flex items-end p-4">
-                        <span className="text-[10px] font-mono text-indigo-300/60 uppercase tracking-widest">
+                        <span className="text-[10px] font-mono text-[#7185E6]/60 uppercase tracking-widest">
                           National Institute of Technology • Computer Science
                         </span>
                       </div>
@@ -799,7 +799,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                       <div className="px-6 pb-5 pt-0">
                         <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-10 sm:-mt-12 gap-4">
                           <div className="flex items-end gap-4">
-                            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-600 text-white font-extrabold text-2xl ring-4 ring-[#131724] shadow-lg">
+                            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-600 text-white font-extrabold text-2xl ring-4 ring-[#202738] shadow-lg">
                               AK
                             </div>
                             <div className="mb-1">
@@ -812,7 +812,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-indigo-500/10 border border-indigo-500/30 px-3 py-1 text-xs font-semibold text-indigo-300">
+                            <span className="rounded-full bg-[#202A4A] border border-[#7185E6]/30 px-3 py-1 text-xs font-semibold text-[#7185E6]">
                               3rd Year • Semester 5
                             </span>
                           </div>
@@ -822,25 +822,25 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
 
                     {/* Academic Stats Metrics Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-3 text-center">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-3 text-center">
                         <span className="text-[11px] text-slate-400 font-medium">Karma Points</span>
                         <p className="text-lg sm:text-xl font-black text-amber-400 mt-0.5">1,420</p>
                         <span className="text-[10px] text-slate-500">Top 5% in Branch</span>
                       </div>
 
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-3 text-center">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-3 text-center">
                         <span className="text-[11px] text-slate-400 font-medium">Verified Uploads</span>
-                        <p className="text-lg sm:text-xl font-black text-indigo-400 mt-0.5">24</p>
+                        <p className="text-lg sm:text-xl font-black text-[#7185E6] mt-0.5">24</p>
                         <span className="text-[10px] text-slate-500">100% Moderated</span>
                       </div>
 
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-3 text-center">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-3 text-center">
                         <span className="text-[11px] text-slate-400 font-medium">Saved Resources</span>
                         <p className="text-lg sm:text-xl font-black text-purple-400 mt-0.5">48</p>
                         <span className="text-[10px] text-slate-500">Exam Library</span>
                       </div>
 
-                      <div className="rounded-xl border border-slate-800 bg-[#131724] p-3 text-center">
+                      <div className="rounded-xl border border-[#30394D] bg-[#202738] p-3 text-center">
                         <span className="text-[11px] text-slate-400 font-medium">Author Rating</span>
                         <p className="text-lg sm:text-xl font-black text-emerald-400 mt-0.5">4.9 ★</p>
                         <span className="text-[10px] text-slate-500">Across 3,800+ downloads</span>
@@ -848,7 +848,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                     </div>
 
                     {/* Preferred Subjects Badges */}
-                    <div className="rounded-xl border border-slate-800 bg-[#131724] p-4">
+                    <div className="rounded-xl border border-[#30394D] bg-[#202738] p-4">
                       <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5">
                         Enrolled Subjects & Interests
                       </h4>
@@ -862,7 +862,7 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
                         ].map((sub) => (
                           <span
                             key={sub}
-                            className="rounded-lg bg-slate-900 border border-slate-800 px-3 py-1 text-xs font-medium text-slate-300"
+                            className="rounded-lg bg-slate-900 border border-[#30394D] px-3 py-1 text-xs font-medium text-slate-300"
                           >
                             {sub}
                           </span>
@@ -875,17 +875,17 @@ export function DarkModeCinematicShowcase({ isOpen, onClose }: DarkModeCinematic
             </div>
 
             {/* Showcase Footer Note with Return Hint */}
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 border-t border-slate-800/60 pt-4">
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 border-t border-[#30394D] pt-4">
               <span className="flex items-center gap-1.5">
-                <ShieldCheck size={13} className="text-indigo-400" />
-                <span>Authentic Studexa dark interface components • Zero neon glare</span>
+                <ShieldCheck size={13} className="text-[#7185E6]" />
+                <span>Authentic answersbro dark interface components • Zero neon glare</span>
               </span>
 
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={handleInitiateClose}
-                  className="text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer flex items-center gap-1"
+                  className="text-[#7185E6] hover:text-[#7185E6] font-semibold cursor-pointer flex items-center gap-1"
                 >
                   <RotateCcw size={12} />
                   <span>Return to landing page</span>

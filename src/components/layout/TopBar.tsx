@@ -94,7 +94,7 @@ export function TopBar({ onMenuOpen }: TopBarProps) {
       <div
         className="flex items-center shrink-0 cursor-pointer select-none transition-transform hover:opacity-95 active:scale-[0.98]"
         onClick={() => navigate('/dashboard')}
-        title="Studexa Home"
+        title="answersbro Home"
       >
         <Logo imgClassName="h-[34px] sm:h-[38px] w-auto object-contain" />
       </div>

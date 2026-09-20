@@ -10,8 +10,6 @@ import {
   Search,
   Printer,
   ArrowLeft,
-  Sun,
-  Moon,
   ExternalLink,
   HelpCircle,
   Clock,
@@ -25,7 +23,6 @@ import {
 import { Logo } from '../components/ui/Logo';
 import { Footer } from '../components/ui/Footer';
 import { useAuth } from '../hooks/useAuth';
-import { useDarkMode } from '../hooks/useDarkMode';
 import { cn } from '../lib/cn';
 
 interface Section {
@@ -39,7 +36,6 @@ interface Section {
 export function TermsPage() {
   const navigate = useNavigate();
   const { isAuthenticated, isExploring } = useAuth();
-  const { theme, cycleTheme } = useDarkMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSectionId, setActiveSectionId] = useState('acceptance');
 
@@ -53,13 +49,13 @@ export function TermsPage() {
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              These Terms and Conditions (&quot;<strong>Terms</strong>&quot;, &quot;<strong>Agreement</strong>&quot;) constitute a legally binding agreement between you (&quot;<strong>User</strong>&quot;, &quot;<strong>Student</strong>&quot;, &quot;<strong>you</strong>&quot;) and <strong>Lexon IT Solutions</strong> (&quot;<strong>Studexa</strong>&quot;, &quot;<strong>we</strong>&quot;, &quot;<strong>our</strong>&quot;, &quot;<strong>us</strong>&quot;), regarding your access to and use of the Studexa web platform, applications, reader utilities, and academic sharing services (collectively, the &quot;<strong>Platform</strong>&quot;).
+              These Terms and Conditions (&quot;<strong>Terms</strong>&quot;, &quot;<strong>Agreement</strong>&quot;) constitute a legally binding agreement between you (&quot;<strong>User</strong>&quot;, &quot;<strong>Student</strong>&quot;, &quot;<strong>you</strong>&quot;) and <strong>Lexon IT Solutions</strong> (&quot;<strong>answersbro</strong>&quot;, &quot;<strong>we</strong>&quot;, &quot;<strong>our</strong>&quot;, &quot;<strong>us</strong>&quot;), regarding your access to and use of the answersbro web platform, applications, reader utilities, and academic sharing services (collectively, the &quot;<strong>Platform</strong>&quot;).
             </p>
             <p>
-              By accessing, browsing, registering for an account, uploading study documents, or reading course notes on Studexa, you explicitly acknowledge that you have read, understood, and agreed to be bound by these Terms, as well as our <Link to="/privacy" className="text-primary font-medium hover:underline">Privacy Policy</Link>. If you do not agree with any part of these Terms, you must immediately discontinue your use of the Platform.
+              By accessing, browsing, registering for an account, uploading study documents, or reading course notes on answersbro, you explicitly acknowledge that you have read, understood, and agreed to be bound by these Terms, as well as our <Link to="/privacy" className="text-primary font-medium hover:underline">Privacy Policy</Link>. If you do not agree with any part of these Terms, you must immediately discontinue your use of the Platform.
             </p>
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs text-on-surface">
-              <span className="font-semibold text-primary">Summary in Plain English:</span> Studexa is a collaborative platform designed by students and educators to organize and share university notes. By using Studexa, you promise to uphold academic honesty, respect copyright laws, and treat peers respectfully.
+              <span className="font-semibold text-primary">Summary in Plain English:</span> answersbro is a collaborative platform designed by students and educators to organize and share university notes. By using answersbro, you promise to uphold academic honesty, respect copyright laws, and treat peers respectfully.
             </div>
           </div>
         ),
@@ -94,12 +90,12 @@ export function TermsPage() {
       {
         id: 'honor-code',
         number: '03',
-        title: 'Studexa Academic Honor Code',
+        title: 'answersbro Academic Honor Code',
         icon: BookOpen,
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              Studexa exists to empower students through legitimate academic collaboration, peer review, and accessible reference materials. We strictly condemn any practice that undermines academic integrity or institutional codes of conduct.
+              answersbro exists to empower students through legitimate academic collaboration, peer review, and accessible reference materials. We strictly condemn any practice that undermines academic integrity or institutional codes of conduct.
             </p>
             <div className="rounded-xl border border-error/30 bg-error-container/15 p-4 text-xs sm:text-sm text-on-surface space-y-2">
               <div className="flex items-center gap-2 text-error font-semibold text-sm">
@@ -114,7 +110,7 @@ export function TermsPage() {
               </ul>
             </div>
             <p className="text-xs">
-              Violations of this Honor Code may result in immediate suspension or permanent termination of your Studexa profile, removal of all uploaded documents, and potential notification to the respective academic institution where legally required or warranted.
+              Violations of this Honor Code may result in immediate suspension or permanent termination of your answersbro profile, removal of all uploaded documents, and potential notification to the respective academic institution where legally required or warranted.
             </p>
           </div>
         ),
@@ -132,13 +128,13 @@ export function TermsPage() {
             <div className="space-y-2.5">
               <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface">1. Ownership of Your Notes</h4>
               <p>
-                You retain all copyright and intellectual property rights in the original academic notes, summaries, and materials that you author and submit to Studexa.
+                You retain all copyright and intellectual property rights in the original academic notes, summaries, and materials that you author and submit to answersbro.
               </p>
             </div>
             <div className="space-y-2.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface">2. License Granted to Studexa</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface">2. License Granted to answersbro</h4>
               <p>
-                By submitting or uploading User Content to Studexa, you grant Lexon IT Solutions and Studexa a non-exclusive, worldwide, royalty-free, transferable, and sublicensable license to host, store, cache, parse, render, index, distribute, and display your uploaded materials solely for the purpose of operating, improving, and promoting the Platform and its academic community.
+                By submitting or uploading User Content to answersbro, you grant Lexon IT Solutions and answersbro a non-exclusive, worldwide, royalty-free, transferable, and sublicensable license to host, store, cache, parse, render, index, distribute, and display your uploaded materials solely for the purpose of operating, improving, and promoting the Platform and its academic community.
               </p>
             </div>
             <div className="space-y-2.5">
@@ -158,17 +154,17 @@ export function TermsPage() {
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              To maintain high educational standards, every document uploaded to Studexa undergoes a moderation workflow. Our system evaluates submissions for clarity, categorization accuracy (college, subject code, semester), formatting, and safety.
+              To maintain high educational standards, every document uploaded to answersbro undergoes a moderation workflow. Our system evaluates submissions for clarity, categorization accuracy (college, subject code, semester), formatting, and safety.
             </p>
             <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
               <li>
                 <strong>Approval Status:</strong> Uploaded materials may be marked as <code>Pending</code>, <code>Approved</code>, or <code>Rejected</code>. Only approved materials are made publicly discoverable in the central library.
               </li>
               <li>
-                <strong>Rejection Justifications:</strong> If an upload is rejected, Studexa provides a constructive feedback reason (such as illegible scans, missing subject metadata, duplicate submission, or copyright concerns).
+                <strong>Rejection Justifications:</strong> If an upload is rejected, answersbro provides a constructive feedback reason (such as illegible scans, missing subject metadata, duplicate submission, or copyright concerns).
               </li>
               <li>
-                <strong>Admin Discretion:</strong> Studexa administrators reserve the unconditional right to reclassify, unpublish, unlist, or remove any document at any time without prior notice if it is found to violate community guidelines or applicable laws.
+                <strong>Admin Discretion:</strong> answersbro administrators reserve the unconditional right to reclassify, unpublish, unlist, or remove any document at any time without prior notice if it is found to violate community guidelines or applicable laws.
               </li>
             </ul>
           </div>
@@ -181,7 +177,7 @@ export function TermsPage() {
         icon: AlertTriangle,
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
-            <p>You agree not to engage in any of the following prohibited behaviors while using Studexa:</p>
+            <p>You agree not to engage in any of the following prohibited behaviors while using answersbro:</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
               <div className="p-3.5 rounded-xl border border-card-border bg-surface-container-low">
                 <h5 className="text-xs font-bold text-on-surface mb-1">Automated Scraping &amp; Crawling</h5>
@@ -192,7 +188,7 @@ export function TermsPage() {
               <div className="p-3.5 rounded-xl border border-card-border bg-surface-container-low">
                 <h5 className="text-xs font-bold text-on-surface mb-1">Commercial Exploitation</h5>
                 <p className="text-xs text-on-surface-variant">
-                  Reselling documents, charging peers for notes accessed through Studexa, or using the Platform for third-party commercial advertisements.
+                  Reselling documents, charging peers for notes accessed through answersbro, or using the Platform for third-party commercial advertisements.
                 </p>
               </div>
               <div className="p-3.5 rounded-xl border border-card-border bg-surface-container-low">
@@ -224,11 +220,11 @@ export function TermsPage() {
             <div className="space-y-2 text-xs sm:text-sm">
               <h4 className="font-semibold text-on-surface">Filing a Copyright Infringement Notice:</h4>
               <p>
-                If you believe that your copyrighted book, published syllabus, or course pack has been uploaded to Studexa without proper authorization, please submit a formal takedown request containing:
+                If you believe that your copyrighted book, published syllabus, or course pack has been uploaded to answersbro without proper authorization, please submit a formal takedown request containing:
               </p>
               <ol className="list-decimal pl-5 space-y-1.5 text-xs text-on-surface-variant">
                 <li>Identification of the copyrighted work claimed to have been infringed.</li>
-                <li>The exact URL, material title, or identifier of the infringing item on Studexa.</li>
+                <li>The exact URL, material title, or identifier of the infringing item on answersbro.</li>
                 <li>Your contact details, including legal name, address, telephone number, and official email address.</li>
                 <li>A statement of good faith belief that the disputed use is not authorized by the copyright owner or the law.</li>
                 <li>A statement under penalty of perjury that the information in your notice is accurate and that you are the owner or authorized agent.</li>
@@ -255,7 +251,7 @@ export function TermsPage() {
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              Studexa includes interactive collaboration tools such as peer-to-peer connection requests, direct messaging, and the Student Queries portal. When participating in discussions:
+              answersbro includes interactive collaboration tools such as peer-to-peer connection requests, direct messaging, and the Student Queries portal. When participating in discussions:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
               <li>
@@ -265,7 +261,7 @@ export function TermsPage() {
                 <strong>Safety &amp; Privacy:</strong> Never request or reveal sensitive personal credentials, payment information, or private phone numbers in public student query chats.
               </li>
               <li>
-                <strong>Zero Tolerance for Abuse:</strong> Threatening, abusive, defamatory, or sexually suggestive communication will result in an immediate permanent ban across all Studexa services.
+                <strong>Zero Tolerance for Abuse:</strong> Threatening, abusive, defamatory, or sexually suggestive communication will result in an immediate permanent ban across all answersbro services.
               </li>
             </ul>
           </div>
@@ -282,14 +278,14 @@ export function TermsPage() {
               Please read this section carefully as it limits our liability.
             </p>
             <p>
-              The Studexa Platform, materials, reader utilities, and recommendations are provided on an <strong>&quot;AS IS&quot;</strong> and <strong>&quot;AS AVAILABLE&quot;</strong> basis, without warranties of any kind, whether express or implied.
+              The answersbro Platform, materials, reader utilities, and recommendations are provided on an <strong>&quot;AS IS&quot;</strong> and <strong>&quot;AS AVAILABLE&quot;</strong> basis, without warranties of any kind, whether express or implied.
             </p>
             <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
               <li>
-                <strong>No Academic Guarantee:</strong> Lexon IT Solutions does not guarantee that using materials from Studexa will result in passing grades, high exam scores, or university admission.
+                <strong>No Academic Guarantee:</strong> Lexon IT Solutions does not guarantee that using materials from answersbro will result in passing grades, high exam scores, or university admission.
               </li>
               <li>
-                <strong>Accuracy of Notes:</strong> User-submitted study materials reflect the personal notes and interpretations of individual students. Studexa does not verify the mathematical, scientific, or factual accuracy of notes. Students are strongly advised to verify information against prescribed textbooks and official faculty syllabi.
+                <strong>Accuracy of Notes:</strong> User-submitted study materials reflect the personal notes and interpretations of individual students. answersbro does not verify the mathematical, scientific, or factual accuracy of notes. Students are strongly advised to verify information against prescribed textbooks and official faculty syllabi.
               </li>
               <li>
                 <strong>Service Availability:</strong> We do not warrant that Platform operations will be uninterrupted, error-free, completely secure, or free from server latency.
@@ -328,7 +324,7 @@ export function TermsPage() {
         content: (
           <div className="space-y-3.5 text-sm text-on-surface-variant leading-relaxed">
             <p>
-              You may terminate your agreement with Studexa at any time by deleting your account via the <Link to="/settings" className="text-primary font-semibold hover:underline">Settings</Link> page. Upon confirmation:
+              You may terminate your agreement with answersbro at any time by deleting your account via the <Link to="/settings" className="text-primary font-semibold hover:underline">Settings</Link> page. Upon confirmation:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm">
               <li>Your personal profile, contact email, and authentication credentials will be immediately severed.</li>
@@ -336,7 +332,7 @@ export function TermsPage() {
               <li>Publicly shared academic notes that have been approved for community reference may remain archived in an anonymized state to maintain academic continuity for peers who saved them, unless an explicit copyright takedown is requested.</li>
             </ul>
             <p className="text-xs">
-              Studexa reserves the right to suspend or terminate accounts that breach these Terms or exhibit malicious activity without notice.
+              answersbro reserves the right to suspend or terminate accounts that breach these Terms or exhibit malicious activity without notice.
             </p>
           </div>
         ),
@@ -368,7 +364,7 @@ export function TermsPage() {
               Lexon IT Solutions reserves the right to revise, update, or replace these Terms at any time to reflect evolving academic laws, new platform features, or operational improvements.
             </p>
             <p>
-              When material changes are made, we will update the &quot;Last Updated&quot; date at the top of this page and post an announcement in the platform notifications. Your continued use of Studexa after the effective date of updated Terms constitutes your explicit acceptance of the changes.
+              When material changes are made, we will update the &quot;Last Updated&quot; date at the top of this page and post an announcement in the platform notifications. Your continued use of answersbro after the effective date of updated Terms constitutes your explicit acceptance of the changes.
             </p>
           </div>
         ),
@@ -384,11 +380,11 @@ export function TermsPage() {
               If you have any questions, feedback, or concerns regarding these Terms and Conditions, or wish to report a copyright or academic integrity violation, please reach out to our team:
             </p>
             <div className="rounded-xl border border-card-border bg-surface-container-low p-4 space-y-2">
-              <p className="font-bold text-on-surface text-sm">Lexon IT Solutions — Studexa Team</p>
+              <p className="font-bold text-on-surface text-sm">Lexon IT Solutions — answersbro Team</p>
               <p className="text-xs text-on-surface-variant">
                 Support Portal:{' '}
                 <Link to="/support" className="text-primary font-medium hover:underline">
-                  studexa.app/support
+                  answersbro.app/support
                 </Link>
               </p>
               <p className="text-xs text-on-surface-variant">
@@ -465,7 +461,7 @@ export function TermsPage() {
                   navigate('/get-started');
                 }
               }}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer shrink-0"
               title="Go back"
               aria-label="Go back"
             >
@@ -473,63 +469,21 @@ export function TermsPage() {
             </button>
 
             <Link to={isAuthenticated && !isExploring ? '/dashboard' : '/get-started'} className="flex items-center">
-              <Logo height={30} />
+              <Logo height={28} imgClassName="h-7 sm:h-[30px] w-auto object-contain" />
             </Link>
-
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
-              <Scale size={12} />
-              <span>Terms of Service</span>
-            </span>
           </div>
 
-          {/* Right Action Tools */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Quick Link to Privacy */}
-            <Link
-              to="/privacy"
-              className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors hidden md:inline-block px-2 py-1"
-            >
-              Privacy Policy
-            </Link>
-
-            {/* Print Button */}
+          {/* Right Action Tools: Print only */}
+          <div className="flex items-center">
             <button
               type="button"
               onClick={handlePrint}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer shrink-0"
               title="Print or Save as PDF"
               aria-label="Print or Save as PDF"
             >
               <Printer size={16} />
             </button>
-
-            {/* Dark Mode Toggle */}
-            <button
-              type="button"
-              onClick={cycleTheme}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-card-border bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
-              title="Toggle theme"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Moon size={16} className="text-primary" /> : <Sun size={16} className="text-amber-500" />}
-            </button>
-
-            {/* Account / Dashboard Button */}
-            {isAuthenticated && !isExploring ? (
-              <Link
-                to="/dashboard"
-                className="inline-flex items-center justify-center rounded-xl bg-primary hover:bg-primary-hover px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-xs"
-              >
-                Dashboard
-              </Link>
-            ) : (
-              <Link
-                to="/signin"
-                className="inline-flex items-center justify-center rounded-xl bg-primary hover:bg-primary-hover px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-xs"
-              >
-                Sign In
-              </Link>
-            )}
           </div>
         </div>
       </header>
@@ -551,7 +505,7 @@ export function TermsPage() {
             </h1>
 
             <p className="mt-3 text-sm sm:text-base text-on-surface-variant leading-relaxed max-w-2xl">
-              Please read these terms carefully. They govern your use of Studexa&apos;s digital library, document uploads, peer interactions, and services operated by Lexon IT Solutions.
+              Please read these terms carefully. They govern your use of answersbro&apos;s digital library, document uploads, peer interactions, and services operated by Lexon IT Solutions.
             </p>
 
             {/* Document Metadata Badges */}
@@ -730,7 +684,7 @@ export function TermsPage() {
                 Looking for our data privacy details?
               </h3>
               <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl mx-auto">
-                Discover how Studexa and Lexon IT Solutions safeguard student profiles, uploaded documents, and academic interactions.
+                Discover how answersbro and Lexon IT Solutions safeguard student profiles, uploaded documents, and academic interactions.
               </p>
               <div className="pt-2">
                 <Link

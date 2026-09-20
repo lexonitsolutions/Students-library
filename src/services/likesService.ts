@@ -241,8 +241,18 @@ export function saveLocalStorageDownloadedIds(userId: string, ids: Set<string>):
   }
 }
 
+const userDownloadedCache = new Map<string, { ids: Set<string>; time: number }>();
+const DOWNLOADS_CACHE_TTL_MS = 30000; // 30 seconds
+
 /** Fetch all material IDs downloaded by the specified user from Supabase */
 export async function fetchUserDownloadedIds(userId: string): Promise<Set<string>> {
+  if (!userId) return new Set();
+
+  const cached = userDownloadedCache.get(userId);
+  if (cached && Date.now() - cached.time < DOWNLOADS_CACHE_TTL_MS) {
+    return new Set(cached.ids);
+  }
+
   try {
     const { data, error } = await supabase
       .from('downloads')
@@ -252,12 +262,15 @@ export async function fetchUserDownloadedIds(userId: string): Promise<Set<string
     if (!error && data) {
       const ids = new Set<string>(data.map((row: { material_id: string }) => row.material_id));
       saveLocalStorageDownloadedIds(userId, ids);
+      userDownloadedCache.set(userId, { ids: new Set(ids), time: Date.now() });
       return ids;
     }
   } catch {
     // Fall back to local storage
   }
-  return getLocalStorageDownloadedIds(userId);
+  const fallback = getLocalStorageDownloadedIds(userId);
+  userDownloadedCache.set(userId, { ids: new Set(fallback), time: Date.now() });
+  return fallback;
 }
 
 export function hasUserDownloaded(userId: string, materialId: string): boolean {

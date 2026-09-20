@@ -11,7 +11,7 @@ export function NotificationsPage() {
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     notificationsService.listNotifications(user.id).then((notifs) => {
       const hasUnread = notifs.some((item) => !item.read);
       if (hasUnread) {
@@ -22,7 +22,7 @@ export function NotificationsPage() {
         setItems(notifs);
       }
     });
-  }, [user]);
+  }, [user?.id]);
 
   const markAllRead = () => {
     setItems((prev) => prev.map((item) => ({ ...item, read: true })));
