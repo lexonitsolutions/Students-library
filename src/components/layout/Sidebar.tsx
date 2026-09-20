@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { GraduationCap, Headphones, LayoutDashboard, Library, LogOut, Shield, Users } from 'lucide-react';
+import { Headphones, LayoutDashboard, Library, LogOut, Shield, Users } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -14,8 +14,8 @@ import { navItems } from './navConfig';
 const adminNavItems = [
   { label: 'Dashboard', to: '/admin', icon: LayoutDashboard },
   { label: 'Documents', to: '/admin/documents', icon: Library },
-  { label: 'Students', to: '/admin/students', icon: GraduationCap },
-  { label: 'Manage Admins', to: '/admin/admins', icon: Users },
+  { label: 'Users', to: '/admin/students', icon: Users },
+  { label: 'Manage Admins', to: '/admin/admins', icon: Shield },
 ];
 
 export function Sidebar() {

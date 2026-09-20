@@ -542,7 +542,7 @@ export function AdminDashboardPage() {
         >
           <div className="flex items-center justify-between mb-3 w-full">
             <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant group-hover:text-primary transition-colors flex items-center gap-1.5">
-              <span>Students</span>
+              <span>Users</span>
               <ArrowRight size={12} className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
             </span>
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
