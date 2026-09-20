@@ -683,7 +683,7 @@ export function GetStartedPage() {
         viewport={{ once: false, amount: 0.2 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         style={{ perspective: 1000 }}
-        className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8"
+        className="hidden md:block mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8"
         onMouseEnter={() => setIsAutoPlaying(false)}
         onMouseLeave={() => setIsAutoPlaying(true)}
       >
