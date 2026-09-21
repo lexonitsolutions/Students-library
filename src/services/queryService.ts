@@ -65,12 +65,16 @@ function mapMessageRow(row: QueryMessageRow): QueryMessage {
 }
 
 // ─── Local Storage fallback key for offline/demo resilience ─────────────────
-const LOCAL_QUERIES_KEY = 'studexa.admin_queries_cache';
-const LEGACY_QUERIES_KEY = 'quicklearnit.admin_queries_cache';
+const LOCAL_QUERIES_KEY = 'answersbro.admin_queries_cache';
+const LEGACY_QUERIES_KEY = 'studexa.admin_queries_cache';
+const FALLBACK_QUERIES_KEY = 'quicklearnit.admin_queries_cache';
 
 function getCachedQueries(): StudentQuery[] {
   try {
-    const raw = localStorage.getItem(LOCAL_QUERIES_KEY) || localStorage.getItem(LEGACY_QUERIES_KEY);
+    const raw =
+      localStorage.getItem(LOCAL_QUERIES_KEY) ||
+      localStorage.getItem(LEGACY_QUERIES_KEY) ||
+      localStorage.getItem(FALLBACK_QUERIES_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];

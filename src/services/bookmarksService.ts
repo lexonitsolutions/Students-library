@@ -31,37 +31,45 @@ let lastBookmarkFetchTime = 0;
 const BOOKMARK_CACHE_TTL_MS = 30000; // 30 seconds
 
 export async function listBookmarkedMaterialIds(userId: string): Promise<Set<string>> {
-  const localSet = getLocalStorageSavedIds(userId);
-  const now = Date.now();
+  if (!userId) return new Set();
 
-  if (inMemorySavedSet && inMemoryUserId === userId && now - lastBookmarkFetchTime < BOOKMARK_CACHE_TTL_MS) {
-    return new Set(inMemorySavedSet);
-  }
+  return cachedQuery(
+    `bookmarked_ids:${userId}`,
+    async () => {
+      const localSet = getLocalStorageSavedIds(userId);
+      const now = Date.now();
 
-  if (!inMemorySavedSet || inMemoryUserId !== userId) {
-    inMemorySavedSet = new Set(localSet);
-    inMemoryUserId = userId;
-  } else {
-    for (const id of localSet) {
-      inMemorySavedSet.add(id);
-    }
-  }
-
-  try {
-    const { data, error } = await supabase.from('bookmarks').select('material_id').eq('user_id', userId);
-    if (!error && data) {
-      for (const row of data) {
-        localSet.add(row.material_id);
-        inMemorySavedSet.add(row.material_id);
+      if (inMemorySavedSet && inMemoryUserId === userId && now - lastBookmarkFetchTime < BOOKMARK_CACHE_TTL_MS) {
+        return new Set(inMemorySavedSet);
       }
-      saveLocalStorageSavedIds(userId, inMemorySavedSet);
-      lastBookmarkFetchTime = Date.now();
-    }
-  } catch (err) {
-    console.warn('DB listBookmarkedMaterialIds notice:', err);
-  }
 
-  return new Set(inMemorySavedSet);
+      if (!inMemorySavedSet || inMemoryUserId !== userId) {
+        inMemorySavedSet = new Set(localSet);
+        inMemoryUserId = userId;
+      } else {
+        for (const id of localSet) {
+          inMemorySavedSet.add(id);
+        }
+      }
+
+      try {
+        const { data, error } = await supabase.from('bookmarks').select('material_id').eq('user_id', userId);
+        if (!error && data) {
+          for (const row of data) {
+            localSet.add(row.material_id);
+            inMemorySavedSet.add(row.material_id);
+          }
+          saveLocalStorageSavedIds(userId, inMemorySavedSet);
+          lastBookmarkFetchTime = Date.now();
+        }
+      } catch (err) {
+        console.warn('DB listBookmarkedMaterialIds notice:', err);
+      }
+
+      return new Set(inMemorySavedSet);
+    },
+    BOOKMARK_CACHE_TTL_MS,
+  );
 }
 
 export async function listBookmarkedMaterials(userId: string): Promise<MaterialRow[]> {
@@ -93,6 +101,7 @@ export async function listBookmarkedMaterials(userId: string): Promise<MaterialR
 export async function addBookmark(materialId: string, userId?: string): Promise<void> {
   invalidateCache('bookmarked_materials:');
   if (userId) {
+    invalidateCache(`bookmarked_ids:${userId}`);
     const set = getLocalStorageSavedIds(userId);
     set.add(materialId);
     saveLocalStorageSavedIds(userId, set);
@@ -116,6 +125,7 @@ export async function addBookmark(materialId: string, userId?: string): Promise<
 export async function removeBookmark(materialId: string, userId?: string): Promise<void> {
   invalidateCache('bookmarked_materials:');
   if (userId) {
+    invalidateCache(`bookmarked_ids:${userId}`);
     const set = getLocalStorageSavedIds(userId);
     set.delete(materialId);
     saveLocalStorageSavedIds(userId, set);

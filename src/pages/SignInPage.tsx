@@ -26,11 +26,17 @@ import { Logo } from '../components/ui/Logo';
 
 export function SignInPage() {
   const location = useLocation();
-  const emailFromStorage = sessionStorage.getItem('studexa_prefill_email');
-  const wasPasswordChanged = sessionStorage.getItem('studexa_password_changed') === 'true';
+  const emailFromStorage =
+    sessionStorage.getItem('answersbro_prefill_email') ||
+    sessionStorage.getItem('studexa_prefill_email');
+  const wasPasswordChanged =
+    sessionStorage.getItem('answersbro_password_changed') === 'true' ||
+    sessionStorage.getItem('studexa_password_changed') === 'true';
 
   useEffect(() => {
     if (wasPasswordChanged) {
+      sessionStorage.removeItem('answersbro_password_changed');
+      sessionStorage.removeItem('answersbro_prefill_email');
       sessionStorage.removeItem('studexa_password_changed');
       sessionStorage.removeItem('studexa_prefill_email');
     }

@@ -60,13 +60,14 @@ export function TopBar({ onMenuOpen }: TopBarProps) {
   }, [notificationsOpen]);
 
   useEffect(() => {
-    if (notificationsOpen && notificationsList.some((n) => !n.read)) {
-      setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
-      if (user && !isExploring) {
-        notificationsService.markAllRead(user.id).catch(() => {});
-      }
-    }
-  }, [notificationsOpen, notificationsList, user, isExploring]);
+    if (!notificationsOpen || !user || isExploring) return;
+    setNotificationsList((prev) => {
+      const hasUnread = prev.some((n) => !n.read);
+      if (!hasUnread) return prev;
+      notificationsService.markAllRead(user.id).catch(() => {});
+      return prev.map((n) => ({ ...n, read: true }));
+    });
+  }, [notificationsOpen, user?.id, isExploring]);
 
   const handleDeleteNotification = (id: string) => {
     setNotificationsList((prev) => prev.filter((n) => n.id !== id));

@@ -25,8 +25,7 @@ import {
   listMessages,
   sendMessage,
   markMessagesRead,
-  subscribeToMessages,
-  subscribeToReadReceipts,
+  subscribeToConversation,
   clearChat,
   deleteConversation,
   deleteSingleMessage,
@@ -112,23 +111,30 @@ export function ChatView({
   }, [conversation.id]);
 
   // ── Mark messages as read ──────────────────────────────────────────────────
+  const unreadBatchRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (conversation.id && currentUserId) {
-      const hasUnread = messages.some((m) => m.senderId !== currentUserId && !m.readAt);
-      if (hasUnread) {
-        markMessagesRead(conversation.id, currentUserId)
-          .then(() => triggerUnreadMessagesRefresh())
-          .catch(() => {});
-      }
-    }
+    if (!conversation.id || !currentUserId) return;
+    const unreadMsgs = messages.filter((m) => m.senderId !== currentUserId && !m.readAt);
+    if (unreadMsgs.length === 0) return;
+
+    const latestUnreadId = unreadMsgs[unreadMsgs.length - 1].id;
+    if (unreadBatchRef.current === latestUnreadId) return;
+    unreadBatchRef.current = latestUnreadId;
+
+    const nowIso = new Date().toISOString();
+    setMessages((prev) =>
+      prev.map((m) => (m.senderId !== currentUserId && !m.readAt ? { ...m, readAt: nowIso } : m))
+    );
+
+    markMessagesRead(conversation.id, currentUserId).catch(() => {});
   }, [conversation.id, currentUserId, messages]);
 
-  // ── Realtime: new messages & message clear & message delete ───────────────
+  // ── Unified Realtime subscription: messages, read receipts, deletions ──────
   useEffect(() => {
     if (!conversation.id) return;
-    const unsub = subscribeToMessages(
-      conversation.id,
-      (msg) => {
+    const unsub = subscribeToConversation(conversation.id, {
+      onNewMessage: (msg) => {
         setMessages((prev) => {
           if (prev.some((m) => m.id === msg.id)) return prev;
           const next = [...prev, msg];
@@ -136,34 +142,26 @@ export function ChatView({
           return next;
         });
       },
-      () => {
-        // Chat was cleared
-        setMessages([]);
-        onClearChat?.(conversation.id);
-        onMessagesChanged?.(conversation.id, []);
+      onUpdateMessage: (updated) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === updated.id ? updated : m)),
+        );
       },
-      (deletedId) => {
-        // Single message deleted
+      onDeletedMessage: (deletedId) => {
         setMessages((prev) => {
           const next = prev.filter((m) => m.id !== deletedId);
           onMessagesChanged?.(conversation.id, next);
           return next;
         });
       },
-    );
-    return unsub;
-  }, [conversation.id, onClearChat, onMessagesChanged]);
-
-  // ── Realtime: read receipts ────────────────────────────────────────────────
-  useEffect(() => {
-    if (!conversation.id) return;
-    const unsub = subscribeToReadReceipts(conversation.id, (updated) => {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === updated.id ? updated : m)),
-      );
+      onCleared: () => {
+        setMessages([]);
+        onClearChat?.(conversation.id);
+        onMessagesChanged?.(conversation.id, []);
+      },
     });
     return unsub;
-  }, [conversation.id]);
+  }, [conversation.id, onClearChat, onMessagesChanged]);
 
   // ── Auto-scroll & Virtual Keyboard Alignment ───────────────────────────────
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'instant') => {
@@ -379,10 +377,10 @@ export function ChatView({
                 transition={{ duration: 0.15 }}
                 className="absolute right-0 top-full mt-1.5 w-52 rounded-2xl border border-card-border bg-surface-container-low p-1.5 shadow-xl backdrop-blur-md z-30"
               >
-                {/* 7-day disappear policy info */}
+                {/* 48-hour disappear policy info */}
                 <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-on-surface-variant/80 border-b border-card-border/60">
                   <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span>Messages auto-disappear after 7 days</span>
+                  <span>Messages auto-disappear after 48 hours</span>
                 </div>
 
                 {/* Clear chat button */}
@@ -436,7 +434,7 @@ export function ChatView({
                 Conversation Active
               </p>
               <p className="mt-1 text-xs text-on-surface-variant max-w-xs leading-relaxed">
-                You and <span className="font-semibold text-on-surface">{otherName}</span> can exchange messages. Notes and chats automatically clear after 7 days.
+                You and <span className="font-semibold text-on-surface">{otherName}</span> can exchange messages. Notes and chats automatically clear after 48 hours.
               </p>
             </div>
           </div>
@@ -561,7 +559,7 @@ export function ChatView({
           <div className="mt-1 flex items-center justify-between px-2 pt-1 text-[10px] text-on-surface-variant/70">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-primary/70" />
-              Auto-disappears in 7 days
+              Auto-disappears in 48 hours
             </span>
             <span className="hidden sm:inline">
               Press <kbd className="font-mono bg-surface-container-high px-1 py-0.5 rounded text-[9px]">Enter</kbd> to send

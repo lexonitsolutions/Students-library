@@ -56,7 +56,7 @@ export function OtpVerificationPage() {
 
   useEffect(() => {
     try {
-      const channel = new BroadcastChannel('studexa_auth');
+      const channel = new BroadcastChannel('answersbro_auth');
       channel.onmessage = (event) => {
         if (event.data === 'verified_signup') {
           window.close();

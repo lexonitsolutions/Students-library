@@ -122,9 +122,9 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
 
       if (onSuccess) onSuccess();
 
-      sessionStorage.setItem('studexa_password_changed', 'true');
+      sessionStorage.setItem('answersbro_password_changed', 'true');
       if (userEmail) {
-        sessionStorage.setItem('studexa_prefill_email', userEmail);
+        sessionStorage.setItem('answersbro_prefill_email', userEmail);
       }
 
       // Sign out and redirect directly to sign in page

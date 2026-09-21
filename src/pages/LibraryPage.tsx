@@ -269,11 +269,12 @@ export function LibraryPage() {
   const handleConfirmDelete = async () => {
     if (!deletingItem) return;
 
-    await deleteMaterialForUI(deletingItem.id, deletingItem.filePath);
+    await deleteMaterialForUI(deletingItem.id, deletingItem.filePath, deletingItem.status, user?.id);
     setItems((prev) => prev.filter((item) => item.id !== deletingItem.id));
     setCounts((prev) => ({ ...prev, uploads: Math.max(0, prev.uploads - 1) }));
+    const wasApproved = deletingItem.status === 'approved';
     setDeletingItem(null);
-    showToast('Material deleted successfully.');
+    showToast(wasApproved ? 'Material removed from your account.' : 'Material deleted successfully.');
   };
 
   const handleUnsave = async (materialId: string, e: React.MouseEvent) => {
@@ -936,21 +937,33 @@ export function LibraryPage() {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal open={!!deletingItem} onClose={() => setDeletingItem(null)} title="Delete Uploaded Material">
+      <Modal
+        open={!!deletingItem}
+        onClose={() => setDeletingItem(null)}
+        title={deletingItem?.status === 'approved' ? 'Remove Uploaded Material' : 'Delete Uploaded Material'}
+      >
         <div className="flex flex-col gap-4 py-2">
           <p className="text-body-md text-on-surface">
-            Are you sure you want to delete <span className="font-bold text-on-surface">&quot;{deletingItem?.title}&quot;</span>?
+            Are you sure you want to {deletingItem?.status === 'approved' ? 'remove' : 'delete'}{' '}
+            <span className="font-bold text-on-surface">&quot;{deletingItem?.title}&quot;</span>?
           </p>
           <p className="text-body-sm text-on-surface-variant">
-            This action cannot be undone. The material will be removed from the library and community search.
+            {deletingItem?.status === 'approved'
+              ? 'This material will be removed from your account and upload history. It will remain available in community search for other students.'
+              : 'This material will be permanently removed from your account.'}
           </p>
 
           <div className="mt-4 flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setDeletingItem(null)}>
               Cancel
             </Button>
-            <Button type="button" variant="primary" className="bg-error hover:bg-error/90 text-white" onClick={handleConfirmDelete}>
-              Yes, Delete
+            <Button
+              type="button"
+              variant="primary"
+              className="bg-error hover:bg-error/90 text-white"
+              onClick={handleConfirmDelete}
+            >
+              {deletingItem?.status === 'approved' ? 'Yes, Remove' : 'Yes, Delete'}
             </Button>
           </div>
         </div>

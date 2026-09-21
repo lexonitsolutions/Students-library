@@ -119,7 +119,6 @@ export function MessagesPage() {
     try {
       const list = await listAdminQueries();
       setQueries(list);
-      triggerUnreadMessagesRefresh();
     } catch (err) {
       console.error('Failed to load admin queries:', err);
     } finally {
