@@ -10,6 +10,7 @@ import type { Material } from '../data/types';
 import { useAuth } from '../hooks/useAuth';
 import { materialTypeIcon } from '../lib/materialIcons';
 import { deleteMaterial, listMyUploadsForUI } from '../services/materialsService';
+import { subscribeToMaterialDeletions } from '../services/materialSyncService';
 import { parseRejectionMeta } from '../services/adminService';
 
 const statusStyles: Record<string, string> = {
@@ -33,6 +34,14 @@ export function ProfileUploadsPage() {
     if (!user) return;
     listMyUploadsForUI(user.id).then(setUploads);
   }, [user]);
+
+  // Real-time synchronization: remove deleted materials immediately across all students and admins
+  useEffect(() => {
+    const unsubscribe = subscribeToMaterialDeletions((deletedId) => {
+      setUploads((prev) => prev.filter((item) => item.id !== deletedId));
+    });
+    return unsubscribe;
+  }, []);
 
   const handleDelete = async (material: Material) => {
     if (!window.confirm(`Delete "${material.title}"? This can't be undone.`)) return;

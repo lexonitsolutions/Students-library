@@ -1,10 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
+  Ban,
   BookOpen,
   CheckCircle2,
   ClipboardList,
-  Clock,
   Download,
   Eye,
   FileQuestion,
@@ -23,13 +23,17 @@ import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { UserProfilePanel, type UploaderProfile } from '../components/ui/UserProfilePanel';
 import { AdminMaterialViewerModal } from '../components/admin/AdminMaterialViewerModal';
+import { RejectMaterialModal } from '../components/admin/RejectMaterialModal';
+import { useAuth } from '../hooks/useAuth';
 import { cn } from '../lib/cn';
 import { cleanDocumentTitle } from '../lib/materialMapper';
 import * as adminService from '../services/adminService';
+import { updateMaterialStatus } from '../services/materialsService';
+import { subscribeToMaterialDeletions } from '../services/materialSyncService';
 
-export type DocumentSection = 'all' | 'materials' | 'assignments' | 'testpapers';
+export type DocumentSection = 'all' | 'materials' | 'assignments' | 'testpapers' | 'rejected';
 
-export function getDocumentSection(item: { type?: string; title?: string }): 'materials' | 'assignments' | 'testpapers' {
+export function getMaterialTypeSection(item: { type?: string; title?: string }): 'materials' | 'assignments' | 'testpapers' {
   const t = (item.type || '').toLowerCase().trim();
   const title = (item.title || '').toLowerCase();
 
@@ -68,20 +72,33 @@ export function getDocumentSection(item: { type?: string; title?: string }): 'ma
   return 'materials';
 }
 
+export function getDocumentSection(item: { type?: string; title?: string; status?: string }): DocumentSection {
+  if (item.status === 'rejected') {
+    return 'rejected';
+  }
+  return getMaterialTypeSection(item);
+}
+
 
 export function AdminManageMaterialsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [materials, setMaterials] = useState<adminService.AdminMaterialItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState<DocumentSection>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
   const [materialToDelete, setMaterialToDelete] = useState<adminService.AdminMaterialItem | null>(null);
+  const [rejectingItem, setRejectingItem] = useState<adminService.AdminMaterialItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewItem, setPreviewItem] = useState<adminService.ModerationItem | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<UploaderProfile | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
+
+  const currentAdminName = useMemo(() => {
+    if (!user) return 'Admin';
+    return user.name || user.username || user.email?.split('@')[0] || 'Admin';
+  }, [user]);
 
   const showToast = (text: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToastMessage({ text, type });
@@ -107,37 +124,47 @@ export function AdminManageMaterialsPage() {
     loadData();
   }, []);
 
+  // Real-time synchronization: remove deleted materials immediately across all students and admins
+  useEffect(() => {
+    const unsubscribe = subscribeToMaterialDeletions((deletedId) => {
+      setMaterials((prev) => prev.filter((m) => m.id !== deletedId));
+    });
+    return unsubscribe;
+  }, []);
+
   const sectionCounts = useMemo(() => {
+    // Crucial rule: Only approved materials are counted in academic sections & total approved.
+    const approvedDocs = materials.filter((m) => m.status === 'approved');
+    const rejectedDocs = materials.filter((m) => m.status === 'rejected');
+
     return {
-      all: materials.length,
-      materials: materials.filter((m) => getDocumentSection(m) === 'materials').length,
-      assignments: materials.filter((m) => getDocumentSection(m) === 'assignments').length,
-      testpapers: materials.filter((m) => getDocumentSection(m) === 'testpapers').length,
+      all: approvedDocs.length,
+      materials: approvedDocs.filter((m) => getMaterialTypeSection(m) === 'materials').length,
+      assignments: approvedDocs.filter((m) => getMaterialTypeSection(m) === 'assignments').length,
+      testpapers: approvedDocs.filter((m) => getMaterialTypeSection(m) === 'testpapers').length,
+      rejected: rejectedDocs.length,
     };
   }, [materials]);
 
-  const statusCounts = useMemo(() => {
-    const scoped = selectedSection === 'all'
-      ? materials
-      : materials.filter((m) => getDocumentSection(m) === selectedSection);
-
-    return {
-      all: scoped.length,
-      approved: scoped.filter((m) => m.status === 'approved').length,
-      pending: scoped.filter((m) => m.status === 'pending').length,
-      rejected: scoped.filter((m) => m.status === 'rejected').length,
-    };
-  }, [materials, selectedSection]);
-
   const filteredMaterials = useMemo(() => {
     return materials.filter((mat) => {
-      // 1. Section filter
-      if (selectedSection !== 'all') {
-        const sec = getDocumentSection(mat);
-        if (sec !== selectedSection) return false;
+      // 1. Crucial rule: Without approving, do not show materials in manage documents page.
+      // Unapproved / pending items belong in Moderation Queue, NOT in Manage Documents.
+      if (mat.status !== 'approved' && mat.status !== 'rejected') {
+        return false;
       }
-      // 2. Status filter
-      if (statusFilter !== 'all' && mat.status !== statusFilter) return false;
+
+      // 2. Section filter
+      if (selectedSection === 'rejected') {
+        if (mat.status !== 'rejected') return false;
+      } else if (selectedSection === 'materials' || selectedSection === 'assignments' || selectedSection === 'testpapers') {
+        if (mat.status !== 'approved') return false;
+        if (getMaterialTypeSection(mat) !== selectedSection) return false;
+      } else {
+        // 'all' section shows all approved documents
+        if (mat.status !== 'approved') return false;
+      }
+
       // 3. Search query
       if (!searchQuery.trim()) return true;
 
@@ -146,10 +173,135 @@ export function AdminManageMaterialsPage() {
         mat.title.toLowerCase().includes(q) ||
         mat.subject.toLowerCase().includes(q) ||
         mat.course.toLowerCase().includes(q) ||
-        mat.uploaderName.toLowerCase().includes(q)
+        mat.uploaderName.toLowerCase().includes(q) ||
+        (mat.rejectionReason && mat.rejectionReason.toLowerCase().includes(q))
       );
     });
-  }, [materials, selectedSection, statusFilter, searchQuery]);
+  }, [materials, selectedSection, searchQuery]);
+
+  const handleApprove = async (id: string) => {
+    const adminInfo = {
+      id: user?.id,
+      name: currentAdminName,
+      email: user?.email,
+      avatar: user?.avatar,
+    };
+
+    const metaStr = adminService.encodeApprovalMeta({
+      adminId: user?.id,
+      adminEmail: user?.email,
+      adminName: currentAdminName,
+      adminAvatar: adminInfo.avatar,
+      approvedAt: new Date().toISOString(),
+    });
+
+    // Optimistic UI update
+    setMaterials((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              status: 'approved',
+              rejectionReason: undefined,
+              rejectedByAdminName: undefined,
+            }
+          : m
+      )
+    );
+    setPreviewItem((prev) =>
+      prev && prev.id === id
+        ? {
+            ...prev,
+            status: 'approved',
+            rejectionReason: undefined,
+            rejectedByAdminName: undefined,
+          }
+        : prev
+    );
+
+    try {
+      await updateMaterialStatus(id, 'approved', metaStr);
+      showToast('Document approved & published to library.', 'success');
+      loadData(true);
+    } catch (err) {
+      console.error('Failed to approve document:', err);
+      showToast('Failed to approve document.', 'error');
+      loadData(true);
+    }
+  };
+
+  const handleReject = async (id: string, reason?: string) => {
+    const itemToReject = materials.find((m) => m.id === id);
+    const adminInfo = {
+      id: user?.id,
+      name: currentAdminName,
+      email: user?.email,
+      avatar: user?.avatar,
+    };
+
+    const metaStr = adminService.encodeRejectionMeta({
+      adminId: user?.id,
+      adminEmail: user?.email,
+      adminName: currentAdminName,
+      adminAvatar: adminInfo.avatar,
+      rejectedAt: new Date().toISOString(),
+      reason: reason || 'Guidelines not met',
+    });
+
+    // Optimistic UI update
+    setMaterials((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              status: 'rejected',
+              rejectionReason: reason || 'Guidelines not met',
+              rejectedByAdminName: currentAdminName,
+            }
+          : m
+      )
+    );
+    setPreviewItem((prev) =>
+      prev && prev.id === id
+        ? {
+            ...prev,
+            status: 'rejected',
+            rejectionReason: reason || 'Guidelines not met',
+            rejectedByAdminName: currentAdminName,
+          }
+        : prev
+    );
+
+    try {
+      await updateMaterialStatus(id, 'rejected', metaStr);
+      if (itemToReject) {
+        adminService.recordRejection(
+          {
+            id: itemToReject.id,
+            title: itemToReject.title,
+            subject: itemToReject.subject,
+            course: itemToReject.course,
+            filePath: itemToReject.filePath,
+            fileUrl: itemToReject.fileUrl,
+            uploader: itemToReject.uploaderName,
+            uploaderDetails: itemToReject.uploaderDetails,
+            description: itemToReject.description,
+            fileSizeMb: itemToReject.fileSizeMb,
+            pages: itemToReject.pages,
+            type: itemToReject.type,
+          },
+          adminInfo,
+          reason
+        );
+      }
+      showToast('Document moved to Rejected section.', 'warning');
+      loadData(true);
+    } catch (err) {
+      console.error('Failed to reject document:', err);
+      showToast('Failed to reject document.', 'error');
+      loadData(true);
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     if (!materialToDelete) return;
@@ -211,12 +363,17 @@ export function AdminManageMaterialsPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
                 Manage Documents
               </h1>
-              <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                {materials.length} total
+              <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                {sectionCounts.all} approved
               </span>
+              {sectionCounts.rejected > 0 && (
+                <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                  {sectionCounts.rejected} rejected
+                </span>
+              )}
             </div>
             <p className="mt-1 text-xs sm:text-sm text-on-surface-variant">
-              Review and manage study materials, assignments, and test papers across disciplines.
+              Review and manage approved study materials, assignments, test papers, and rejected documents.
             </p>
           </div>
 
@@ -235,9 +392,9 @@ export function AdminManageMaterialsPage() {
         </div>
       </div>
 
-      {/* ── 3 Core Sections KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 2xl:gap-5">
-        {/* Total Documents */}
+      {/* ── 5 Core Sections KPI Cards ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 2xl:gap-5">
+        {/* All Approved Documents */}
         <button
           type="button"
           onClick={() => setSelectedSection('all')}
@@ -255,7 +412,7 @@ export function AdminManageMaterialsPage() {
             <div className="text-2xl font-extrabold text-on-surface tabular-nums">
               {sectionCounts.all}
             </div>
-            <p className="text-xs text-on-surface-variant font-medium">All Documents</p>
+            <p className="text-xs text-on-surface-variant font-medium">All Approved</p>
           </div>
         </button>
 
@@ -324,6 +481,28 @@ export function AdminManageMaterialsPage() {
             <p className="text-xs text-on-surface-variant font-medium">Test Papers</p>
           </div>
         </button>
+
+        {/* Rejected Documents Section Card */}
+        <button
+          type="button"
+          onClick={() => setSelectedSection('rejected')}
+          className={cn(
+            'flex items-center gap-3.5 p-4 rounded-2xl border text-left transition-all cursor-pointer col-span-2 sm:col-span-1',
+            selectedSection === 'rejected'
+              ? 'border-rose-500/50 bg-rose-500/[0.08] shadow-sm'
+              : 'border-card-border bg-surface-container-low hover:bg-surface-container'
+          )}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
+            <Ban size={18} />
+          </div>
+          <div>
+            <div className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
+              {sectionCounts.rejected}
+            </div>
+            <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">Rejected Docs</p>
+          </div>
+        </button>
       </div>
 
       {/* ── Filter Bar & Table Card ── */}
@@ -381,6 +560,24 @@ export function AdminManageMaterialsPage() {
             </span>
           </button>
 
+          {/* Rejected Section Tab */}
+          <button
+            type="button"
+            onClick={() => setSelectedSection('rejected')}
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap',
+              selectedSection === 'rejected'
+                ? 'bg-surface-container-lowest text-rose-600 dark:text-rose-400 shadow-xs border border-card-border/80'
+                : 'text-on-surface-variant hover:text-rose-600 dark:hover:text-rose-400'
+            )}
+          >
+            <Ban size={14} className="text-rose-500" />
+            <span>Rejected Docs</span>
+            <span className="rounded-full px-1.5 py-0.2 text-[10px] bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold">
+              {sectionCounts.rejected}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => setSelectedSection('all')}
@@ -392,67 +589,42 @@ export function AdminManageMaterialsPage() {
             )}
           >
             <Files size={14} />
-            <span>All Documents</span>
+            <span>All Approved</span>
             <span className="rounded-full px-1.5 py-0.2 text-[10px] bg-surface-container text-on-surface-variant font-bold">
               {sectionCounts.all}
             </span>
           </button>
         </div>
 
-        {/* Table Controls (Search & Status Filters) */}
+        {/* Table Controls (Search & Status Info) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-b border-card-border bg-surface-container-lowest">
           <div className="relative flex-1 max-w-sm 2xl:max-w-md">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none" />
             <input
               type="text"
-              placeholder={`Search ${selectedSection === 'all' ? 'documents' : selectedSection}...`}
+              placeholder={
+                selectedSection === 'rejected'
+                  ? 'Search rejected documents or rejection reason...'
+                  : `Search ${selectedSection === 'all' ? 'approved documents' : selectedSection}...`
+              }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-8.5 pl-8.5 pr-3 text-xs rounded-xl bg-surface-container border border-card-border focus:border-primary focus:outline-none w-full placeholder:text-on-surface-variant/50 text-on-surface"
             />
           </div>
 
-          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-surface-container border border-card-border select-none self-start sm:self-auto overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setStatusFilter('all')}
-              className={cn(
-                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap',
-                statusFilter === 'all' ? 'bg-surface-container-lowest text-on-surface shadow-xs' : 'text-on-surface-variant hover:text-on-surface'
-              )}
-            >
-              All ({statusCounts.all})
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('approved')}
-              className={cn(
-                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap',
-                statusFilter === 'approved' ? 'bg-surface-container-lowest text-emerald-600 dark:text-emerald-400 font-bold shadow-xs' : 'text-on-surface-variant hover:text-emerald-600'
-              )}
-            >
-              Approved ({statusCounts.approved})
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('pending')}
-              className={cn(
-                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap',
-                statusFilter === 'pending' ? 'bg-surface-container-lowest text-amber-600 dark:text-amber-400 font-bold shadow-xs' : 'text-on-surface-variant hover:text-amber-600'
-              )}
-            >
-              Pending ({statusCounts.pending})
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('rejected')}
-              className={cn(
-                'px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap',
-                statusFilter === 'rejected' ? 'bg-surface-container-lowest text-rose-600 dark:text-rose-400 font-bold shadow-xs' : 'text-on-surface-variant hover:text-rose-600'
-              )}
-            >
-              Rejected ({statusCounts.rejected})
-            </button>
+          <div className="flex items-center gap-2">
+            {selectedSection === 'rejected' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <Ban size={12} />
+                <span>{filteredMaterials.length} Rejected {filteredMaterials.length === 1 ? 'Document' : 'Documents'}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 size={12} />
+                <span>{filteredMaterials.length} Approved {filteredMaterials.length === 1 ? 'Document' : 'Documents'}</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -472,7 +644,8 @@ export function AdminManageMaterialsPage() {
             </thead>
             <tbody className="divide-y divide-card-border">
               {filteredMaterials.map((mat) => {
-                const section = getDocumentSection(mat);
+                const isRejected = mat.status === 'rejected';
+                const academicType = getMaterialTypeSection(mat);
                 return (
                   <tr key={mat.id} className="hover:bg-surface-container/60 transition-colors">
                     {/* Document Title & Subject */}
@@ -480,13 +653,20 @@ export function AdminManageMaterialsPage() {
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border',
-                          section === 'materials' && 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-                          section === 'assignments' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-                          section === 'testpapers' && 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                          isRejected && 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+                          !isRejected && academicType === 'materials' && 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+                          !isRejected && academicType === 'assignments' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+                          !isRejected && academicType === 'testpapers' && 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                         )}>
-                          {section === 'assignments' && <ClipboardList size={16} />}
-                          {section === 'testpapers' && <FileQuestion size={16} />}
-                          {section === 'materials' && <BookOpen size={16} />}
+                          {isRejected ? (
+                            <Ban size={16} />
+                          ) : academicType === 'assignments' ? (
+                            <ClipboardList size={16} />
+                          ) : academicType === 'testpapers' ? (
+                            <FileQuestion size={16} />
+                          ) : (
+                            <BookOpen size={16} />
+                          )}
                         </div>
                         <div className="min-w-0">
                           <button
@@ -532,22 +712,35 @@ export function AdminManageMaterialsPage() {
                       </div>
                     </td>
 
-                    {/* Section Badge */}
+                    {/* Section / Category Badge */}
                     <td className="px-4 py-3.5 whitespace-nowrap">
-                      {section === 'materials' && (
-                        <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                          <BookOpen size={10} /> Material
-                        </span>
-                      )}
-                      {section === 'assignments' && (
-                        <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          <ClipboardList size={10} /> Assignment
-                        </span>
-                      )}
-                      {section === 'testpapers' && (
-                        <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                          <FileQuestion size={10} /> Test Paper
-                        </span>
+                      {isRejected ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 w-fit">
+                            <Ban size={10} /> Rejected
+                          </span>
+                          <span className="text-[10px] text-on-surface-variant capitalize">
+                            Original: {academicType}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          {academicType === 'materials' && (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                              <BookOpen size={10} /> Material
+                            </span>
+                          )}
+                          {academicType === 'assignments' && (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <ClipboardList size={10} /> Assignment
+                            </span>
+                          )}
+                          {academicType === 'testpapers' && (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <FileQuestion size={10} /> Test Paper
+                            </span>
+                          )}
+                        </>
                       )}
                     </td>
 
@@ -585,11 +778,6 @@ export function AdminManageMaterialsPage() {
                         <CheckCircle2 size={11} /> Approved
                       </span>
                     )}
-                    {mat.status === 'pending' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        <Clock size={11} /> Pending
-                      </span>
-                    )}
                     {mat.status === 'rejected' && (
                       <div className="flex flex-col gap-0.5">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 w-fit">
@@ -609,8 +797,8 @@ export function AdminManageMaterialsPage() {
                             ? mat.rejectionReason
                             : 'Did not meet guidelines';
                           return (
-                            <span className="text-[10px] text-on-surface-variant truncate max-w-[140px]" title={displayReason}>
-                              {displayReason}
+                            <span className="text-[10px] text-rose-600/90 dark:text-rose-400/90 truncate max-w-[150px] font-medium" title={displayReason}>
+                              &bull; {displayReason}
                             </span>
                           );
                         })()}
@@ -680,11 +868,25 @@ export function AdminManageMaterialsPage() {
                         <span>View</span>
                       </button>
 
+                      {/* If rejected, allow quick Re-approve */}
+                      {isRejected && (
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(mat.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-medium text-emerald-600 dark:text-emerald-400 transition-all cursor-pointer"
+                          title="Restore & Approve this document"
+                        >
+                          <CheckCircle2 size={12} />
+                          <span className="hidden sm:inline">Approve</span>
+                        </button>
+                      )}
+
+
                       <button
                         type="button"
                         onClick={() => setMaterialToDelete(mat)}
                         className="inline-flex items-center justify-center p-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
-                        title="Delete this material"
+                        title="Delete this document permanently"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -723,6 +925,24 @@ export function AdminManageMaterialsPage() {
       <AdminMaterialViewerModal
         item={previewItem}
         onClose={() => setPreviewItem(null)}
+        onApprove={(id) => handleApprove(id)}
+        onReject={(id) => {
+          const itm = materials.find((m) => m.id === id);
+          if (itm) setRejectingItem(itm);
+        }}
+      />
+
+      {/* ── Rejection Reason Modal ── */}
+      <RejectMaterialModal
+        isOpen={Boolean(rejectingItem)}
+        itemTitle={rejectingItem?.title || ''}
+        onClose={() => setRejectingItem(null)}
+        onConfirm={(reason) => {
+          if (rejectingItem) {
+            handleReject(rejectingItem.id, reason);
+            setRejectingItem(null);
+          }
+        }}
       />
 
       {/* -- Student Profile Drawer -- */}

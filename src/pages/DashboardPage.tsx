@@ -18,6 +18,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDocumentFilter } from '../hooks/useDocumentFilter';
 import * as bookmarksService from '../services/bookmarksService';
 import { listApprovedMaterialsForUI, getCachedMaterialsFromSession, saveMaterialsToSession } from '../services/materialsService';
+import { subscribeToMaterialDeletions } from '../services/materialSyncService';
 import { categoryIcon } from '../lib/materialIcons';
 import { cn } from '../lib/cn';
 
@@ -113,9 +114,26 @@ export function DashboardPage() {
     };
   }, [user?.id]);
 
+  // Real-time synchronization: remove deleted materials immediately across all students and admins
+  useEffect(() => {
+    const unsubscribe = subscribeToMaterialDeletions((deletedId) => {
+      setMaterials((prev) => {
+        const next = prev.filter((m) => m.id !== deletedId);
+        saveMaterialsToSession(next);
+        return next;
+      });
+    });
+    return unsubscribe;
+  }, []);
+
   // Check if authenticated user needs academic onboarding
   useEffect(() => {
     if (!isAuthenticated || isExploring || !user) return;
+    // Admin accounts do not need academic onboarding
+    if (user.role === 'admin' || user.email?.toLowerCase() === 'lexonitservices@gmail.com') {
+      setShowAcademicModal(false);
+      return;
+    }
     const forceOpen = searchParams.get('onboarding') === 'academic';
     const isDismissed = sessionStorage.getItem(`academic_modal_dismissed_${user.id}`);
     const isCompleted = localStorage.getItem(`quicklearnit.onboarded_academic_${user.id}`);
@@ -690,19 +708,21 @@ export function DashboardPage() {
       {/* User Profile Panel */}
       <UserProfilePanel profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
 
-      {/* Academic Onboarding & Preferences Modal */}
-      <AcademicOnboardingModal
-        open={showAcademicModal}
-        onClose={() => {
-          if (user?.id) {
-            sessionStorage.setItem(`academic_modal_dismissed_${user.id}`, 'true');
-          }
-          setShowAcademicModal(false);
-        }}
-        onCompleted={() => {
-          setShowAcademicModal(false);
-        }}
-      />
+      {/* Academic Onboarding & Preferences Modal (Students only) */}
+      {user?.role !== 'admin' && user?.email?.toLowerCase() !== 'lexonitservices@gmail.com' && (
+        <AcademicOnboardingModal
+          open={showAcademicModal}
+          onClose={() => {
+            if (user?.id) {
+              sessionStorage.setItem(`academic_modal_dismissed_${user.id}`, 'true');
+            }
+            setShowAcademicModal(false);
+          }}
+          onCompleted={() => {
+            setShowAcademicModal(false);
+          }}
+        />
+      )}
 
       {/* Document Filter Modal */}
       <DocumentFilterModal

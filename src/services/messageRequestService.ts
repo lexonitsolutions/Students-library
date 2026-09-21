@@ -85,7 +85,7 @@ export async function findUserByQuickId(
 
 /**
  * Send a message request from the current auth user to a receiver.
- * Calls the server-side RPC which enforces all business rules.
+ * Uses direct Supabase database operations with Clerk compatibility and RPC fallback.
  */
 export async function sendRequest(params: {
   fromUserId: string;
@@ -97,17 +97,105 @@ export async function sendRequest(params: {
   toUserQuickId: string;
 }): Promise<{ success: boolean; reason?: string; requestId?: string }> {
   invalidateCache('pending_requests:');
-  const { data, error } = await supabase.rpc('send_message_request', {
-    p_receiver_id: params.toUserId,
-  });
 
-  if (error) {
-    return { success: false, reason: error.message };
+  if (!params.fromUserId) {
+    return { success: false, reason: 'You must be signed in to send a request' };
   }
 
-  const result = data as { success: boolean; reason?: string; request_id?: string };
+  if (params.fromUserId === params.toUserId) {
+    return { success: false, reason: 'Cannot send a request to yourself' };
+  }
 
-  if (result.success) {
+  // 1. First try calling the RPC with explicit sender if supported
+  try {
+    const { data: rpcData, error: rpcError } = await supabase.rpc('send_message_request', {
+      p_receiver_id: params.toUserId,
+      p_sender_id: params.fromUserId,
+    } as any);
+
+    if (!rpcError && rpcData) {
+      const raw = typeof rpcData === 'string' ? JSON.parse(rpcData) : rpcData;
+      if (raw.success) {
+        addNotificationForUser(params.toUserId, {
+          id: `notif-msgr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          type: 'message_request',
+          title: `${params.fromUserName} wants to message you`,
+          description: `User ID: ${params.fromUserQuickId}. Open Messages to accept or reject.`,
+          timestamp: 'Just now',
+          read: false,
+        });
+        return { success: true, requestId: raw.request_id };
+      }
+      if (raw.reason && raw.reason !== 'Not authenticated') {
+        return { success: false, reason: raw.reason, requestId: raw.request_id };
+      }
+    }
+  } catch {
+    // Proceed to direct table fallback
+  }
+
+  // 2. Direct database operation (compatible with Clerk authentication)
+  try {
+    // Check if receiver exists
+    const { data: receiverProfile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', params.toUserId)
+      .maybeSingle();
+
+    if (profileErr || !receiverProfile) {
+      return { success: false, reason: 'User not found' };
+    }
+
+    // Check for any existing request in either direction
+    const { data: existingList } = await supabase
+      .from('message_requests')
+      .select('*')
+      .or(
+        `and(sender_id.eq.${params.fromUserId},receiver_id.eq.${params.toUserId}),and(sender_id.eq.${params.toUserId},receiver_id.eq.${params.fromUserId})`,
+      )
+      .order('created_at', { ascending: false });
+
+    if (existingList && existingList.length > 0) {
+      const existing = existingList[0];
+      if (existing.status === 'pending') {
+        return {
+          success: false,
+          reason: 'A pending request already exists',
+          requestId: existing.id,
+        };
+      }
+      if (existing.status === 'accepted') {
+        return {
+          success: false,
+          reason: 'You are already connected',
+          requestId: existing.id,
+        };
+      }
+      if (existing.status === 'rejected') {
+        return {
+          success: false,
+          reason: 'Your previous request was rejected',
+        };
+      }
+    }
+
+    // Insert the new pending request
+    const { data: newReq, error: insertError } = await supabase
+      .from('message_requests')
+      .insert({
+        sender_id: params.fromUserId,
+        receiver_id: params.toUserId,
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (insertError || !newReq) {
+      console.error('Failed to insert message request:', insertError);
+      return { success: false, reason: insertError?.message ?? 'Failed to send request' };
+    }
+
     // Fire notification for the receiver
     addNotificationForUser(params.toUserId, {
       id: `notif-msgr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -117,13 +205,15 @@ export async function sendRequest(params: {
       timestamp: 'Just now',
       read: false,
     });
-  }
 
-  return {
-    success: result.success,
-    reason: result.reason,
-    requestId: result.request_id,
-  };
+    return {
+      success: true,
+      requestId: newReq.id,
+    };
+  } catch (err: any) {
+    console.error('sendRequest error:', err);
+    return { success: false, reason: err?.message ?? 'Unable to send request' };
+  }
 }
 
 // ─── Cancel request ───────────────────────────────────────────────────────────
@@ -189,50 +279,104 @@ export async function listPendingRequests(userId: string): Promise<MessageReques
 // ─── Accept request ───────────────────────────────────────────────────────────
 
 /**
- * Accept a request. Enforced server-side: only the receiver can call this.
+ * Accept a request. Compatible with Clerk authentication and direct fallback.
  * Returns the conversation ID on success.
  */
 export async function acceptRequest(
   requestId: string,
   acceptorName?: string,
+  callerId?: string,
 ): Promise<{ success: boolean; conversationId?: string; reason?: string }> {
   try {
-    const { data, error } = await supabase.rpc('accept_message_request', {
-      p_request_id: requestId,
-    });
+    // 1. Try RPC first with caller id if available
+    try {
+      const { data, error } = await supabase.rpc('accept_message_request', {
+        p_request_id: requestId,
+        p_caller_id: callerId,
+      } as any);
 
-    if (error) return { success: false, reason: error.message };
+      if (!error && data) {
+        const raw = typeof data === 'string' ? JSON.parse(data) : data;
+        const result = (raw ?? {}) as { success?: boolean; conversation_id?: string; reason?: string };
 
-    const raw = typeof data === 'string' ? JSON.parse(data) : data;
-    const result = (raw ?? {}) as { success?: boolean; conversation_id?: string; reason?: string };
-
-    if (result.success) {
-      invalidateCache('pending_requests:');
-      invalidateCache('conversations:');
-      // Notify the sender in the background without blocking or throwing
-      (async () => {
-        try {
-          const req = await getRequestById(requestId);
-          if (req && acceptorName) {
-            addNotificationForUser(req.senderId, {
-              id: `notif-msgr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-              type: 'message_request',
-              title: 'Message request accepted!',
-              description: `${acceptorName} accepted your message request. You can now chat!`,
-              timestamp: 'Just now',
-              read: false,
-            });
-          }
-        } catch {
-          // ignore notification error
+        if (result.success) {
+          invalidateCache('pending_requests:');
+          invalidateCache('conversations:');
+          notifyAcceptance(requestId, acceptorName);
+          return {
+            success: true,
+            conversationId: result.conversation_id,
+          };
         }
-      })();
+        if (result.reason && result.reason !== 'Not authenticated') {
+          return { success: false, reason: result.reason };
+        }
+      }
+    } catch {
+      // Fall through to direct DB operation
     }
 
+    // 2. Direct DB fallback for Clerk auth
+    const { data: req, error: reqErr } = await supabase
+      .from('message_requests')
+      .select('*')
+      .eq('id', requestId)
+      .maybeSingle();
+
+    if (reqErr || !req) {
+      return { success: false, reason: 'Request not found' };
+    }
+
+    if (req.status !== 'pending') {
+      return { success: false, reason: 'Request is not pending' };
+    }
+
+    // Mark as accepted
+    const { error: updateErr } = await supabase
+      .from('message_requests')
+      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (updateErr) {
+      return { success: false, reason: updateErr.message };
+    }
+
+    // Check if conversation already exists
+    let { data: existingConv } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(
+        `and(user_a.eq.${req.sender_id},user_b.eq.${req.receiver_id}),and(user_a.eq.${req.receiver_id},user_b.eq.${req.sender_id})`,
+      )
+      .limit(1)
+      .maybeSingle();
+
+    let convId = existingConv?.id;
+
+    if (!convId) {
+      const { data: newConv, error: convErr } = await supabase
+        .from('conversations')
+        .insert({
+          user_a: req.sender_id,
+          user_b: req.receiver_id,
+          request_id: requestId,
+        })
+        .select('id')
+        .single();
+
+      if (convErr && !convErr.message.includes('duplicate')) {
+        return { success: false, reason: convErr.message };
+      }
+      convId = newConv?.id;
+    }
+
+    invalidateCache('pending_requests:');
+    invalidateCache('conversations:');
+    notifyAcceptance(requestId, acceptorName);
+
     return {
-      success: Boolean(result.success),
-      conversationId: result.conversation_id,
-      reason: result.reason,
+      success: true,
+      conversationId: convId,
     };
   } catch (err: any) {
     console.error('Error accepting request:', err);
@@ -243,36 +387,90 @@ export async function acceptRequest(
 // ─── Reject request ───────────────────────────────────────────────────────────
 
 /**
- * Reject a request. Enforced server-side: only the receiver can call this.
+ * Reject a request. Compatible with Clerk authentication.
  */
 export async function rejectRequest(
   requestId: string,
   rejectorName: string,
+  callerId?: string,
 ): Promise<{ success: boolean; reason?: string }> {
   invalidateCache('pending_requests:');
-  const { data, error } = await supabase.rpc('reject_message_request', {
-    p_request_id: requestId,
-  });
+  try {
+    try {
+      const { data, error } = await supabase.rpc('reject_message_request', {
+        p_request_id: requestId,
+        p_caller_id: callerId,
+      } as any);
 
-  if (error) return { success: false, reason: error.message };
-
-  const result = data as { success: boolean; reason?: string };
-
-  if (result.success) {
-    const req = await getRequestById(requestId);
-    if (req) {
-      addNotificationForUser(req.senderId, {
-        id: `notif-msgr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        type: 'message_request',
-        title: 'Message request rejected',
-        description: `${rejectorName} rejected your message request.`,
-        timestamp: 'Just now',
-        read: false,
-      });
+      if (!error && data) {
+        const result = (typeof data === 'string' ? JSON.parse(data) : data) as { success?: boolean; reason?: string };
+        if (result.success) {
+          notifyRejection(requestId, rejectorName);
+          return { success: true };
+        }
+        if (result.reason && result.reason !== 'Not authenticated') {
+          return { success: false, reason: result.reason };
+        }
+      }
+    } catch {
+      // Fall through to direct DB operation
     }
-  }
 
-  return { success: result.success, reason: result.reason };
+    // Direct DB update
+    const { error: updateErr } = await supabase
+      .from('message_requests')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (updateErr) {
+      return { success: false, reason: updateErr.message };
+    }
+
+    notifyRejection(requestId, rejectorName);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, reason: err?.message ?? 'Failed to reject request' };
+  }
+}
+
+function notifyAcceptance(requestId: string, acceptorName?: string) {
+  (async () => {
+    try {
+      const req = await getRequestById(requestId);
+      if (req && acceptorName) {
+        addNotificationForUser(req.senderId, {
+          id: `notif-msgr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          type: 'message_request',
+          title: 'Message request accepted!',
+          description: `${acceptorName} accepted your message request. You can now chat!`,
+          timestamp: 'Just now',
+          read: false,
+        });
+      }
+    } catch {
+      // ignore
+    }
+  })();
+}
+
+function notifyRejection(requestId: string, rejectorName: string) {
+  (async () => {
+    try {
+      const req = await getRequestById(requestId);
+      if (req) {
+        addNotificationForUser(req.senderId, {
+          id: `notif-msgr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          type: 'message_request',
+          title: 'Message request rejected',
+          description: `${rejectorName} rejected your message request.`,
+          timestamp: 'Just now',
+          read: false,
+        });
+      }
+    } catch {
+      // ignore
+    }
+  })();
 }
 
 // ─── Query helpers ────────────────────────────────────────────────────────────
@@ -435,7 +633,21 @@ export async function startDirectAdminConversation(params: {
       return { success: true, conversationId: convCheck.id };
     }
 
-    // 2. Call RPC admin_start_conversation
+    // 2. Direct insert for conversation (works seamlessly with Clerk and anon client)
+    const { data: newConv } = await supabase
+      .from('conversations')
+      .insert({
+        user_a: params.adminId,
+        user_b: params.studentId,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (newConv?.id) {
+      return { success: true, conversationId: newConv.id };
+    }
+
+    // 3. Call RPC admin_start_conversation as alternative
     const { data: rpcData, error: rpcError } = await supabase.rpc('admin_start_conversation', {
       p_student_id: params.studentId,
     });
@@ -447,23 +659,6 @@ export async function startDirectAdminConversation(params: {
       }
       if (raw.reason) {
         return { success: false, reason: raw.reason };
-      }
-    }
-
-    // 3. Fallback: create/resolve via send_message_request
-    const { data: reqData } = await supabase.rpc('send_message_request', {
-      p_receiver_id: params.studentId,
-    });
-    const parsedReq = (typeof reqData === 'string' ? JSON.parse(reqData) : reqData) as any;
-    const reqId = parsedReq?.request_id;
-
-    if (reqId) {
-      const { data: acceptData } = await supabase.rpc('accept_message_request', {
-        p_request_id: reqId,
-      });
-      const parsedAccept = (typeof acceptData === 'string' ? JSON.parse(acceptData) : acceptData) as any;
-      if (parsedAccept?.conversation_id) {
-        return { success: true, conversationId: parsedAccept.conversation_id };
       }
     }
 

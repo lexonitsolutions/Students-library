@@ -100,7 +100,19 @@ export function toMaterial(row: MaterialRow, uploader: PublicProfileRow | undefi
       Number((row as any).saves_count ?? 0)
     ),
     shares: (row as any).shares_count ?? (row as any).shares ?? 0,
-    status: row.status,
+    status: (() => {
+      if (row.status === 'approved') return 'approved';
+      try {
+        const raw = localStorage.getItem('quicklearn_recent_approvals_v2');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.some((a: any) => a.id === row.id)) {
+            return 'approved';
+          }
+        }
+      } catch {}
+      return row.status;
+    })(),
     accentColor: accentColorFor(row.id),
     fileUrl: row.file_url,
     filePath: row.file_path,

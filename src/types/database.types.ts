@@ -23,6 +23,7 @@ export interface ProfileRow {
   created_at: string;
   updated_at: string;
   cover_image?: string | null;
+  is_deleted?: boolean | null;
 }
 
 export type ProfileUpdate = Partial<

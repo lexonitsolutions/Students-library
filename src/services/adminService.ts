@@ -1,7 +1,9 @@
 import { supabase } from '../lib/supabaseClient';
+import { deleteMaterialPermanently } from './materialsService';
 import type { UserRole } from '../types/database.types';
 
-export const ROOT_ADMIN_EMAIL = 'hr@lexonit.com';
+export const ROOT_ADMIN_EMAIL = 'lexonitservices@gmail.com';
+export const SECONDARY_ROOT_ADMIN_EMAIL = 'hr@lexonit.com';
 
 export interface AdminStats {
   readonly totalStudents: number;
@@ -161,7 +163,13 @@ export async function listModerationQueue(): Promise<ModerationItem[]> {
   }
   if (!pending || pending.length === 0) return [];
 
-  const uploaderIds = [...new Set(pending.map((m) => m.uploader_id))];
+  // Trust the DB entirely: status='pending' is the single source of truth.
+  // Previously, items were excluded based on localStorage which caused cross-browser inconsistency.
+  const validPending = pending;
+
+  if (validPending.length === 0) return [];
+
+  const uploaderIds = [...new Set(validPending.map((m) => m.uploader_id))];
   const [{ data: uploaders }, { data: statsData }] = await Promise.all([
     supabase
       .from('public_profiles')
@@ -176,7 +184,7 @@ export async function listModerationQueue(): Promise<ModerationItem[]> {
   const profileById = new Map(uploaders?.map((u) => [u.id, u]) ?? []);
   const statsById = new Map(statsData?.map((s) => [s.user_id, s.uploads_count]) ?? []);
 
-  return pending.map((item) => {
+  return validPending.map((item) => {
     const prof = profileById.get(item.uploader_id);
     const uploaderDetails: UploaderDetails = {
       id: item.uploader_id,
@@ -216,6 +224,7 @@ export async function listModerationQueue(): Promise<ModerationItem[]> {
   });
 }
 
+
 export interface AdminAllowlistEntry {
   readonly email: string;
   readonly createdAt: string;
@@ -225,42 +234,105 @@ export interface AdminAllowlistEntry {
 }
 
 export async function listAdminEmails(): Promise<AdminAllowlistEntry[]> {
-  const { data: allowlist, error } = await supabase
-    .from('admin_allowlist')
-    .select('email, created_at')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  if (allowlist.length === 0) return [];
+  const rootEmail = ROOT_ADMIN_EMAIL.toLowerCase();
+  const secondaryRoot = SECONDARY_ROOT_ADMIN_EMAIL.toLowerCase();
 
-  const emails = allowlist.map((entry) => entry.email);
-  const { data: profiles, error: profilesError } = await supabase
-    .from('profiles')
-    .select('email, role')
-    .in('email', emails);
-  if (profilesError) throw profilesError;
+  let allowlist: { email: string; created_at: string }[] = [];
+  try {
+    const { data, error } = await supabase
+      .from('admin_allowlist')
+      .select('email, created_at')
+      .order('created_at', { ascending: true });
+    if (!error && data) {
+      allowlist = data;
+    }
+  } catch (err) {
+    console.warn('Notice fetching admin_allowlist:', err);
+  }
 
-  const profileByEmail = new Map(profiles.map((p) => [p.email, p]));
+  // Guarantee that the main root admin is always present and at the top (first position)
+  const rootIdx = allowlist.findIndex((entry) => entry.email.toLowerCase() === rootEmail);
+  if (rootIdx === -1) {
+    allowlist.unshift({
+      email: ROOT_ADMIN_EMAIL,
+      created_at: new Date(2025, 0, 1).toISOString(),
+    });
+  } else if (rootIdx > 0) {
+    const [rootItem] = allowlist.splice(rootIdx, 1);
+    allowlist.unshift(rootItem);
+  }
+
+  const emails = allowlist.map((entry) => entry.email.toLowerCase());
+  let profiles: { email: string | null; role: UserRole }[] = [];
+  try {
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('email, role')
+      .in('email', emails);
+    if (profilesData) profiles = profilesData;
+  } catch {}
+
+  const profileByEmail = new Map(
+    profiles.filter((p) => Boolean(p.email)).map((p) => [p.email!.toLowerCase(), p]),
+  );
 
   return allowlist.map((entry) => {
-    const profile = profileByEmail.get(entry.email);
+    const normalized = entry.email.toLowerCase();
+    const profile = profileByEmail.get(normalized);
+    const isRoot = normalized === rootEmail || normalized === secondaryRoot;
     return {
       email: entry.email,
       createdAt: entry.created_at,
-      hasAccount: Boolean(profile),
-      role: profile?.role ?? null,
-      isRoot: entry.email === ROOT_ADMIN_EMAIL,
+      hasAccount: Boolean(profile) || isRoot,
+      role: isRoot ? ('admin' as const) : (profile?.role ?? 'admin'),
+      isRoot,
     };
   });
 }
 
 export async function addAdminEmail(email: string): Promise<void> {
-  const { error } = await supabase.from('admin_allowlist').insert({ email: email.trim().toLowerCase() });
-  if (error) throw error;
+  const normalized = email.trim().toLowerCase();
+  const { error } = await supabase
+    .from('admin_allowlist')
+    .upsert({ email: normalized }, { onConflict: 'email' });
+
+  if (error) {
+    console.error('Error adding admin email to allowlist:', error);
+    throw new Error(error.message || 'Could not add this email.');
+  }
+
+  // Also promote existing profile if already exists
+  try {
+    await supabase
+      .from('profiles')
+      .update({ role: 'admin' })
+      .ilike('email', normalized);
+  } catch {}
 }
 
 export async function removeAdminEmail(email: string): Promise<void> {
-  const { error } = await supabase.from('admin_allowlist').delete().eq('email', email.trim().toLowerCase());
-  if (error) throw error;
+  const normalized = email.trim().toLowerCase();
+  if (normalized === ROOT_ADMIN_EMAIL.toLowerCase() || normalized === SECONDARY_ROOT_ADMIN_EMAIL.toLowerCase()) {
+    throw new Error('The main admin account is fixed and cannot be removed.');
+  }
+
+  const { error } = await supabase
+    .from('admin_allowlist')
+    .delete()
+    .ilike('email', normalized);
+
+  if (error) {
+    console.error('Error removing admin email from allowlist:', error);
+    throw new Error(error.message || 'Could not remove this email.');
+  }
+
+  // Demote profile if not root admin
+  try {
+    await supabase
+      .from('profiles')
+      .update({ role: 'student' })
+      .ilike('email', normalized);
+  } catch {}
 }
 
 export interface ApprovalMeta {
@@ -518,14 +590,9 @@ export async function deleteApprovedMaterial(id: string, filePath?: string): Pro
       const filtered = existing.filter((item) => item.id !== id);
       localStorage.setItem(RECENT_APPROVALS_STORAGE_KEY, JSON.stringify(filtered));
     } catch {}
-    // Always add to deleted blocklist so it never re-appears on refresh
     addDeletedApprovalId(id);
   }
-  if (filePath) {
-    await supabase.storage.from('materials').remove([filePath]).catch(() => {});
-  }
-  const { error } = await supabase.from('materials').delete().eq('id', id);
-  if (error) console.warn('Supabase delete may have failed (RLS). Item is hidden via blocklist:', error.message);
+  await deleteMaterialPermanently(id, filePath);
 }
 
 export async function deleteAllApprovedMaterials(): Promise<void> {
@@ -542,18 +609,9 @@ export async function deleteAllApprovedMaterials(): Promise<void> {
   }
 
   if (approvedRows && approvedRows.length > 0) {
-    // Save all IDs to blocklist FIRST so refresh won't show them even if DB delete fails
     for (const row of approvedRows) {
       addDeletedApprovalId(row.id);
-    }
-    const filePaths = approvedRows.map((r) => r.file_path).filter(Boolean) as string[];
-    if (filePaths.length > 0) {
-      await supabase.storage.from('materials').remove(filePaths).catch(() => {});
-    }
-    const ids = approvedRows.map((r) => r.id);
-    const { error: delErr } = await supabase.from('materials').delete().in('id', ids);
-    if (delErr) {
-      console.warn('Supabase bulk delete may have failed (RLS). Items are hidden via blocklist:', delErr.message);
+      await deleteMaterialPermanently(row.id, row.file_path).catch(() => {});
     }
   }
 }
@@ -823,13 +881,8 @@ export function clearStoredRejections(): void {
 
 export async function deleteRejectedMaterial(id: string, filePath?: string): Promise<void> {
   removeStoredRejection(id);
-  // Always add to deleted blocklist so it never re-appears on refresh
   addDeletedRejectionId(id);
-  if (filePath) {
-    await supabase.storage.from('materials').remove([filePath]).catch(() => {});
-  }
-  const { error } = await supabase.from('materials').delete().eq('id', id);
-  if (error) console.warn('Supabase delete may have failed (RLS). Item is hidden via blocklist:', error.message);
+  await deleteMaterialPermanently(id, filePath);
 }
 
 export async function deleteAllRejectedMaterials(): Promise<void> {
@@ -846,18 +899,9 @@ export async function deleteAllRejectedMaterials(): Promise<void> {
   }
 
   if (rejectedRows && rejectedRows.length > 0) {
-    // Save all IDs to blocklist FIRST so refresh won't show them even if DB delete fails
     for (const row of rejectedRows) {
       addDeletedRejectionId(row.id);
-    }
-    const filePaths = rejectedRows.map((r) => r.file_path).filter(Boolean) as string[];
-    if (filePaths.length > 0) {
-      await supabase.storage.from('materials').remove(filePaths).catch(() => {});
-    }
-    const ids = rejectedRows.map((r) => r.id);
-    const { error: delErr } = await supabase.from('materials').delete().in('id', ids);
-    if (delErr) {
-      console.warn('Supabase bulk delete may have failed (RLS). Items are hidden via blocklist:', delErr.message);
+      await deleteMaterialPermanently(row.id, row.file_path).catch(() => {});
     }
   }
 }
@@ -1182,9 +1226,6 @@ export interface AdminMaterialItem {
 }
 
 export async function listAllMaterialsForAdmin(): Promise<AdminMaterialItem[]> {
-  const deletedApprovalIds = getDeletedApprovalIds();
-  const deletedRejectionIds = getDeletedRejectionIds();
-
   const { data: materials, error } = await supabase
     .from('materials')
     .select('id, title, description, subject, branch, status, created_at, updated_at, uploader_id, file_path, file_url, file_size_mb, pages, type, views_count, downloads_count, rejection_reason')
@@ -1205,8 +1246,8 @@ export async function listAllMaterialsForAdmin(): Promise<AdminMaterialItem[]> {
 
   const profileById = new Map(profiles?.map((u) => [u.id, u]) ?? []);
 
+  // Use DB status exclusively — localStorage should never override the authoritative DB value
   return materials
-    .filter((m) => !deletedApprovalIds.has(m.id) && !deletedRejectionIds.has(m.id))
     .map((row) => {
       const prof = profileById.get(row.uploader_id);
       let resolvedUrl = row.file_url;
@@ -1234,6 +1275,9 @@ export async function listAllMaterialsForAdmin(): Promise<AdminMaterialItem[]> {
         rejectedByAdminAvatar = parsed.meta?.adminAvatar;
       }
 
+      // Use the real DB status field directly
+      const resolvedStatus: 'pending' | 'approved' | 'rejected' = (row.status as any) || 'pending';
+
       return {
         id: row.id,
         title: row.title,
@@ -1242,7 +1286,7 @@ export async function listAllMaterialsForAdmin(): Promise<AdminMaterialItem[]> {
         course: formatCourse(row.branch),
         uploaderName: prof?.name || 'Student',
         uploaderDetails,
-        status: (row.status as 'pending' | 'approved' | 'rejected') || 'pending',
+        status: resolvedStatus,
         rejectionReason: reason || undefined,
         rejectedByAdminName,
         rejectedByAdminAvatar,
@@ -1259,8 +1303,8 @@ export async function listAllMaterialsForAdmin(): Promise<AdminMaterialItem[]> {
     });
 }
 
+
 export async function deleteMaterialByAdmin(id: string, filePath?: string, status?: string): Promise<void> {
-  // 1. Blocklist tracking based on status or both
   if (status === 'approved') {
     addDeletedApprovalId(id);
     removeStoredApproval(id);
@@ -1272,18 +1316,7 @@ export async function deleteMaterialByAdmin(id: string, filePath?: string, statu
     addDeletedRejectionId(id);
   }
 
-  // 2. Remove storage file
-  if (filePath) {
-    try {
-      await supabase.storage.from('materials').remove([filePath]).catch(() => {});
-    } catch {}
-  }
-
-  // 3. Delete row from materials table
-  const { error } = await supabase.from('materials').delete().eq('id', id);
-  if (error) {
-    console.warn('Delete material from DB notice (RLS):', error.message);
-  }
+  await deleteMaterialPermanently(id, filePath);
 }
 
 

@@ -44,6 +44,7 @@ import {
   listSavedMaterialsForUI,
   updateMaterialDetails,
 } from '../services/materialsService';
+import { subscribeToMaterialDeletions } from '../services/materialSyncService';
 
 const tabs = ['Saved', 'Manage Uploads', 'Recent Activity'] as const;
 
@@ -166,6 +167,23 @@ export function LibraryPage() {
   useEffect(() => {
     loadData();
   }, [activeTab, user?.id]);
+
+  // Real-time synchronization: remove deleted materials immediately across all students and admins
+  useEffect(() => {
+    const unsubscribe = subscribeToMaterialDeletions((deletedId) => {
+      setItems((prev) => {
+        const next = prev.filter((m) => m.id !== deletedId);
+        setCounts((c) => ({
+          ...c,
+          saved: activeTab === 'Saved' ? next.length : c.saved,
+          uploads: activeTab === 'Manage Uploads' ? next.length : c.uploads,
+        }));
+        return next;
+      });
+      setActivityItems((prev) => prev.filter((a) => a.materialId !== deletedId));
+    });
+    return unsubscribe;
+  }, [activeTab]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {

@@ -32,6 +32,9 @@ import { cn } from '../lib/cn';
 import { cleanDocumentTitle } from '../lib/materialMapper';
 import * as adminService from '../services/adminService';
 import { updateMaterialStatus } from '../services/materialsService';
+import { addNotificationForUser } from '../services/notificationsService';
+import { subscribeToMaterialDeletions } from '../services/materialSyncService';
+
 
 function formatApprovalTime(dateStr: string): string {
   try {
@@ -123,6 +126,17 @@ export function AdminDashboardPage() {
     loadData();
   }, [user, currentAdminName]);
 
+  // Real-time synchronization: remove deleted materials immediately across all students and admins
+  useEffect(() => {
+    const unsubscribe = subscribeToMaterialDeletions((deletedId) => {
+      setQueue((prev) => prev.filter((item) => item.id !== deletedId));
+      setRecentApprovals((prev) => prev.filter((item) => item.id !== deletedId));
+      setRecentRejections((prev) => prev.filter((item) => item.id !== deletedId));
+      adminService.getAdminStats().then(setStats).catch(() => {});
+    });
+    return unsubscribe;
+  }, []);
+
   const toggleSelectAll = () => {
     if (selectedItemIds.size === queue.length) {
       setSelectedItemIds(new Set());
@@ -204,6 +218,21 @@ export function AdminDashboardPage() {
             },
             ...prev.filter((p) => p.id !== id),
           ]);
+
+          // Notify the uploader their document was approved
+          const uploaderId = itemToResolve.uploaderDetails?.id;
+          if (uploaderId) {
+            addNotificationForUser(uploaderId, {
+              id: `notif-approved-${id}-${Date.now()}`,
+              type: 'approval',
+              title: 'Your document was approved! 🎉',
+              description: `"${itemToResolve.title}" has been approved and is now visible to all users.`,
+              timestamp: 'Just now',
+              read: false,
+              createdAt: new Date().toISOString(),
+            });
+          }
+
         }
         showToast('Document approved & published successfully.', 'success');
       } else {
@@ -232,6 +261,22 @@ export function AdminDashboardPage() {
             },
             ...prev.filter((p) => p.id !== id),
           ]);
+
+          // Notify the uploader their document was rejected
+          const uploaderId = itemToResolve.uploaderDetails?.id;
+          if (uploaderId) {
+            const reason = rejectionReason || 'Guidelines not met';
+            addNotificationForUser(uploaderId, {
+              id: `notif-rejected-${id}-${Date.now()}`,
+              type: 'rejection',
+              title: 'Your document was not approved',
+              description: `"${itemToResolve.title}" was rejected. Reason: ${reason}`,
+              timestamp: 'Just now',
+              read: false,
+              createdAt: new Date().toISOString(),
+            });
+          }
+
         }
         showToast('Material rejected. Student notified.', 'warning');
       }
@@ -240,6 +285,8 @@ export function AdminDashboardPage() {
       showToast('Action failed. Please try again.', 'error');
     }
   };
+
+
 
   const resolveBatch = async (status: 'approved' | 'rejected') => {
     if (selectedItemIds.size === 0) return;
@@ -305,6 +352,21 @@ export function AdminDashboardPage() {
             pages: item.pages,
             type: item.type,
           });
+
+          // Notify each uploader their document was approved
+          const uploaderId = item.uploaderDetails?.id;
+          if (uploaderId) {
+            addNotificationForUser(uploaderId, {
+              id: `notif-approved-${item.id}-${Date.now()}`,
+              type: 'approval',
+              title: 'Your document was approved! 🎉',
+              description: `"${item.title}" has been approved and is now visible to all users.`,
+              timestamp: 'Just now',
+              read: false,
+              createdAt: new Date().toISOString(),
+            });
+          }
+
         }
         setRecentApprovals((prev) => [...newApprovals, ...prev.filter((p) => !idsToProcess.includes(p.id))]);
         showToast(`Approved and published ${idsToProcess.length} document${idsToProcess.length > 1 ? 's' : ''}.`, 'success');
@@ -332,6 +394,21 @@ export function AdminDashboardPage() {
             pages: item.pages,
             type: item.type,
           });
+
+          // Notify each uploader their document was rejected
+          const uploaderId = item.uploaderDetails?.id;
+          if (uploaderId) {
+            addNotificationForUser(uploaderId, {
+              id: `notif-rejected-${item.id}-${Date.now()}`,
+              type: 'rejection',
+              title: 'Your document was not approved',
+              description: `"${item.title}" was rejected. Reason: Batch rejection`,
+              timestamp: 'Just now',
+              read: false,
+              createdAt: new Date().toISOString(),
+            });
+          }
+
         }
         setRecentRejections((prev) => [...newRejections, ...prev.filter((p) => !idsToProcess.includes(p.id))]);
         showToast(`Rejected ${idsToProcess.length} document${idsToProcess.length > 1 ? 's' : ''}.`, 'warning');
@@ -344,6 +421,8 @@ export function AdminDashboardPage() {
       setIsResolvingBatch(false);
     }
   };
+
+
 
   const handleClearAllApprovals = async () => {
     setIsClearing(true);

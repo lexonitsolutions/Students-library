@@ -176,6 +176,14 @@ export function AcademicOnboardingModal({
     }));
   }, []);
 
+  const isAdmin =
+    user?.role === 'admin' ||
+    (user?.email || '').toLowerCase() === 'lexonitservices@gmail.com';
+
+  if (!open || isAdmin) {
+    return null;
+  }
+
   return (
     <Modal
       open={open}

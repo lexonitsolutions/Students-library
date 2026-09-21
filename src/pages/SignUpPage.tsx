@@ -12,26 +12,27 @@ import {
   Sparkles,
   Users,
   ArrowLeft,
+  AlertCircle,
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { AnimatedInput } from '../components/ui/AnimatedInput';
 import { Logo } from '../components/ui/Logo';
-import { supabase } from '../lib/supabaseClient';
-
 export function SignUpPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signUp, signInWithGoogle, session, updateUser, signOut } = useAuth();
+  const {
+    signUp,
+    signUpWithGoogle,
+    signUpWithLinkedIn,
+    getPendingOAuthUser,
+    completeOAuthSignUp,
+    signOut,
+  } = useAuth();
   
-  const googleUser = session?.user?.app_metadata?.provider === 'google' ? session.user : null;
-  const googleName = (googleUser?.user_metadata?.full_name as string) || (googleUser?.user_metadata?.name as string) || '';
-  const googleEmail = googleUser?.email || '';
-  const googleAvatar = (googleUser?.user_metadata?.avatar_url as string) || (googleUser?.user_metadata?.picture as string) || '';
-
-  const [name, setName] = useState(googleName || '');
-  const [email, setEmail] = useState(googleEmail || location.state?.prefillEmail || '');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState(location.state?.prefillEmail || '');
   const [password, setPassword] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
@@ -39,13 +40,14 @@ export function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
-  useEffect(() => {
-    if (googleUser) {
-      if (googleName) setName(googleName);
-      if (googleEmail) setEmail(googleEmail);
-    }
-  }, [googleUser, googleName, googleEmail]);
+  const [isLinkedInLoading, setIsLinkedInLoading] = useState(false);
+  const [noAccountNotice, setNoAccountNotice] = useState(false);
+  const [connectedOAuth, setConnectedOAuth] = useState<{
+    provider: 'google' | 'linkedin';
+    email: string;
+    name: string;
+    avatarUrl?: string;
+  } | null>(null);
 
   useEffect(() => {
     // Intercept back button to strictly go to /get-started
@@ -56,6 +58,55 @@ export function SignUpPage() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [navigate]);
+
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        setIsGoogleLoading(false);
+        setIsLinkedInLoading(false);
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasReturnParam = location.search.includes('oauth_return');
+    const isPending = Boolean(sessionStorage.getItem('oauth_signup_pending'));
+
+    if (!isPending && !hasReturnParam) {
+      setConnectedOAuth(null);
+      setNoAccountNotice(false);
+      return;
+    }
+
+    const pending = getPendingOAuthUser();
+    if (pending && pending.email && pending.email.includes('@')) {
+      setConnectedOAuth(pending);
+      if (pending.name) {
+        setName((prev: string) => prev || pending.name);
+      }
+      setEmail(pending.email);
+      setAgreedToTerms(true);
+
+      if (urlParams.get('reason') === 'no_account' || sessionStorage.getItem('oauth_signup_reason') === 'no_account') {
+        setNoAccountNotice(true);
+      }
+    } else {
+      // User cancelled or pressed back without selecting an account: reset everything!
+      sessionStorage.removeItem('oauth_signup_pending');
+      sessionStorage.removeItem('oauth_signup_reason');
+      sessionStorage.removeItem('oauth_source');
+      setConnectedOAuth(null);
+      setNoAccountNotice(false);
+      setName('');
+      setEmail('');
+      setPassword('');
+      setIsGoogleLoading(false);
+      setIsLinkedInLoading(false);
+    }
+  }, [getPendingOAuthUser, location.search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,8 +125,8 @@ export function SignUpPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -84,30 +135,24 @@ export function SignUpPage() {
       return;
     }
 
-    if (googleUser) {
-      setIsSubmitting(true);
-      try {
-        const { error: passwordError } = await supabase.auth.updateUser({ password });
-        if (passwordError) {
-          throw new Error(passwordError.message || 'Failed to set password. Please try again.');
-        }
-        await updateUser({
-          name: nameTrimmed,
-          ...(googleAvatar ? { avatar: googleAvatar } : {}),
-        });
-        localStorage.setItem('quicklearnit_google_signup_completed', 'true');
-        localStorage.setItem('quicklearnit_has_onboarded', 'true');
+    setIsSubmitting(true);
+
+    if (connectedOAuth) {
+      const { error: oauthError } = await completeOAuthSignUp({
+        password,
+        name: nameTrimmed,
+      });
+      setIsSubmitting(false);
+
+      if (oauthError) {
+        setError(oauthError);
+      } else {
         navigate('/dashboard', { replace: true });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to complete registration');
-      } finally {
-        setIsSubmitting(false);
       }
       return;
     }
 
-    setIsSubmitting(true);
-    const { error: signUpError } = await signUp({
+    const { error: signUpError, needsEmailConfirmation } = await signUp({
       email: emailTrimmed,
       password,
       name: nameTrimmed,
@@ -115,23 +160,16 @@ export function SignUpPage() {
     setIsSubmitting(false);
 
     if (signUpError) {
-      if (signUpError.toLowerCase().includes('pending')) {
-        navigate('/verify-otp', {
-          state: {
-            target: emailTrimmed,
-            type: 'email',
-          },
-        });
-      } else {
-        setError(signUpError);
-      }
-    } else {
+      setError(signUpError);
+    } else if (needsEmailConfirmation) {
       navigate('/verify-otp', {
         state: {
           target: emailTrimmed,
           type: 'email',
         },
       });
+    } else {
+      navigate('/dashboard', { replace: true });
     }
   };
 
@@ -139,8 +177,7 @@ export function SignUpPage() {
     try {
       setIsGoogleLoading(true);
       setError(null);
-      const redirectUrl = `${window.location.origin}/signup?from_google=true`;
-      const { error: googleError } = await signInWithGoogle(redirectUrl);
+      const { error: googleError } = await signUpWithGoogle();
       if (googleError) {
         setError(googleError);
         setIsGoogleLoading(false);
@@ -151,12 +188,36 @@ export function SignUpPage() {
     }
   };
 
-  const handleDisconnectGoogle = async () => {
-    await signOut();
+  const handleLinkedInSignUp = async () => {
+    try {
+      setIsLinkedInLoading(true);
+      setError(null);
+      const { error: linkedInError } = await signUpWithLinkedIn();
+      if (linkedInError) {
+        setError(linkedInError);
+        setIsLinkedInLoading(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'LinkedIn sign-up failed');
+      setIsLinkedInLoading(false);
+    }
+  };
+
+  const handleRemoveOAuth = async () => {
+    sessionStorage.removeItem('oauth_signup_pending');
+    sessionStorage.removeItem('oauth_signup_reason');
+    setNoAccountNotice(false);
+    setConnectedOAuth(null);
     setName('');
     setEmail('');
     setPassword('');
-    localStorage.removeItem('quicklearnit_google_signup_completed');
+    setAgreedToTerms(false);
+    setError(null);
+    try {
+      await signOut();
+    } catch {
+      // Ignore
+    }
     navigate('/signup', { replace: true });
   };
 
@@ -309,87 +370,150 @@ export function SignUpPage() {
                 </div>
               )}
 
-              {/* Social Sign-Up or Connected Google Account */}
-              <div className="space-y-2">
-                {googleUser ? (
-                  <div className="flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 p-3 shadow-xs">
+              {/* Account Not Found Notice when redirected from Sign-In */}
+              {noAccountNotice && (
+                <div className="mb-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 p-3 text-left">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-900">
+                        Account Not Found
+                      </h4>
+                      <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                        We couldn't find an existing account linked to your {connectedOAuth?.provider === 'linkedin' ? 'LinkedIn' : 'Google'} profile. We've fetched your details below—please set a password to complete your account registration!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Social Sign-Up or Connected OAuth Account Card */}
+              {connectedOAuth ? (
+                <div className="mb-3 rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50 via-white to-slate-50 p-3 shadow-xs text-left">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      {googleAvatar ? (
+                      {connectedOAuth.avatarUrl ? (
                         <img
-                          src={googleAvatar}
-                          alt={googleName || 'Google Account'}
-                          className="h-9 w-9 rounded-xl object-cover border border-primary/30 shrink-0"
-                          referrerPolicy="no-referrer"
+                          src={connectedOAuth.avatarUrl}
+                          alt={connectedOAuth.name}
+                          className="h-9 w-9 rounded-xl object-cover border border-slate-200 shadow-2xs shrink-0"
                         />
                       ) : (
-                        <div className="h-9 w-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0">
-                          {(googleName || googleEmail || 'G').charAt(0).toUpperCase()}
+                        <div className="h-9 w-9 rounded-xl bg-white border border-slate-200 shadow-2xs flex items-center justify-center shrink-0">
+                          {connectedOAuth.provider === 'google' ? (
+                            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                              <path
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                fill="#4285F4"
+                              />
+                              <path
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                fill="#34A853"
+                              />
+                              <path
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                fill="#FBBC05"
+                              />
+                              <path
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                fill="#EA4335"
+                              />
+                            </svg>
+                          ) : (
+                            <svg className="h-4 w-4 shrink-0 fill-[#0A66C2]" viewBox="0 0 24 24">
+                              <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                            </svg>
+                          )}
                         </div>
                       )}
-                      <div className="min-w-0 text-left">
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-bold text-on-surface truncate">
-                            {googleName || 'Google Account'}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-800 truncate">
+                            {connectedOAuth.name || (connectedOAuth.provider === 'google' ? 'Google Account' : 'LinkedIn Account')}
                           </span>
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                            {connectedOAuth.provider === 'google' ? 'Google' : 'LinkedIn'}
+                          </span>
                         </div>
-                        <p className="text-[10px] text-on-surface-variant truncate">{googleEmail}</p>
+                        <p className="text-[11px] text-slate-500 font-medium truncate">
+                          {connectedOAuth.email}
+                        </p>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveOAuth}
+                      className="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline shrink-0 cursor-pointer transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignUp}
+                      disabled={isGoogleLoading || isLinkedInLoading}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-xs active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isGoogleLoading ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
+                      ) : (
+                        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                          <path
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            fill="#4285F4"
+                          />
+                          <path
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            fill="#34A853"
+                          />
+                          <path
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                            fill="#FBBC05"
+                          />
+                          <path
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                            fill="#EA4335"
+                          />
+                        </svg>
+                      )}
+                      <span>{isGoogleLoading ? 'Connecting...' : 'Google'}</span>
+                    </button>
 
                     <button
                       type="button"
-                      onClick={handleDisconnectGoogle}
-                      className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline ml-2 shrink-0 cursor-pointer"
+                      onClick={handleLinkedInSignUp}
+                      disabled={isGoogleLoading || isLinkedInLoading}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-xs active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Change
+                      {isLinkedInLoading ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-[#0A66C2]" />
+                      ) : (
+                        <svg className="h-4 w-4 shrink-0 fill-[#0A66C2]" viewBox="0 0 24 24">
+                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                        </svg>
+                      )}
+                      <span>{isLinkedInLoading ? 'Connecting...' : 'LinkedIn'}</span>
                     </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignUp}
-                    disabled={isGoogleLoading}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {isGoogleLoading ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
-                    ) : (
-                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
-                        <path
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          fill="#4285F4"
-                        />
-                        <path
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          fill="#34A853"
-                        />
-                        <path
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                          fill="#FBBC05"
-                        />
-                        <path
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                          fill="#EA4335"
-                        />
-                      </svg>
-                    )}
-                    <span>{isGoogleLoading ? 'Connecting...' : 'Sign up with Google'}</span>
-                  </button>
-                )}
-              </div>
 
-              {/* Divider */}
-              <div className="relative my-2.5">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider text-[10px]">
-                    {googleUser ? 'Complete your details' : 'or register with email'}
-                  </span>
-                </div>
-              </div>
+                  {/* Divider */}
+                  <div className="relative my-2.5">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-slate-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider text-[10px]">
+                        or register with email
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-2.5">
@@ -414,21 +538,24 @@ export function SignUpPage() {
                     <label htmlFor="email" className="block text-xs font-semibold text-on-surface text-left">
                       Email Address
                     </label>
-                    {googleUser && (
-                      <span className="text-[10px] font-semibold text-emerald-600 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" /> Verified by Google
+                    {connectedOAuth && (
+                      <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Verified via {connectedOAuth.provider === 'google' ? 'Google' : 'LinkedIn'}
                       </span>
                     )}
                   </div>
                   <AnimatedInput
                     type="email"
                     id="email"
-                    readOnly={Boolean(googleUser)}
                     icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
-                    className={`block w-full rounded-xl border border-slate-200 ${googleUser ? 'bg-slate-100 cursor-not-allowed opacity-90' : 'bg-slate-50/80 focus:bg-white'} pl-10 pr-3.5 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all`}
+                    className={`block w-full rounded-xl border border-slate-200 bg-slate-50/80 focus:bg-white pl-10 pr-3.5 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all ${
+                      connectedOAuth ? 'bg-slate-100/70 cursor-not-allowed opacity-90' : ''
+                    }`}
                     placeholder="student@university.edu"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    readOnly={Boolean(connectedOAuth)}
                     required
                   />
                 </div>
@@ -436,13 +563,9 @@ export function SignUpPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
-                      set Password <span className="text-red-500">*</span>
-                      {googleUser && (
-                        <span className="text-on-surface-variant font-normal ml-1 text-[10px]">
-                          (Set password to secure account)
-                        </span>
-                      )}
+                      {connectedOAuth ? 'Create Password' : 'Set Password'} <span className="text-red-500">*</span>
                     </label>
+                    <span className="text-[10px] text-slate-400 font-medium">Min. 8 chars</span>
                   </div>
                   <div className="relative">
                     <AnimatedInput
@@ -450,9 +573,10 @@ export function SignUpPage() {
                       id="password"
                       icon={<Lock className="h-4 w-4 text-on-surface-variant" />}
                       className="block w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-10 pr-10 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                      placeholder="Create password (min 6 characters)"
+                      placeholder="Create password (min 8 characters)"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoFocus={Boolean(connectedOAuth)}
                       required
                     />
                     <button
@@ -508,7 +632,11 @@ export function SignUpPage() {
                   disabled={isSubmitting || !agreedToTerms}
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.99] mt-1"
                 >
-                  <span>{isSubmitting ? 'Creating account...' : googleUser ? 'Complete Registration' : 'Create Free Account'}</span>
+                  <span>
+                    {isSubmitting
+                      ? (connectedOAuth ? 'Finalizing account...' : 'Creating account...')
+                      : (connectedOAuth ? 'Complete Sign Up' : 'Create Free Account')}
+                  </span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </form>

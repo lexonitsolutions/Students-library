@@ -12,10 +12,14 @@ export function HomeGate() {
     return <RouteLoader />;
   }
 
-  // Admin capability alone never grants entry to the admin workspace — it
-  // only activates when explicitly chosen (the "Login as Admin" checkbox on
-  // sign-in, or the sidebar switcher), and only ever for a real admin role.
-  if (user?.role === 'admin' && workspace === 'admin') {
+  if (typeof window !== 'undefined' && sessionStorage.getItem('oauth_signup_pending')) {
+    const provider = sessionStorage.getItem('oauth_signup_pending') || 'google';
+    return <Navigate to={`/signup?oauth_return=${provider}`} replace />;
+  }
+
+  // Admins default to the admin workspace unless they explicitly switched
+  // to student view via the workspace switcher (workspace === 'student').
+  if (user?.role === 'admin' && workspace !== 'student') {
     return <Navigate to="/admin" replace />;
   }
 

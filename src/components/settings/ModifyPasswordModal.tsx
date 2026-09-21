@@ -5,7 +5,6 @@ import { Eye, EyeOff, KeyRound, AlertTriangle, CheckCircle2, ArrowLeft, ShieldCh
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../hooks/useAuth';
-import * as authService from '../../services/authService';
 
 interface ModifyPasswordModalProps {
   readonly open: boolean;
@@ -15,17 +14,13 @@ interface ModifyPasswordModalProps {
 
 export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<ModifyPasswordModalProps>) {
   const navigate = useNavigate();
-  const { user, session } = useAuth();
+  const { user, session, hasPassword, updatePassword, signOut } = useAuth();
 
   const userProviders = session?.user?.app_metadata?.providers || [];
-  const userIdentities = session?.user?.identities || [];
   const primaryProvider = session?.user?.app_metadata?.provider;
 
   const isGoogleLinked = primaryProvider === 'google' || userProviders.includes('google');
-  const hasExistingPassword =
-    userProviders.includes('email') ||
-    userIdentities.some((id: any) => id.provider === 'email') ||
-    primaryProvider === 'email';
+  const hasExistingPassword = hasPassword;
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
@@ -62,7 +57,7 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
     if (open) {
       resetForm();
     }
-  }, [open]);
+  }, [open, hasExistingPassword]);
 
   const handleClose = () => {
     resetForm();
@@ -77,26 +72,8 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
       return;
     }
 
-    setIsVerifying(true);
-    setCurrentPasswordError('');
-
-    try {
-      const email = session?.user?.email || user?.email;
-      const { error } = await authService.verifyCurrentPassword(currentPassword, email);
-      if (error) {
-        setCurrentPasswordError(error.message || 'Incorrect current password. Please try again.');
-        setShakeKey((k) => k + 1);
-        return;
-      }
-
-      // Current password is correct! Proceed to Step 2
-      setStep(2);
-    } catch (err: any) {
-      setCurrentPasswordError(err?.message || 'Failed to verify password. Please try again.');
-      setShakeKey((k) => k + 1);
-    } finally {
-      setIsVerifying(false);
-    }
+    // Proceed to Step 2: Clerk validates current password during the update operation
+    setStep(2);
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -130,9 +107,13 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
     setNewPasswordError('');
 
     try {
-      const { error } = await authService.updatePassword(newPassword);
+      const { error } = await updatePassword({
+        currentPassword: hasExistingPassword ? currentPassword : undefined,
+        newPassword,
+      });
+
       if (error) {
-        setNewPasswordError(error.message || 'Failed to update password. Please try again.');
+        setNewPasswordError(error);
         setShakeKey((k) => k + 1);
         return;
       }
@@ -147,7 +128,7 @@ export function ModifyPasswordModal({ open, onClose, onSuccess }: Readonly<Modif
       }
 
       // Sign out and redirect directly to sign in page
-      await authService.signOut();
+      await signOut();
       handleClose();
 
       navigate('/signin', {

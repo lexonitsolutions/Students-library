@@ -38,6 +38,7 @@ import {
   toggleLike,
 } from '../services/likesService';
 import { getMaterialForUI, incrementViews, listApprovedMaterialsForUI, updateMaterialDetails } from '../services/materialsService';
+import { subscribeToMaterialDeletions } from '../services/materialSyncService';
 import { reportMaterial } from '../services/reportsService';
 
 export function MaterialDetailsPage() {
@@ -118,16 +119,25 @@ export function MaterialDetailsPage() {
   useEffect(() => {
     if (!id || !material || isExploring) return;
 
-    // Do not count uploader's own views
-    if (user?.id && material.uploaderId === user.id) return;
-
-    // Session cache to prevent view spam
+    // Session cache to prevent view spam within the same browser session
     const sessionKey = `viewed_material_${id}`;
     if (sessionStorage.getItem(sessionKey)) return;
 
     sessionStorage.setItem(sessionKey, '1');
-    incrementViews(id).catch(() => {});
-  }, [id, material?.uploaderId, user?.id, isExploring]);
+    incrementViews(id, user?.id).catch(() => {});
+  }, [id, user?.id, isExploring]);
+
+  // Real-time synchronization: if this document is deleted, redirect immediately
+  useEffect(() => {
+    const unsubscribe = subscribeToMaterialDeletions((deletedId) => {
+      if (id === deletedId) {
+        navigate('/library', { replace: true });
+      } else {
+        setRelatedMaterials((prev) => prev.filter((m) => m.id !== deletedId));
+      }
+    });
+    return unsubscribe;
+  }, [id, navigate]);
 
   const handlePageCountLoaded = useCallback((count: number) => {
     if (!material?.id || !count || count <= 0) return;

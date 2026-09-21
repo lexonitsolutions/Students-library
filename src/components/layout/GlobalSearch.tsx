@@ -16,6 +16,7 @@ import { AnimatedInput } from '../ui/AnimatedInput';
 import { useAuth } from '../../hooks/useAuth';
 import { useSignupRedirect } from '../../hooks/useSignupRedirect';
 import { listApprovedMaterials } from '../../services/materialsService';
+import { subscribeToMaterialDeletions } from '../../services/materialSyncService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type SectionKey = 'Materials' | 'Past Papers' | 'Assignments' | 'Library' | 'Settings' | 'Profile';
@@ -144,6 +145,15 @@ export function GlobalSearch() {
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query]);
+
+  // Real-time synchronization: remove deleted materials from suggestions
+  useEffect(() => {
+    const unsubscribe = subscribeToMaterialDeletions((deletedId) => {
+      searchCacheRef.current.clear();
+      setSuggestions((prev) => prev.filter((s) => s.id !== deletedId));
+    });
+    return unsubscribe;
+  }, []);
 
   // Group by section in priority order
   const grouped = SECTION_ORDER.reduce<Record<SectionKey, Suggestion[]>>((acc, key) => {

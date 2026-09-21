@@ -104,7 +104,9 @@ export async function listRecentActivity(userId: string, limit = 20): Promise<Ac
       }
     }
 
-    if (viewsRes.status === 'fulfilled' && viewsRes.value.data) {
+    // 1. Process views with join if available
+    let viewsCountAdded = 0;
+    if (viewsRes.status === 'fulfilled' && viewsRes.value.data && viewsRes.value.data.length > 0) {
       for (const row of viewsRes.value.data) {
         const mat = Array.isArray(row.material) ? row.material[0] : row.material;
         const title = mat?.title ?? 'a material';
@@ -118,7 +120,79 @@ export async function listRecentActivity(userId: string, limit = 20): Promise<Ac
           at: row.viewed_at,
           timestamp: timeAgo(row.viewed_at),
         });
+        viewsCountAdded++;
       }
+    }
+
+    // 2. Fallback: If joined query returned nothing or failed, query material_views without join
+    if (viewsCountAdded === 0) {
+      try {
+        const { data: rawViews } = await supabase
+          .from('material_views')
+          .select('material_id, viewed_at')
+          .eq('user_id', userId)
+          .order('viewed_at', { ascending: false })
+          .limit(limit);
+
+        if (rawViews && rawViews.length > 0) {
+          const matIds = rawViews.map((v: { material_id: string }) => v.material_id).filter(Boolean);
+          const { data: mats } = await supabase
+            .from('materials')
+            .select('id, title')
+            .in('id', matIds);
+          const matTitleMap = new Map((mats || []).map((m: any) => [m.id, m.title]));
+
+          for (const row of rawViews) {
+            addItem({
+              id: `view-${row.material_id}`,
+              type: 'viewed',
+              label: 'Viewed',
+              target: matTitleMap.get(row.material_id) || 'a material',
+              materialId: row.material_id,
+              at: row.viewed_at,
+              timestamp: timeAgo(row.viewed_at),
+            });
+            viewsCountAdded++;
+          }
+        }
+      } catch (viewFallbackErr) {
+        console.warn('View fallback query warning:', viewFallbackErr);
+      }
+    }
+
+    // 3. Incorporate locally stored views for immediate reactivity
+    if (typeof window !== 'undefined') {
+      try {
+        const localRaw = localStorage.getItem(`quicklearnit_viewed_materials_${userId}`);
+        if (localRaw) {
+          const localList: Array<{ materialId: string; viewedAt: string }> = JSON.parse(localRaw);
+          const missingIds = localList
+            .map((item) => item.materialId)
+            .filter((matId) => Boolean(matId) && !addedKeys.has(`viewed-${matId}`));
+
+          if (missingIds.length > 0) {
+            const { data: mats } = await supabase
+              .from('materials')
+              .select('id, title')
+              .in('id', missingIds.slice(0, limit));
+            const matTitleMap = new Map((mats || []).map((m: any) => [m.id, m.title]));
+
+            for (const item of localList) {
+              if (matTitleMap.has(item.materialId) || missingIds.includes(item.materialId)) {
+                addItem({
+                  id: `view-local-${item.materialId}`,
+                  type: 'viewed',
+                  label: 'Viewed',
+                  target: matTitleMap.get(item.materialId) || 'a material',
+                  materialId: item.materialId,
+                  at: item.viewedAt,
+                  timestamp: timeAgo(item.viewedAt),
+                });
+              }
+            }
+          }
+        }
+      } catch {}
     }
   } catch (err) {
     console.warn('DB activity fetch warning:', err);
