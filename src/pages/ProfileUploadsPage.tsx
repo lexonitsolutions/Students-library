@@ -43,11 +43,25 @@ export function ProfileUploadsPage() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const handleUploadsUpdated = () => {
+      if (user?.id) {
+        listMyUploadsForUI(user.id).then(setUploads);
+      }
+    };
+    window.addEventListener('answersbro_user_uploads_updated', handleUploadsUpdated);
+    return () => window.removeEventListener('answersbro_user_uploads_updated', handleUploadsUpdated);
+  }, [user?.id]);
+
   const handleDelete = async (material: Material) => {
-    if (!window.confirm(`Delete "${material.title}"? This can't be undone.`)) return;
+    const confirmMessage = material.status === 'approved'
+      ? `Remove "${material.title}" from your account? It will remain available in community search for other students.`
+      : `Delete "${material.title}"? This can't be undone.`;
+    if (!window.confirm(confirmMessage)) return;
+
     setUploads((prev) => prev.filter((item) => item.id !== material.id));
     try {
-      await deleteMaterial(material.id, material.filePath);
+      await deleteMaterial(material.id, material.filePath, material.status, user?.id);
     } catch {
       if (user) listMyUploadsForUI(user.id).then(setUploads);
     }

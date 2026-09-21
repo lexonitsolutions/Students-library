@@ -20,7 +20,7 @@ import { useAuth } from '../hooks/useAuth';
 import { materialTypeIcon } from '../lib/materialIcons';
 import { timeAgo } from '../lib/timeAgo';
 import { listRecentActivity, type ActivityItem } from '../services/activityService';
-import { listMyUploadsForUI } from '../services/materialsService';
+import { listMyUploadsForUI, getUserUnlinkedMaterialIds } from '../services/materialsService';
 import { subscribeToMaterialDeletions } from '../services/materialSyncService';
 import { getLocalLikesCount } from '../services/likesService';
 import { uploadAvatar, getProfileStats } from '../services/profileService';
@@ -105,7 +105,13 @@ export function ProfilePage() {
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [activityFilter, setActivityFilter] = useState<'all' | 'uploaded' | 'saved' | 'viewed' | 'downloaded'>('all');
 
+  const unlinkedMaterialIds = useMemo(
+    () => (user?.id ? getUserUnlinkedMaterialIds(user.id) : new Set<string>()),
+    [user?.id, uploads]
+  );
+
   const filteredActivities = activityItems.filter((item) => {
+    if (item.materialId && unlinkedMaterialIds.has(item.materialId)) return false;
     if (activityFilter === 'all') return true;
     return item.type === activityFilter;
   });
@@ -167,7 +173,6 @@ export function ProfilePage() {
 
     const handleSync = () => {
       if (user?.id) {
-        listMyUploadsForUI(user.id).then(setUploads);
         try {
           const raw = localStorage.getItem(`quicklearnit_saved_ids_${user.id}`);
           if (raw) {
@@ -194,8 +199,19 @@ export function ProfilePage() {
       setUploads((prev) => prev.filter((m) => m.id !== deletedId));
       setActivityItems((prev) => prev.filter((a) => a.materialId !== deletedId));
     });
-    return unsubscribe;
-  }, []);
+
+    const handleUploadsUpdated = () => {
+      if (user?.id) {
+        listMyUploadsForUI(user.id).then(setUploads);
+      }
+    };
+    window.addEventListener('answersbro_user_uploads_updated', handleUploadsUpdated);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('answersbro_user_uploads_updated', handleUploadsUpdated);
+    };
+  }, [user?.id]);
 
   if (!user) return null;
 
@@ -331,13 +347,19 @@ export function ProfilePage() {
   const uploadViews = uploads.reduce((acc, item) => acc + (item.views || 0), 0);
   const totalViews = Math.max(uploadViews, viewedCount);
 
-  // 4. Total uploads (from database profile_stats, user.stats, uploads array, or activity)
-  const uploadedCount = activityItems.filter((item) => item.type === 'uploaded').length;
+  // 4. Total uploads (from database profile_stats, user.stats, uploads array, or activity, excluding unlinked materials)
+  const uploadedCount = activityItems.filter(
+    (item) => item.type === 'uploaded' && (!item.materialId || !unlinkedMaterialIds.has(item.materialId))
+  ).length;
+  const unlinkedCount = unlinkedMaterialIds.size;
   const totalUploads = Math.max(
-    user?.stats?.uploads ?? 0,
-    dbStats?.uploads ?? 0,
-    uploads.length,
-    uploadedCount
+    0,
+    Math.max(
+      (user?.stats?.uploads ?? 0) - unlinkedCount,
+      (dbStats?.uploads ?? 0) - unlinkedCount,
+      uploads.length,
+      uploadedCount
+    )
   );
 
   // 5. Total saved (from database profile_stats, bookmarksService, user.stats, or activity)

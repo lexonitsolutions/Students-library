@@ -98,6 +98,8 @@ export function GlobalSearch() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchCacheRef = useRef<Map<string, Suggestion[]>>(new Map());
 
+  const searchRequestIdRef = useRef(0);
+
   // Debounced real DB search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -107,15 +109,28 @@ export function GlobalSearch() {
       return;
     }
 
+    // For 1 character queries, provide instant static matches only (zero DB requests)
+    if (trimmed.length < 2) {
+      const staticMatches = STATIC_SUGGESTIONS.filter((s) =>
+        fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, trimmed)
+      );
+      setSuggestions(staticMatches);
+      return;
+    }
+
     const cacheKey = trimmed.toLowerCase();
     if (searchCacheRef.current.has(cacheKey)) {
       setSuggestions(searchCacheRef.current.get(cacheKey)!);
       return;
     }
 
+    const requestId = ++searchRequestIdRef.current;
+
     debounceRef.current = setTimeout(async () => {
       try {
         const rows = await listApprovedMaterials({ search: trimmed, limit: 20 });
+        if (requestId !== searchRequestIdRef.current) return; // Stale query, discard
+
         const dbSuggestions: Suggestion[] = rows.map((m) => {
           const section: SectionKey =
             m.type === 'past-paper' ? 'Past Papers' :
@@ -137,12 +152,13 @@ export function GlobalSearch() {
         searchCacheRef.current.set(cacheKey, results);
         setSuggestions(results);
       } catch {
+        if (requestId !== searchRequestIdRef.current) return;
         const staticMatches = STATIC_SUGGESTIONS.filter((s) =>
           fuzzyMatch(`${s.label} ${s.subtitle ?? ''}`, trimmed)
         );
         setSuggestions(staticMatches);
       }
-    }, 300);
+    }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query]);
 

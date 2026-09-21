@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { cachedQuery, invalidateCache } from '../lib/queryCache';
 
 const LOCAL_LIKED_KEY_PREFIX = 'quicklearnit_liked_ids_';
 const LOCAL_LIKES_COUNT_PREFIX = 'quicklearnit_likes_count_';
@@ -29,6 +30,7 @@ export function getLocalStorageLikedIds(userId: string): Set<string> {
 export function saveLocalStorageLikedIds(userId: string, ids: Set<string>): void {
   if (!userId) return;
   userLikedCache.set(userId, { ids: new Set(ids), time: Date.now() });
+  invalidateCache(`user_liked_ids:${userId}`);
   try {
     localStorage.setItem(`${LOCAL_LIKED_KEY_PREFIX}${userId}`, JSON.stringify([...ids]));
     if (typeof window !== 'undefined') {
@@ -50,29 +52,37 @@ const LIKES_CACHE_TTL_MS = 30000; // 30 seconds
 export async function fetchUserLikedIds(userId: string): Promise<Set<string>> {
   if (!userId) return new Set();
 
-  const cached = userLikedCache.get(userId);
-  if (cached && Date.now() - cached.time < LIKES_CACHE_TTL_MS) {
-    return new Set(cached.ids);
-  }
+  return cachedQuery(
+    `user_liked_ids:${userId}`,
+    async () => {
+      const cached = userLikedCache.get(userId);
+      if (cached && Date.now() - cached.time < LIKES_CACHE_TTL_MS) {
+        return new Set(cached.ids);
+      }
 
-  try {
-    const { data, error } = await supabase
-      .from('material_likes')
-      .select('material_id')
-      .eq('user_id', userId);
+      try {
+        const { data, error } = await supabase
+          .from('material_likes')
+          .select('material_id')
+          .eq('user_id', userId);
 
-    if (!error && Array.isArray(data)) {
-      const ids = new Set<string>(data.map((row: { material_id: string }) => row.material_id));
-      saveLocalStorageLikedIds(userId, ids);
-      userLikedCache.set(userId, { ids: new Set(ids), time: Date.now() });
-      return ids;
-    }
-  } catch {
-    // Fall back to local storage
-  }
-  const fallback = getLocalStorageLikedIds(userId);
-  userLikedCache.set(userId, { ids: new Set(fallback), time: Date.now() });
-  return fallback;
+        if (!error && Array.isArray(data)) {
+          const ids = new Set<string>(data.map((row: { material_id: string }) => row.material_id));
+          userLikedCache.set(userId, { ids: new Set(ids), time: Date.now() });
+          try {
+            localStorage.setItem(`${LOCAL_LIKED_KEY_PREFIX}${userId}`, JSON.stringify([...ids]));
+          } catch {}
+          return ids;
+        }
+      } catch {
+        // Fall back to local storage
+      }
+      const fallback = getLocalStorageLikedIds(userId);
+      userLikedCache.set(userId, { ids: new Set(fallback), time: Date.now() });
+      return fallback;
+    },
+    LIKES_CACHE_TTL_MS,
+  );
 }
 
 export function getLocalLikesCount(materialId: string, initialDbValue: number = 0): number {
@@ -234,6 +244,7 @@ export function getLocalStorageDownloadedIds(userId: string): Set<string> {
 
 export function saveLocalStorageDownloadedIds(userId: string, ids: Set<string>): void {
   cachedUserDownloadedIds.set(userId, ids);
+  invalidateCache(`user_downloaded_ids:${userId}`);
   try {
     localStorage.setItem(`${LOCAL_DOWNLOADED_KEY_PREFIX}${userId}`, JSON.stringify([...ids]));
   } catch {
@@ -248,29 +259,37 @@ const DOWNLOADS_CACHE_TTL_MS = 30000; // 30 seconds
 export async function fetchUserDownloadedIds(userId: string): Promise<Set<string>> {
   if (!userId) return new Set();
 
-  const cached = userDownloadedCache.get(userId);
-  if (cached && Date.now() - cached.time < DOWNLOADS_CACHE_TTL_MS) {
-    return new Set(cached.ids);
-  }
+  return cachedQuery(
+    `user_downloaded_ids:${userId}`,
+    async () => {
+      const cached = userDownloadedCache.get(userId);
+      if (cached && Date.now() - cached.time < DOWNLOADS_CACHE_TTL_MS) {
+        return new Set(cached.ids);
+      }
 
-  try {
-    const { data, error } = await supabase
-      .from('downloads')
-      .select('material_id')
-      .eq('user_id', userId);
+      try {
+        const { data, error } = await supabase
+          .from('downloads')
+          .select('material_id')
+          .eq('user_id', userId);
 
-    if (!error && data) {
-      const ids = new Set<string>(data.map((row: { material_id: string }) => row.material_id));
-      saveLocalStorageDownloadedIds(userId, ids);
-      userDownloadedCache.set(userId, { ids: new Set(ids), time: Date.now() });
-      return ids;
-    }
-  } catch {
-    // Fall back to local storage
-  }
-  const fallback = getLocalStorageDownloadedIds(userId);
-  userDownloadedCache.set(userId, { ids: new Set(fallback), time: Date.now() });
-  return fallback;
+        if (!error && data) {
+          const ids = new Set<string>(data.map((row: { material_id: string }) => row.material_id));
+          userDownloadedCache.set(userId, { ids: new Set(ids), time: Date.now() });
+          try {
+            localStorage.setItem(`${LOCAL_DOWNLOADED_KEY_PREFIX}${userId}`, JSON.stringify([...ids]));
+          } catch {}
+          return ids;
+        }
+      } catch {
+        // Fall back to local storage
+      }
+      const fallback = getLocalStorageDownloadedIds(userId);
+      userDownloadedCache.set(userId, { ids: new Set(fallback), time: Date.now() });
+      return fallback;
+    },
+    DOWNLOADS_CACHE_TTL_MS,
+  );
 }
 
 export function hasUserDownloaded(userId: string, materialId: string): boolean {

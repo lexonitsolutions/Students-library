@@ -115,6 +115,8 @@ export function invalidateMaterialsCache(): void {
   invalidateCache('approved_materials');
   invalidateCache('material:');
   invalidateCache('leaderboard:');
+  invalidateCache('admin:stats');
+  invalidateCache('my_uploads:');
 }
 
 export interface MaterialFilters {
@@ -188,15 +190,68 @@ export async function getMaterialForUI(id: string, userIdOrSavedIds?: string | S
   };
 }
 
-/** The signed-in user's own uploads from the database only. */
-export async function listMyUploadsForUI(userId: string): Promise<Material[]> {
+const USER_UNLINKED_MATERIALS_PREFIX = 'answersbro_user_unlinked_materials_';
+const LEGACY_UNLINKED_PREFIX = 'quicklearnit_user_unlinked_materials_';
+
+export function getUserUnlinkedMaterialIds(userId: string): Set<string> {
+  if (!userId) return new Set();
   try {
-    const rows = await listMyUploads(userId);
-    return await toMaterialsWithUploaders(rows);
-  } catch (err) {
-    console.warn('listMyUploadsForUI DB error:', err);
-    return [];
+    const raw =
+      localStorage.getItem(`${USER_UNLINKED_MATERIALS_PREFIX}${userId}`) ||
+      localStorage.getItem(`${LEGACY_UNLINKED_PREFIX}${userId}`);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {
+    // ignore parse errors
   }
+  return new Set();
+}
+
+export function saveUserUnlinkedMaterialIds(userId: string, ids: Set<string>): void {
+  if (!userId) return;
+  try {
+    localStorage.setItem(`${USER_UNLINKED_MATERIALS_PREFIX}${userId}`, JSON.stringify([...ids]));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function removeMaterialFromUserAccount(materialId: string, userId: string): void {
+  if (!userId || !materialId) return;
+  const current = getUserUnlinkedMaterialIds(userId);
+  current.add(materialId);
+  saveUserUnlinkedMaterialIds(userId, current);
+  invalidateCache(`my_uploads:${userId}`);
+  invalidateCache('my_uploads:');
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('answersbro_user_uploads_updated', {
+        detail: { userId, materialId },
+      }),
+    );
+  }
+}
+
+/** The signed-in user's own uploads from the database only (excluding materials removed from their account). */
+export async function listMyUploadsForUI(userId: string): Promise<Material[]> {
+  if (!userId) return [];
+  return cachedQuery(
+    `my_uploads:${userId}`,
+    async () => {
+      try {
+        const rows = await listMyUploads(userId);
+        const unlinkedIds = getUserUnlinkedMaterialIds(userId);
+        const activeRows = rows.filter((r) => !unlinkedIds.has(r.id));
+        return await toMaterialsWithUploaders(activeRows);
+      } catch (err) {
+        console.warn('listMyUploadsForUI DB error:', err);
+        return [];
+      }
+    },
+    30_000,
+  );
 }
 
 /** The user's saved (bookmarked) materials from the database only. */
@@ -476,8 +531,13 @@ export async function deleteMaterialPermanently(id: string, explicitFilePath?: s
   await broadcastMaterialDeleted(id);
 }
 
-export async function deleteMaterial(id: string, filePath?: string): Promise<void> {
-  return deleteMaterialPermanently(id, filePath);
+export async function deleteMaterial(
+  id: string,
+  filePath?: string,
+  status?: string,
+  userId?: string,
+): Promise<void> {
+  return deleteMaterialForUI(id, filePath, status, userId);
 }
 
 export async function incrementViews(id: string, userId?: string): Promise<void> {
@@ -599,7 +659,44 @@ export async function updateMaterialDetails(
   }
 }
 
-export async function deleteMaterialForUI(id: string, filePath?: string): Promise<void> {
+export async function deleteMaterialForUI(
+  id: string,
+  filePath?: string,
+  status?: string,
+  userId?: string,
+): Promise<void> {
+  let materialStatus = status;
+  let ownerId = userId;
+
+  if (!materialStatus || !ownerId) {
+    try {
+      const { data } = await supabase.from('materials').select('status, uploader_id').eq('id', id).maybeSingle();
+      if (data) {
+        if (!materialStatus) materialStatus = data.status;
+        if (!ownerId) ownerId = data.uploader_id;
+      }
+    } catch {}
+  }
+
+  // When user deletes an approved material: DO NOT delete from community search!
+  // Just remove it from his account so it no longer appears in his uploads or library.
+  if (materialStatus === 'approved') {
+    if (ownerId) {
+      removeMaterialFromUserAccount(id, ownerId);
+    } else {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentId = sessionData?.session?.user?.id;
+      if (currentId) {
+        removeMaterialFromUserAccount(id, currentId);
+      }
+    }
+    return;
+  }
+
+  // For pending or unapproved materials, remove from user's account and delete from DB
+  if (ownerId) {
+    removeMaterialFromUserAccount(id, ownerId);
+  }
   await deleteMaterialPermanently(id, filePath);
 }
 

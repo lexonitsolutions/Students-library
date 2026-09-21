@@ -124,7 +124,7 @@ export function AdminDashboardPage() {
 
   useEffect(() => {
     loadData();
-  }, [user, currentAdminName]);
+  }, [user?.id, currentAdminName]);
 
   // Real-time synchronization: remove deleted materials immediately across all students and admins
   useEffect(() => {

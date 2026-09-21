@@ -7,7 +7,8 @@ let sharedUnreadCount = 0;
 let sharedPendingQueriesCount = 0;
 let lastFetchedTime = 0;
 let inFlightFetch: Promise<void> | null = null;
-const FETCH_COOLDOWN_MS = 5000; // 5 seconds cooldown
+const FETCH_COOLDOWN_MS = 10000; // 10 seconds cooldown between manual refreshes
+let realtimeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Module-level singleton channels and subscriber count
 let activeUserChannelId: string | null = null;
@@ -15,6 +16,11 @@ let activeMsgChannel: ReturnType<typeof supabase.channel> | null = null;
 let activeReqChannel: ReturnType<typeof supabase.channel> | null = null;
 let activeQueryChannel: ReturnType<typeof supabase.channel> | null = null;
 let subscriberCount = 0;
+
+const listeners = new Set<() => void>();
+function notifyListeners() {
+  listeners.forEach((l) => l());
+}
 
 export function triggerUnreadMessagesRefresh() {
   lastFetchedTime = 0; // force refresh
@@ -28,15 +34,28 @@ export function useUnreadMessages() {
   const [unreadCount, setUnreadCount] = useState<number>(() => sharedUnreadCount);
   const [pendingQueriesCount, setPendingQueriesCount] = useState<number>(() => sharedPendingQueriesCount);
 
-  const fetchUnreadCount = useCallback(async () => {
+  // Sync state with shared module cache whenever any instance updates it
+  useEffect(() => {
+    const update = () => {
+      setUnreadCount(sharedUnreadCount);
+      setPendingQueriesCount(sharedPendingQueriesCount);
+    };
+    listeners.add(update);
+    return () => {
+      listeners.delete(update);
+    };
+  }, []);
+
+  const fetchUnreadCount = useCallback(async (force = false) => {
     if (!user?.id || isExploring) {
-      setUnreadCount(0);
-      setPendingQueriesCount(0);
+      sharedUnreadCount = 0;
+      sharedPendingQueriesCount = 0;
+      notifyListeners();
       return;
     }
 
     const now = Date.now();
-    if (now - lastFetchedTime < FETCH_COOLDOWN_MS) {
+    if (!force && now - lastFetchedTime < FETCH_COOLDOWN_MS) {
       setUnreadCount(sharedUnreadCount);
       setPendingQueriesCount(sharedPendingQueriesCount);
       return;
@@ -48,8 +67,6 @@ export function useUnreadMessages() {
       } catch {
         // ignore
       }
-      setUnreadCount(sharedUnreadCount);
-      setPendingQueriesCount(sharedPendingQueriesCount);
       return;
     }
 
@@ -65,11 +82,13 @@ export function useUnreadMessages() {
         if (!convError && convs && convs.length > 0) {
           const convIds = convs.map((c) => c.id);
 
+          const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
           const { count, error: countError } = await supabase
             .from('messages')
             .select('id', { count: 'exact', head: true })
             .in('conversation_id', convIds)
             .neq('sender_id', user.id)
+            .gte('created_at', fortyEightHoursAgo)
             .is('read_at', null);
 
           if (!countError && count !== null) {
@@ -101,6 +120,7 @@ export function useUnreadMessages() {
             // Local storage cache fallback
             try {
               const raw =
+                localStorage.getItem('answersbro.admin_queries_cache') ||
                 localStorage.getItem('studexa.admin_queries_cache') ||
                 localStorage.getItem('quicklearnit.admin_queries_cache');
               if (raw) {
@@ -121,6 +141,7 @@ export function useUnreadMessages() {
         sharedPendingQueriesCount = adminPendingQueries;
         sharedUnreadCount = unreadMsgCount + totalPending + adminPendingQueries;
         lastFetchedTime = Date.now();
+        notifyListeners();
       } catch (err) {
         console.warn('Failed to fetch unread messages count:', err);
       } finally {
@@ -133,8 +154,6 @@ export function useUnreadMessages() {
     } catch {
       // ignore
     }
-    setPendingQueriesCount(sharedPendingQueriesCount);
-    setUnreadCount(sharedUnreadCount);
   }, [user?.id, user?.role, isExploring]);
 
   useEffect(() => {
@@ -142,13 +161,16 @@ export function useUnreadMessages() {
 
     if (!user?.id || isExploring) return;
 
-    const handleRealtimeChange = () => {
-      lastFetchedTime = 0;
-      fetchUnreadCount();
+    const handleDebouncedRealtimeChange = () => {
+      if (realtimeDebounceTimer) clearTimeout(realtimeDebounceTimer);
+      realtimeDebounceTimer = setTimeout(() => {
+        lastFetchedTime = 0;
+        fetchUnreadCount(true);
+      }, 1500);
     };
 
     // Listen to manual dispatch events
-    window.addEventListener('refresh_unread_messages', handleRealtimeChange);
+    window.addEventListener('refresh_unread_messages', handleDebouncedRealtimeChange);
 
     subscriberCount++;
 
@@ -165,7 +187,7 @@ export function useUnreadMessages() {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'messages' },
-          handleRealtimeChange,
+          handleDebouncedRealtimeChange,
         )
         .subscribe();
 
@@ -179,7 +201,7 @@ export function useUnreadMessages() {
             table: 'message_requests',
             filter: `receiver_id=eq.${user.id}`,
           },
-          handleRealtimeChange,
+          handleDebouncedRealtimeChange,
         )
         .subscribe();
 
@@ -189,14 +211,14 @@ export function useUnreadMessages() {
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'student_queries' },
-            handleRealtimeChange,
+            handleDebouncedRealtimeChange,
           )
           .subscribe();
       }
     }
 
     return () => {
-      window.removeEventListener('refresh_unread_messages', handleRealtimeChange);
+      window.removeEventListener('refresh_unread_messages', handleDebouncedRealtimeChange);
       subscriberCount--;
       if (subscriberCount <= 0) {
         subscriberCount = 0;
@@ -222,6 +244,6 @@ export function useUnreadMessages() {
     hasUnread: unreadCount > 0,
     hasPendingQueries: pendingQueriesCount > 0,
     pendingQueriesCount,
-    refresh: fetchUnreadCount,
+    refresh: () => fetchUnreadCount(true),
   };
 }

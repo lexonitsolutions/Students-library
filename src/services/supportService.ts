@@ -79,13 +79,15 @@ export const FAQ_LIST: FAQItem[] = [
 ];
 
 function getTicketsKey(userId: string) {
-  return `studexa.support_tickets_${userId}`;
+  return `answersbro.support_tickets_${userId}`;
 }
 
 export function listUserTickets(userId: string): SupportTicket[] {
   if (!userId) return [];
   try {
-    const raw = localStorage.getItem(getTicketsKey(userId));
+    const raw =
+      localStorage.getItem(getTicketsKey(userId)) ||
+      localStorage.getItem(`studexa.support_tickets_${userId}`);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];

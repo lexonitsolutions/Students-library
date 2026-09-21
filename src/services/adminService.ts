@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { deleteMaterialPermanently } from './materialsService';
 import type { UserRole } from '../types/database.types';
+import { cachedQuery, invalidateCache } from '../lib/queryCache';
 
 export const ROOT_ADMIN_EMAIL = 'lexonitservices@gmail.com';
 export const SECONDARY_ROOT_ADMIN_EMAIL = 'hr@lexonit.com';
@@ -41,8 +42,12 @@ export function getDocumentSection(item: { type?: string | null; title?: string 
     t === 'past-papers' ||
     t === 'test-paper' ||
     t === 'testpaper' ||
+    t === 'testpapers' ||
+    t === 'past_paper' ||
     t === 'paper' ||
     t === 'papers' ||
+    title.includes('question paper') ||
+    title.includes('prev year') ||
     title.includes('paper') ||
     title.includes('test') ||
     title.includes('exam') ||
@@ -56,47 +61,57 @@ export function getDocumentSection(item: { type?: string | null; title?: string 
   return 'materials';
 }
 
+export function invalidateAdminStatsCache(): void {
+  invalidateCache('admin:stats');
+}
+
 export async function getAdminStats(): Promise<AdminStats> {
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  return cachedQuery(
+    'admin:stats',
+    async () => {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const [
-    { count: totalStudentsRaw },
-    { count: publicProfilesCount },
-    { data: materialsData },
-    { count: activeDownloads },
-    { count: pendingApprovals },
-  ] = await Promise.all([
-    supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('email', ROOT_ADMIN_EMAIL),
-    supabase.from('public_profiles').select('*', { count: 'exact', head: true }),
-    supabase.from('materials').select('id, title, type, status'),
-    supabase.from('downloads').select('*', { count: 'exact', head: true }).gte('downloaded_at', oneDayAgo),
-    supabase.from('materials').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-  ]);
+      const [
+        { count: totalStudentsRaw },
+        { count: publicProfilesCount },
+        { data: materialsData },
+        { count: activeDownloads },
+        { count: pendingApprovals },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('email', ROOT_ADMIN_EMAIL),
+        supabase.from('public_profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('materials').select('id, title, type, status'),
+        supabase.from('downloads').select('*', { count: 'exact', head: true }).gte('downloaded_at', oneDayAgo),
+        supabase.from('materials').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      ]);
 
-  const deletedApprovalIds = getDeletedApprovalIds();
-  const deletedRejectionIds = getDeletedRejectionIds();
-  const deletedStudentIds = getDeletedStudentIds();
+      const deletedApprovalIds = getDeletedApprovalIds();
+      const deletedRejectionIds = getDeletedRejectionIds();
+      const deletedStudentIds = getDeletedStudentIds();
 
-  const activeMaterials = (materialsData || []).filter(
-    (m) => !deletedApprovalIds.has(m.id) && !deletedRejectionIds.has(m.id)
+      const activeMaterials = (materialsData || []).filter(
+        (m) => !deletedApprovalIds.has(m.id) && !deletedRejectionIds.has(m.id)
+      );
+
+      const totalDocuments = activeMaterials.length;
+      const totalMaterials = activeMaterials.filter((m) => getDocumentSection(m) === 'materials').length;
+      const totalAssignments = activeMaterials.filter((m) => getDocumentSection(m) === 'assignments').length;
+      const totalTestPapers = activeMaterials.filter((m) => getDocumentSection(m) === 'testpapers').length;
+
+      const rawTotal = (totalStudentsRaw && totalStudentsRaw > 0) ? totalStudentsRaw : Math.max(0, (publicProfilesCount ?? 0) - 1);
+
+      return {
+        totalStudents: Math.max(0, rawTotal - deletedStudentIds.size),
+        totalDocuments,
+        totalMaterials,
+        totalAssignments,
+        totalTestPapers,
+        activeDownloads: activeDownloads ?? 0,
+        pendingApprovals: pendingApprovals ?? 0,
+      };
+    },
+    15_000,
   );
-
-  const totalDocuments = activeMaterials.length;
-  const totalMaterials = activeMaterials.filter((m) => getDocumentSection(m) === 'materials').length;
-  const totalAssignments = activeMaterials.filter((m) => getDocumentSection(m) === 'assignments').length;
-  const totalTestPapers = activeMaterials.filter((m) => getDocumentSection(m) === 'testpapers').length;
-
-  const rawTotal = (totalStudentsRaw && totalStudentsRaw > 0) ? totalStudentsRaw : Math.max(0, (publicProfilesCount ?? 0) - 1);
-
-  return {
-    totalStudents: Math.max(0, rawTotal - deletedStudentIds.size),
-    totalDocuments,
-    totalMaterials,
-    totalAssignments,
-    totalTestPapers,
-    activeDownloads: activeDownloads ?? 0,
-    pendingApprovals: pendingApprovals ?? 0,
-  };
 }
 
 export function formatCourse(raw?: string | null): string {
@@ -1200,6 +1215,8 @@ export async function deleteStudent(studentId: string): Promise<void> {
   if (!rpcSuccess) {
     console.warn('admin_delete_student RPC not installed or failed.');
   }
+
+  invalidateAdminStatsCache();
 }
 
 export interface AdminMaterialItem {

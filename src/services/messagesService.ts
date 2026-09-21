@@ -41,10 +41,13 @@ function rowToMessage(row: MessageRow): ChatMessage {
   };
 }
 
-/** 7 days retention limit for auto-disappearing messages */
-export function getSevenDaysAgoIso(): string {
-  return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+/** 48 hours retention limit for auto-disappearing messages */
+export function getFortyEightHoursAgoIso(): string {
+  return new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 }
+
+/** Backward compatibility alias */
+export const getSevenDaysAgoIso = getFortyEightHoursAgoIso;
 
 // ─── Conversation queries ─────────────────────────────────────────────────────
 
@@ -157,8 +160,8 @@ export async function listConversations(userId: string): Promise<Conversation[]>
           );
         }
 
-        // Fetch last message for each conversation (within 7 days)
-        const sevenDaysAgo = getSevenDaysAgoIso();
+        // Fetch last message for each conversation (within 48 hours)
+        const fortyEightHoursAgo = getFortyEightHoursAgoIso();
         const convIds = rows.map((r) => r.id);
         const lastMsgMap = new Map<string, { body: string; created_at: string }>();
 
@@ -167,7 +170,7 @@ export async function listConversations(userId: string): Promise<Conversation[]>
             .from('messages')
             .select('conversation_id, body, created_at')
             .in('conversation_id', convIds)
-            .gte('created_at', sevenDaysAgo)
+            .gte('created_at', fortyEightHoursAgo)
             .order('created_at', { ascending: false });
 
           (lastMsgs ?? []).forEach((m: any) => {
@@ -177,7 +180,7 @@ export async function listConversations(userId: string): Promise<Conversation[]>
           });
         }
 
-        // Fetch unread counts (within 7 days)
+        // Fetch unread counts (within 48 hours)
         const unreadMap = new Map<string, number>();
         if (convIds.length > 0) {
           const { data: unreadRows } = await supabase
@@ -185,7 +188,7 @@ export async function listConversations(userId: string): Promise<Conversation[]>
             .select('conversation_id')
             .in('conversation_id', convIds)
             .neq('sender_id', userId)
-            .gte('created_at', sevenDaysAgo)
+            .gte('created_at', fortyEightHoursAgo)
             .is('read_at', null);
 
           (unreadRows ?? []).forEach((m: any) => {
@@ -220,20 +223,20 @@ export async function listConversations(userId: string): Promise<Conversation[]>
 // ─── Message queries ──────────────────────────────────────────────────────────
 
 /**
- * List all messages in a conversation, filtered to the last 7 days (auto-disappear).
+ * List all messages in a conversation, filtered to the last 48 hours (auto-disappear).
  */
 export async function listMessages(conversationId: string): Promise<ChatMessage[]> {
   try {
-    const sevenDaysAgo = getSevenDaysAgoIso();
+    const fortyEightHoursAgo = getFortyEightHoursAgoIso();
 
-    // Asynchronously trigger server purge in the background
+    // Asynchronously trigger server/client purge in the background
     purgeExpiredMessages().catch(() => {});
 
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
-      .gte('created_at', sevenDaysAgo)
+      .gte('created_at', fortyEightHoursAgo)
       .order('created_at', { ascending: true });
 
     if (error || !data) return [];
@@ -266,7 +269,6 @@ export async function sendMessage(
       console.error('sendMessage error:', error?.message ?? 'No data returned');
       return null;
     }
-    invalidateCache('conversations:');
     return rowToMessage(data as MessageRow);
   } catch (err) {
     console.error('Error sending message:', err);
@@ -282,7 +284,6 @@ export async function markMessagesRead(
   readerId: string,
 ): Promise<void> {
   try {
-    invalidateCache('conversations:');
     await supabase
       .from('messages')
       .update({ read_at: new Date().toISOString() })
@@ -365,11 +366,11 @@ export async function deleteConversation(
 }
 
 let lastPurgeTime = 0;
-const PURGE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const PURGE_COOLDOWN_MS = 60 * 60 * 1000; // Throttled to at most once per hour per session
 
 /**
- * Purge messages older than 7 days from the database.
- * Throttled to at most once per 24 hours per session to avoid spamming the database.
+ * Purge messages older than 48 hours from the database.
+ * Throttled to at most once per hour per session to avoid spamming the database.
  */
 export async function purgeExpiredMessages(): Promise<void> {
   const now = Date.now();
@@ -378,12 +379,11 @@ export async function purgeExpiredMessages(): Promise<void> {
   }
   lastPurgeTime = now;
   try {
-    const { error } = await supabase.rpc('purge_expired_messages');
-    if (error) {
-      // Fallback: delete client-side if RPC not present
-      const sevenDaysAgo = getSevenDaysAgoIso();
-      await supabase.from('messages').delete().lt('created_at', sevenDaysAgo);
-    }
+    const fortyEightHoursAgo = getFortyEightHoursAgoIso();
+    // Direct client delete ensures messages older than 48 hours are promptly removed
+    await supabase.from('messages').delete().lt('created_at', fortyEightHoursAgo);
+    // Also trigger server-side RPC if configured
+    await supabase.rpc('purge_expired_messages');
   } catch {
     // ignore
   }
@@ -423,16 +423,23 @@ export async function deleteSingleMessage(
 
 // ─── Realtime subscriptions ───────────────────────────────────────────────────
 
+export interface ConversationSubscriptionCallbacks {
+  readonly onNewMessage?: (message: ChatMessage) => void;
+  readonly onUpdateMessage?: (message: ChatMessage) => void;
+  readonly onDeletedMessage?: (deletedMessageId: string) => void;
+  readonly onCleared?: () => void;
+}
+
 /**
- * Unique channel names prevent Supabase duplicate channel collision crashes.
+ * Unified Realtime subscription for a single conversation:
+ * Listens for new messages (INSERT), read receipts (UPDATE), and deletions (DELETE)
+ * over a single Supabase channel instead of opening multiple connections.
  */
-export function subscribeToMessages(
+export function subscribeToConversation(
   conversationId: string,
-  onNewMessage: (message: ChatMessage) => void,
-  onCleared?: () => void,
-  onDeleted?: (deletedMessageId: string) => void,
+  callbacks: ConversationSubscriptionCallbacks,
 ): () => void {
-  const channelName = `messages_${conversationId}_${Math.random().toString(36).substring(2, 8)}`;
+  const channelName = `conv_${conversationId}_${Math.random().toString(36).substring(2, 8)}`;
   const channel = supabase
     .channel(channelName)
     .on(
@@ -445,7 +452,21 @@ export function subscribeToMessages(
       },
       (payload) => {
         if (payload?.new) {
-          onNewMessage(rowToMessage(payload.new as MessageRow));
+          callbacks.onNewMessage?.(rowToMessage(payload.new as MessageRow));
+        }
+      },
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        if (payload?.new) {
+          callbacks.onUpdateMessage?.(rowToMessage(payload.new as MessageRow));
         }
       },
     )
@@ -459,10 +480,10 @@ export function subscribeToMessages(
       },
       (payload) => {
         const deletedId = (payload?.old as { id?: string })?.id;
-        if (deletedId && onDeleted) {
-          onDeleted(deletedId);
+        if (deletedId && callbacks.onDeletedMessage) {
+          callbacks.onDeletedMessage(deletedId);
         } else {
-          onCleared?.();
+          callbacks.onCleared?.();
         }
       },
     )
@@ -473,30 +494,24 @@ export function subscribeToMessages(
   };
 }
 
+export function subscribeToMessages(
+  conversationId: string,
+  onNewMessage: (message: ChatMessage) => void,
+  onCleared?: () => void,
+  onDeleted?: (deletedMessageId: string) => void,
+): () => void {
+  return subscribeToConversation(conversationId, {
+    onNewMessage,
+    onCleared,
+    onDeletedMessage: onDeleted,
+  });
+}
+
 export function subscribeToReadReceipts(
   conversationId: string,
   onUpdate: (message: ChatMessage) => void,
 ): () => void {
-  const channelName = `receipts_${conversationId}_${Math.random().toString(36).substring(2, 8)}`;
-  const channel = supabase
-    .channel(channelName)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`,
-      },
-      (payload) => {
-        if (payload?.new) {
-          onUpdate(rowToMessage(payload.new as MessageRow));
-        }
-      },
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
+  return subscribeToConversation(conversationId, {
+    onUpdateMessage: onUpdate,
+  });
 }
