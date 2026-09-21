@@ -21,6 +21,7 @@ import { materialTypeIcon } from '../lib/materialIcons';
 import { timeAgo } from '../lib/timeAgo';
 import { listRecentActivity, type ActivityItem } from '../services/activityService';
 import { listMyUploadsForUI } from '../services/materialsService';
+import { subscribeToMaterialDeletions } from '../services/materialSyncService';
 import { getLocalLikesCount } from '../services/likesService';
 import { uploadAvatar, getProfileStats } from '../services/profileService';
 import { listBookmarkedMaterialIds } from '../services/bookmarksService';
@@ -63,6 +64,7 @@ export function ProfilePage() {
   const [editYear, setEditYear] = useState(user?.year || yearsList[1]);
   const [editSemester, setEditSemester] = useState(user?.semester || semestersList[3]);
   const [editPreferredSubjects, setEditPreferredSubjects] = useState<string[]>(user?.preferredSubjects || []);
+  const [activeProfileTab, setActiveProfileTab] = useState<'uploads' | 'activity'>('uploads');
   const [customSubjectInput, setCustomSubjectInput] = useState('');
 
   const currentCourseBranches = useMemo(() => {
@@ -186,6 +188,15 @@ export function ProfilePage() {
     };
   }, [user?.id]);
 
+  // Real-time synchronization: remove deleted materials immediately across all students and admins
+  useEffect(() => {
+    const unsubscribe = subscribeToMaterialDeletions((deletedId) => {
+      setUploads((prev) => prev.filter((m) => m.id !== deletedId));
+      setActivityItems((prev) => prev.filter((a) => a.materialId !== deletedId));
+    });
+    return unsubscribe;
+  }, []);
+
   if (!user) return null;
 
   const handleOpenEditModal = () => {
@@ -291,8 +302,6 @@ export function ProfilePage() {
       setIsAcademicSaving(false);
     }
   };
-
-  const [activeProfileTab, setActiveProfileTab] = useState<'uploads' | 'activity'>('uploads');
 
   const memberSince = (() => {
     if (user?.createdAt) {

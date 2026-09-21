@@ -82,7 +82,7 @@ export function MobileDrawer({ isOpen, onClose, onLogout }: MobileDrawerProps) {
             </div>
 
 
-            <div className="flex-1 overflow-y-auto px-3 py-3">
+            <div className="flex-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 py-3">
               {isAdmin && (
                 <div className="mb-3">
                   <div className="flex items-center gap-1.5 px-2 mb-1.5">

@@ -10,8 +10,11 @@ import {
   Sparkles,
   Users,
   ArrowLeft,
+  KeyRound,
+  Pencil,
+  RotateCw,
 } from 'lucide-react';
-import { type FormEvent, useState, useEffect } from 'react';
+import { type FormEvent, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -38,6 +41,11 @@ export function SignInPage() {
   );
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
+  const otpInputs = useRef<(HTMLInputElement | null)[]>([]);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const isVerified = new URLSearchParams(location.search).get('verified') === 'true';
   const successMessage =
@@ -49,11 +57,28 @@ export function SignInPage() {
       : undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isLinkedInLoading, setIsLinkedInLoading] = useState(false);
   const [noAccountEmail, setNoAccountEmail] = useState<string | null>(null);
-  const { signIn, signInWithGoogle, checkAccountStatus, resetPassword } = useAuth();
+  const {
+    signIn,
+    signInWithGoogle,
+    signInWithLinkedIn,
+    checkAccountStatus,
+    resetPassword,
+    sendSignInOtp,
+    verifySignInOtp,
+  } = useAuth();
   const { chooseWorkspace } = useWorkspace();
   const { getAndClearRedirectPath } = useSignupRedirect();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   useEffect(() => {
     // Intercept back button to strictly go to /get-started
@@ -64,6 +89,26 @@ export function SignInPage() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [navigate]);
+
+  useEffect(() => {
+    sessionStorage.removeItem('oauth_signup_pending');
+    sessionStorage.removeItem('oauth_signup_reason');
+    sessionStorage.removeItem('oauth_source');
+    setIsGoogleLoading(false);
+    setIsLinkedInLoading(false);
+
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        setIsGoogleLoading(false);
+        setIsLinkedInLoading(false);
+        sessionStorage.removeItem('oauth_signup_pending');
+        sessionStorage.removeItem('oauth_signup_reason');
+        sessionStorage.removeItem('oauth_source');
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
@@ -105,20 +150,16 @@ export function SignInPage() {
       // If status check fails, proceed with normal sign-in
     }
 
-    const { error: signInError } = await signIn({ email: emailVal, password: passwordVal });
+    const { error: signInError, needsSecondFactor } = await signIn({ email: emailVal, password: passwordVal });
     setIsSubmitting(false);
 
     if (signInError) {
-      if (signInError.toLowerCase().includes('pending')) {
-        navigate('/verify-otp', {
-          state: {
-            target: emailVal,
-            type: 'email',
-          },
-        });
-      } else {
-        setError(signInError);
-      }
+      setError(signInError);
+    } else if (needsSecondFactor) {
+      chooseWorkspace(userIsAdmin ? 'admin' : 'student');
+      navigate('/verify-otp', {
+        state: { target: emailVal, type: 'email', isSecondFactor: true, isAdmin: userIsAdmin },
+      });
     } else {
       chooseWorkspace(userIsAdmin ? 'admin' : 'student');
       const redirectPath = getAndClearRedirectPath();
@@ -134,6 +175,7 @@ export function SignInPage() {
     try {
       setIsGoogleLoading(true);
       setError(null);
+      sessionStorage.setItem('oauth_source', 'signin');
       const { error: googleError } = await signInWithGoogle();
       if (googleError) {
         setError(googleError);
@@ -142,6 +184,157 @@ export function SignInPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed');
       setIsGoogleLoading(false);
+    }
+  };
+
+  const handleLinkedInSignIn = async () => {
+    try {
+      setIsLinkedInLoading(true);
+      setError(null);
+      sessionStorage.setItem('oauth_source', 'signin');
+      const { error: linkedInError } = await signInWithLinkedIn();
+      if (linkedInError) {
+        setError(linkedInError);
+        setIsLinkedInLoading(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'LinkedIn sign-in failed');
+      setIsLinkedInLoading(false);
+    }
+  };
+
+  const handleSendOtp = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
+    setError(null);
+    setNoAccountEmail(null);
+
+    const emailVal = email.trim();
+    if (!emailVal) {
+      setError('Please enter your email address.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const status = await checkAccountStatus(emailVal);
+      if (!status.isAdmin && !status.hasAccount && !status.isUnconfirmed) {
+        setIsSubmitting(false);
+        setNoAccountEmail(emailVal);
+        return;
+      }
+    } catch {
+      // Proceed if status check fails
+    }
+
+    const { error: sendError } = await sendSignInOtp(emailVal);
+    setIsSubmitting(false);
+
+    if (sendError) {
+      setError(sendError);
+    } else {
+      setOtpSent(true);
+      setOtp(Array(6).fill(''));
+      setResendCooldown(30);
+      setTimeout(() => {
+        otpInputs.current[0]?.focus();
+      }, 100);
+    }
+  };
+
+  const handleVerifyOtp = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    const code = otp.join('').trim();
+    if (code.length !== 6) {
+      setError('Please enter all 6 digits of the OTP code.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const emailVal = email.trim();
+
+    let userIsAdmin = false;
+    try {
+      const status = await checkAccountStatus(emailVal);
+      if (status.isAdmin) {
+        userIsAdmin = true;
+      }
+    } catch {
+      // Proceed
+    }
+
+    const { error: verifyError, needsSecondFactor } = await verifySignInOtp(emailVal, code);
+    setIsSubmitting(false);
+
+    if (verifyError) {
+      setError(verifyError);
+    } else if (needsSecondFactor) {
+      chooseWorkspace(userIsAdmin ? 'admin' : 'student');
+      navigate('/verify-otp', {
+        state: { target: emailVal, type: 'email', isSecondFactor: true, isAdmin: userIsAdmin },
+      });
+    } else {
+      chooseWorkspace(userIsAdmin ? 'admin' : 'student');
+      const redirectPath = getAndClearRedirectPath();
+      if (redirectPath && !userIsAdmin) {
+        navigate(redirectPath);
+      } else {
+        navigate(userIsAdmin ? '/admin' : '/dashboard');
+      }
+    }
+  };
+
+  const handleOtpChange = (element: HTMLInputElement, index: number) => {
+    const val = element.value.replace(/[^0-9]/g, '');
+    const newOtp = [...otp];
+    newOtp[index] = val ? val[val.length - 1] : '';
+    setOtp(newOtp);
+
+    if (val && index < 5) {
+      otpInputs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim().replace(/[^0-9]/g, '').slice(0, 6);
+    if (!pastedData) return;
+
+    const newOtp = [...otp];
+    const digits = pastedData.split('');
+    digits.forEach((digit, idx) => {
+      if (idx < 6) newOtp[idx] = digit;
+    });
+    setOtp(newOtp);
+
+    const nextFocusIndex = Math.min(digits.length, 5);
+    otpInputs.current[nextFocusIndex]?.focus();
+  };
+
+  const handleChangeEmail = () => {
+    setOtpSent(false);
+    setOtp(Array(6).fill(''));
+    setError(null);
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || isSubmitting) return;
+    setError(null);
+    setIsSubmitting(true);
+    const { error: resendError } = await sendSignInOtp(email.trim());
+    setIsSubmitting(false);
+
+    if (resendError) {
+      setError(resendError);
+    } else {
+      setResendCooldown(30);
     }
   };
 
@@ -233,20 +426,22 @@ export function SignInPage() {
           {/* ── RIGHT COLUMN: AUTH CARD FLANKED BY 3D CHARACTERS ── */}
           <div className="col-span-1 lg:col-span-6 xl:col-span-5 flex items-center justify-center relative w-full max-w-[420px] mx-auto lg:max-w-none lg:mx-0">
             
-            {/* 3D Boy standing on left of card */}
-            <div className="hidden xl:block absolute -left-28 2xl:-left-32 bottom-0 z-40 pointer-events-none select-none">
-              <img
-                src="/images/answersbro-flanking-boy.png"
-                alt="Student with books"
-                className="h-[380px] 2xl:h-[420px] w-auto object-contain drop-shadow-2xl"
-              />
-            </div>
+            {/* 3D Boy standing on left of card (rendered on sign in, removed on reset password for clean layout) */}
+            {!isForgotPassword && (
+              <div className="hidden xl:block absolute -left-28 2xl:-left-32 bottom-0 z-40 pointer-events-none select-none">
+                <img
+                  src="/images/answersbro-flanking-boy.png"
+                  alt="Student with books"
+                  className="h-[380px] 2xl:h-[420px] w-auto object-contain drop-shadow-2xl"
+                />
+              </div>
+            )}
 
             {/* 3D Girl standing on right of card */}
             <div className="hidden xl:block absolute -right-32 2xl:-right-36 bottom-0 z-40 pointer-events-none select-none">
               <img
-                src="/images/answersbro-flanking-girl.png"
-                alt="Student with tablet"
+                src={isForgotPassword ? '/images/answersbro-reset-girl.png' : '/images/answersbro-flanking-girl.png'}
+                alt={isForgotPassword ? 'Student studying' : 'Student with tablet'}
                 className="h-[380px] 2xl:h-[420px] w-auto object-contain drop-shadow-2xl"
               />
             </div>
@@ -297,11 +492,34 @@ export function SignInPage() {
                   <p className="mt-1 text-xs text-on-surface-variant">Enter your email address to receive a recovery link.</p>
                 </div>
               ) : (
-                <div className="mb-5 text-left">
-                  <h2 className="text-2xl font-bold tracking-tight text-on-surface">Sign in</h2>
-                  <p className="mt-1 text-xs text-on-surface-variant">Welcome back! Enter your credentials to access your library.</p>
+                <div className="mb-4 text-left">
+                  {loginMethod === 'otp' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginMethod('password');
+                        setOtpSent(false);
+                        setError(null);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline mb-2 cursor-pointer"
+                    >
+                      <ArrowLeft size={13} /> Back to password sign in
+                    </button>
+                  )}
+                  <h2 className="text-2xl font-bold tracking-tight text-on-surface">
+                    {loginMethod === 'otp' ? 'Sign in with OTP' : 'Sign in'}
+                  </h2>
+                  <p className="mt-1 text-xs text-on-surface-variant">
+                    {loginMethod === 'password'
+                      ? 'Welcome back! Enter your credentials to access your library.'
+                      : otpSent
+                      ? 'Enter the 6-digit verification code sent to your email.'
+                      : 'Sign in password-free with a one-time verification code.'}
+                  </p>
                 </div>
               )}
+
+
 
               {/* Success Message */}
               {successMessage && !isForgotPassword && (
@@ -335,15 +553,15 @@ export function SignInPage() {
                 </div>
               )}
 
-              {/* Google Sign-in */}
-              {!isForgotPassword && (
+              {/* Social Sign-in Options (only in Password login mode) */}
+              {!isForgotPassword && loginMethod === 'password' && (
                 <>
-                  <div>
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={handleGoogleSignIn}
-                      disabled={isGoogleLoading}
-                      className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition-all cursor-pointer shadow-xs active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                      disabled={isGoogleLoading || isLinkedInLoading}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-xs active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {isGoogleLoading ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
@@ -367,9 +585,37 @@ export function SignInPage() {
                           />
                         </svg>
                       )}
-                      <span>{isGoogleLoading ? 'Connecting...' : 'Continue with Google'}</span>
+                      <span>{isGoogleLoading ? 'Connecting...' : 'Google'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleLinkedInSignIn}
+                      disabled={isGoogleLoading || isLinkedInLoading}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-xs active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isLinkedInLoading ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-[#0A66C2]" />
+                      ) : (
+                        <svg className="h-4 w-4 shrink-0 fill-[#0A66C2]" viewBox="0 0 24 24">
+                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                        </svg>
+                      )}
+                      <span>{isLinkedInLoading ? 'Connecting...' : 'LinkedIn'}</span>
                     </button>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginMethod('otp');
+                      setError(null);
+                    }}
+                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50/90 hover:bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-xs active:scale-[0.99]"
+                  >
+                    <KeyRound className="h-4 w-4 text-primary shrink-0" />
+                    <span>Sign in with OTP</span>
+                  </button>
 
                   {/* Divider */}
                   <div className="relative my-4">
@@ -378,7 +624,7 @@ export function SignInPage() {
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                       <span className="bg-white px-3 text-on-surface-variant font-semibold tracking-wider text-[10px]">
-                        or sign in with email
+                        or sign in with password
                       </span>
                     </div>
                   </div>
@@ -387,36 +633,44 @@ export function SignInPage() {
 
               {/* Form */}
               {!resetEmailSent ? (
-                <form onSubmit={isForgotPassword ? handleResetPassword : handleSubmit} className="space-y-3.5">
-                  <div>
-                    <label htmlFor="email" className="block text-xs font-semibold text-on-surface mb-1 text-left">
-                      Email address
-                    </label>
-                    <AnimatedInput
-                      type="email"
-                      id="email"
-                      icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
-                      className="block w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                      placeholder="student@university.edu"
-                      value={email}
-                      onChange={(e) => { setEmail(e.target.value); setNoAccountEmail(null); }}
-                      required
-                    />
-                  </div>
-
-                  {!isForgotPassword && (
+                <form
+                  onSubmit={
+                    isForgotPassword
+                      ? handleResetPassword
+                      : loginMethod === 'otp'
+                      ? otpSent
+                        ? handleVerifyOtp
+                        : handleSendOtp
+                      : handleSubmit
+                  }
+                  className="space-y-3.5"
+                >
+                  {/* Password Login Flow OR Forgot Password OR OTP Step 1 */}
+                  {(!otpSent || isForgotPassword || loginMethod === 'password') && (
                     <div>
-                      <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="email" className="block text-xs font-semibold text-on-surface mb-1 text-left">
+                        Email address
+                      </label>
+                      <AnimatedInput
+                        type="email"
+                        id="email"
+                        icon={<Mail className="h-4 w-4 text-on-surface-variant" />}
+                        className="block w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-10 pr-3.5 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:bg-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="student@university.edu"
+                        value={email}
+                        onChange={(e) => { setEmail(e.target.value); setNoAccountEmail(null); }}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {/* Password field only in password login mode */}
+                  {!isForgotPassword && loginMethod === 'password' && (
+                    <div>
+                      <div className="mb-1">
                         <label htmlFor="password" className="block text-xs font-semibold text-on-surface text-left">
                           Password
                         </label>
-                        <button 
-                          type="button" 
-                          onClick={() => setIsForgotPassword(true)}
-                          className="text-xs font-medium text-primary hover:underline cursor-pointer"
-                        >
-                          Forgot password?
-                        </button>
                       </div>
                       <div className="relative">
                         <AnimatedInput
@@ -427,7 +681,7 @@ export function SignInPage() {
                           placeholder="••••••••"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          required={!isForgotPassword}
+                          required={!isForgotPassword && loginMethod === 'password'}
                         />
                         <button
                           type="button"
@@ -437,22 +691,130 @@ export function SignInPage() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      <div className="flex justify-end mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLoginMethod('otp');
+                            setError(null);
+                          }}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline cursor-pointer"
+                        >
+                          <KeyRound size={12} />
+                          <span>Sign in with OTP instead</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OTP Step 2: 6-digit Code Input Form */}
+                  {!isForgotPassword && loginMethod === 'otp' && otpSent && (
+                    <div className="space-y-3 pt-1">
+                      {/* Email banner with Change action */}
+                      <div className="rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2.5 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Mail className="h-4 w-4 text-primary shrink-0" />
+                          <span className="truncate text-on-surface-variant text-left">
+                            Code sent to <span className="font-semibold text-on-surface">{email}</span>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleChangeEmail}
+                          className="inline-flex items-center gap-1 font-semibold text-primary hover:underline shrink-0 ml-2 cursor-pointer"
+                        >
+                          <Pencil size={11} /> Change
+                        </button>
+                      </div>
+
+                      {/* 6 Digit Input Boxes */}
+                      <div>
+                        <label className="block text-xs font-semibold text-on-surface mb-2 text-center">
+                          Enter 6-digit verification code
+                        </label>
+                        <div className="flex justify-center gap-2 sm:gap-2.5">
+                          {otp.map((digit, index) => (
+                            <input
+                              key={index}
+                              type="text"
+                              maxLength={1}
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={digit}
+                              onChange={(e) => handleOtpChange(e.target, index)}
+                              onFocus={(e) => e.target.select()}
+                              onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                              onPaste={handleOtpPaste}
+                              ref={(el) => {
+                                otpInputs.current[index] = el;
+                              }}
+                              className="h-11 w-10 sm:h-12 sm:w-11 rounded-xl border border-slate-200 bg-slate-50/80 text-center text-lg sm:text-xl font-bold text-on-surface shadow-xs transition-all focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Resend OTP Link */}
+                      <div className="text-center text-xs text-on-surface-variant pt-1">
+                        <span>Didn't receive the code? </span>
+                        {resendCooldown > 0 ? (
+                          <span className="font-medium text-on-surface-variant/70">Resend in {resendCooldown}s</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleResendOtp}
+                            disabled={isSubmitting}
+                            className="inline-flex items-center gap-1 font-semibold text-primary hover:underline cursor-pointer disabled:opacity-50"
+                          >
+                            <RotateCw size={12} /> Resend OTP
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={
+                      isSubmitting ||
+                      (loginMethod === 'otp' && otpSent && otp.join('').length !== 6) ||
+                      (loginMethod === 'otp' && !otpSent && !email.trim())
+                    }
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-hover px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer active:scale-[0.99] mt-2"
                   >
                     <span>
                       {isSubmitting 
-                        ? (isForgotPassword ? 'Sending...' : 'Signing in...') 
-                        : (isForgotPassword ? 'Send Reset Link' : 'Sign In')}
+                        ? (isForgotPassword 
+                            ? 'Sending...' 
+                            : loginMethod === 'otp'
+                            ? (otpSent ? 'Verifying...' : 'Sending OTP...')
+                            : 'Signing in...') 
+                        : (isForgotPassword 
+                            ? 'Send Reset Link' 
+                            : loginMethod === 'otp'
+                            ? (otpSent ? 'Verify & Sign In' : 'Send Login OTP')
+                            : 'Sign In')}
                     </span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
+
+                  {loginMethod === 'otp' && (
+                    <div className="text-center pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginMethod('password');
+                          setOtpSent(false);
+                          setError(null);
+                        }}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        <Lock size={12} />
+                        <span>Sign in with password instead</span>
+                      </button>
+                    </div>
+                  )}
                 </form>
               ) : (
                 <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 text-center space-y-3">

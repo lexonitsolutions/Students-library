@@ -84,13 +84,22 @@ export function AdminManageAdminsPage() {
                 <tr key={entry.email} className="border-b border-card-border last:border-b-0">
                   <td className="px-6 py-3 font-medium text-on-surface">
                     <span className="flex items-center gap-2">
-                      {entry.isRoot && <ShieldCheck size={14} className="shrink-0 text-primary" />}
-                      {entry.email}
+                      {entry.isRoot ? (
+                        <>
+                          <ShieldCheck size={16} className="shrink-0 text-primary" />
+                          <span className="font-semibold text-on-surface">{entry.email}</span>
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary border border-primary/20">
+                            Main Admin (Fixed)
+                          </span>
+                        </>
+                      ) : (
+                        <span>{entry.email}</span>
+                      )}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     {entry.hasAccount ? (
-                      <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-label-sm font-medium text-emerald-700 w-fit">
+                      <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 px-2.5 py-0.5 text-label-sm font-medium text-emerald-700 dark:text-emerald-400 w-fit">
                         <CheckCircle2 size={13} /> Active
                       </span>
                     ) : (
@@ -113,7 +122,7 @@ export function AdminManageAdminsPage() {
                         aria-label={`Remove ${entry.email}`}
                         disabled={entry.isRoot}
                         onClick={() => handleRemove(entry.email)}
-                        title={entry.isRoot ? 'The root admin cannot be removed' : undefined}
+                        title={entry.isRoot ? 'The main admin is fixed and cannot be removed' : undefined}
                         className="flex h-8 w-8 items-center justify-center rounded-full bg-error-container text-error hover:bg-error-container/80 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <Trash2 size={16} />

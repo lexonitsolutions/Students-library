@@ -3,8 +3,11 @@ import { toMaterial } from '../lib/materialMapper';
 import { cachedQuery, invalidateCache } from '../lib/queryCache';
 import { listBookmarkedMaterialIds, listBookmarkedMaterials } from './bookmarksService';
 import { getLocalLikesCount, recordDownloadWithCount } from './likesService';
+import { addNotificationForUser } from './notificationsService';
+import { broadcastMaterialDeleted } from './materialSyncService';
 import type { Material } from '../data/types';
 import type { MaterialRow, MaterialStatus, MaterialType, PublicProfileRow } from '../types/database.types';
+
 
 const profileCache = new Map<string, PublicProfileRow>();
 let cachedApprovedMaterials: Material[] = [];
@@ -254,8 +257,7 @@ export async function listRecentlyViewedMaterialsForUI(userId: string): Promise<
     const { data: rows } = await supabase
       .from('materials')
       .select('*')
-      .in('id', orderedIds)
-      .neq('uploader_id', userId);
+      .in('id', orderedIds);
       
     if (!rows || rows.length === 0) return [];
   
@@ -269,7 +271,11 @@ export async function listRecentlyViewedMaterialsForUI(userId: string): Promise<
 }
 
 export async function listApprovedMaterials(filters: MaterialFilters = {}): Promise<MaterialRow[]> {
-  let query = supabase.from('materials').select('*').eq('status', 'approved').order('created_at', { ascending: false });
+  // Always query the real database status — never mix in localStorage data.
+  // The DB is the single source of truth; admin approval updates status in DB directly.
+  let query = supabase.from('materials').select('*').eq('status', 'approved');
+
+  query = query.order('created_at', { ascending: false });
 
   if (filters.subjects?.length) query = query.in('subject', filters.subjects as string[]);
   if (filters.universities?.length) query = query.in('university', filters.universities as string[]);
@@ -281,6 +287,7 @@ export async function listApprovedMaterials(filters: MaterialFilters = {}): Prom
   if (error) throw error;
   return data;
 }
+
 
 export async function getMaterialById(id: string): Promise<MaterialRow> {
   const { data, error } = await supabase.from('materials').select('*').eq('id', id).single();
@@ -326,9 +333,7 @@ export interface UploadMaterialParams {
 export async function uploadMaterial(params: UploadMaterialParams): Promise<MaterialRow> {
   const { file, uploaderId, ...metadata } = params;
 
-  // Get active Supabase auth user ID if available
-  const { data: authData } = await supabase.auth.getUser();
-  const effectiveUploaderId = authData?.user?.id || uploaderId;
+  const effectiveUploaderId = uploaderId || 'anonymous';
   const path = `${effectiveUploaderId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
   // Attempt file upload to storage
@@ -367,8 +372,38 @@ export async function uploadMaterial(params: UploadMaterialParams): Promise<Mate
 
   invalidateMaterialsCache();
   window.dispatchEvent(new CustomEvent('refresh_notifications'));
+
+  // Notify all admin users that a new document is waiting for review
+  (async () => {
+    try {
+      const { data: adminProfiles } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('role', 'admin');
+
+      if (adminProfiles && adminProfiles.length > 0) {
+        const uploaderTitle = metadata.title || 'a document';
+        const notifId = `notif-upload-${data.id}-${Date.now()}`;
+        for (const admin of adminProfiles) {
+          addNotificationForUser(admin.id, {
+            id: `${notifId}-${admin.id}`,
+            type: 'system',
+            title: 'New document pending review',
+            description: `"${uploaderTitle}" (${metadata.subject || 'Unknown subject'}) was uploaded and is waiting for your approval.`,
+            timestamp: 'Just now',
+            read: false,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+    } catch {
+      // Notification delivery is non-critical — upload already succeeded
+    }
+  })();
+
   return data;
 }
+
 
 export async function updateMaterialStatus(
   id: string,
@@ -381,21 +416,146 @@ export async function updateMaterialStatus(
     .eq('id', id)
     .select()
     .single();
+
   if (error) throw error;
+
+  invalidateMaterialsCache();
+  window.dispatchEvent(new CustomEvent('refresh_materials'));
+  window.dispatchEvent(new CustomEvent('refresh_notifications'));
+
   return data;
 }
 
-export async function deleteMaterial(id: string, filePath: string): Promise<void> {
-  const { error: storageError } = await supabase.storage.from('materials').remove([filePath]);
-  if (storageError) throw storageError;
+export async function deleteMaterialPermanently(id: string, explicitFilePath?: string): Promise<void> {
+  let filePath = explicitFilePath;
+  if (!filePath) {
+    try {
+      const { data } = await supabase.from('materials').select('file_path').eq('id', id).maybeSingle();
+      if (data?.file_path) {
+        filePath = data.file_path;
+      }
+    } catch {}
+  }
 
-  const { error } = await supabase.from('materials').delete().eq('id', id);
-  if (error) throw error;
+  // 1. Delete physical storage file from 'materials' bucket
+  if (filePath) {
+    try {
+      await supabase.storage.from('materials').remove([filePath]);
+    } catch (storageErr) {
+      console.warn('Storage remove file notice:', storageErr);
+    }
+  }
+
+  // 2. Try server-side RPC if available for atomic cascade delete
+  let rpcSuccess = false;
+  try {
+    const { error: rpcErr } = await supabase.rpc('delete_material_by_id', { p_material_id: id });
+    if (!rpcErr) {
+      rpcSuccess = true;
+    }
+  } catch {}
+
+  // 3. If RPC was not run, perform cascade cleanup to prevent FK constraint failures
+  if (!rpcSuccess) {
+    await Promise.allSettled([
+      supabase.from('bookmarks').delete().eq('material_id', id),
+      supabase.from('downloads').delete().eq('material_id', id),
+      supabase.from('reports').delete().eq('material_id', id),
+      supabase.from('material_likes').delete().eq('material_id', id),
+      supabase.from('material_views').delete().eq('material_id', id),
+    ]);
+
+    const { error: dbErr } = await supabase.from('materials').delete().eq('id', id);
+    if (dbErr) {
+      console.error('Failed to delete material from database:', dbErr);
+      throw dbErr;
+    }
+  }
+
+  // 4. Invalidate all local caches and broadcast deletion across all clients (students & admins)
+  await broadcastMaterialDeleted(id);
 }
 
-export async function incrementViews(id: string): Promise<void> {
-  const { error } = await supabase.rpc('increment_material_views', { p_material_id: id });
-  if (error) throw error;
+export async function deleteMaterial(id: string, filePath?: string): Promise<void> {
+  return deleteMaterialPermanently(id, filePath);
+}
+
+export async function incrementViews(id: string, userId?: string): Promise<void> {
+  let rpcSuccess = false;
+  try {
+    const { error } = await supabase.rpc('increment_material_views', {
+      p_material_id: id,
+      ...(userId ? { p_user_id: userId } : {}),
+    });
+    if (!error) {
+      rpcSuccess = true;
+    }
+  } catch {
+    // Fallback if RPC signature or execution failed
+  }
+
+  if (!rpcSuccess) {
+    try {
+      if (userId) {
+        await supabase.from('material_views').upsert(
+          {
+            material_id: id,
+            user_id: userId,
+            viewed_at: new Date().toISOString(),
+          },
+          { onConflict: 'material_id,user_id' }
+        );
+      }
+
+      // Increment document views count directly
+      const { data: current } = await supabase
+        .from('materials')
+        .select('views_count')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (current) {
+        const newCount = (current.views_count ?? 0) + 1;
+        await supabase
+          .from('materials')
+          .update({ views_count: newCount })
+          .eq('id', id);
+      }
+    } catch (err) {
+      console.warn('incrementViews fallback error:', err);
+    }
+  } else if (userId) {
+    // Ensure material_views row exists even if legacy RPC didn't insert it
+    try {
+      await supabase.from('material_views').upsert(
+        {
+          material_id: id,
+          user_id: userId,
+          viewed_at: new Date().toISOString(),
+        },
+        { onConflict: 'material_id,user_id' }
+      );
+    } catch {}
+  }
+
+  // Record viewed item locally for immediate UI responsiveness
+  if (userId && typeof window !== 'undefined') {
+    try {
+      const localKey = `quicklearnit_viewed_materials_${userId}`;
+      const existing = JSON.parse(localStorage.getItem(localKey) || '[]');
+      const updated = [
+        { materialId: id, viewedAt: new Date().toISOString() },
+        ...existing.filter((item: any) => item?.materialId !== id),
+      ].slice(0, 50);
+      localStorage.setItem(localKey, JSON.stringify(updated));
+    } catch {}
+  }
+
+  invalidateMaterialsCache();
+  invalidateCache(`material:${id}`);
+  invalidateCache('materials:all');
+  invalidateCache('materials:approved');
+  invalidateCache('materials:leaderboard');
 }
 
 export async function resetMaterialViews(id: string): Promise<void> {
@@ -440,13 +600,7 @@ export async function updateMaterialDetails(
 }
 
 export async function deleteMaterialForUI(id: string, filePath?: string): Promise<void> {
-  if (filePath) {
-    await supabase.storage.from('materials').remove([filePath]).catch(() => {});
-  }
-  const { error } = await supabase.from('materials').delete().eq('id', id);
-  if (error) {
-    console.warn('DB delete warning:', error);
-  }
+  await deleteMaterialPermanently(id, filePath);
 }
 
 export async function recordDownload(materialId: string, userId?: string, currentCount: number = 0): Promise<void> {

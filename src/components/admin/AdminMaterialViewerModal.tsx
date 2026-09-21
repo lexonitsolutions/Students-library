@@ -38,6 +38,16 @@ export function AdminMaterialViewerModal({
   onReject,
   onNavigate,
 }: Readonly<AdminMaterialViewerModalProps>) {
+  const studentOtherDocs = useMemo(() => {
+    if (!queue || !item) return [];
+    return queue.filter(
+      (q) =>
+        q.id !== item.id &&
+        ((q.uploaderDetails?.id && q.uploaderDetails.id === item.uploaderDetails?.id) ||
+          (q.uploader && q.uploader === item.uploader))
+    );
+  }, [queue, item]);
+
   if (!item) return null;
 
   const target = item.filePath || item.fileUrl || '';
@@ -76,16 +86,6 @@ export function AdminMaterialViewerModal({
   const hasQueueNav = Boolean(queue && queue.length > 1 && currentIndex !== -1);
   const hasPrev = hasQueueNav && currentIndex > 0;
   const hasNext = hasQueueNav && currentIndex < (queue?.length ?? 0) - 1;
-
-  const studentOtherDocs = useMemo(() => {
-    if (!queue || !item) return [];
-    return queue.filter(
-      (q) =>
-        q.id !== item.id &&
-        ((q.uploaderDetails?.id && q.uploaderDetails.id === item.uploaderDetails?.id) ||
-          (q.uploader && q.uploader === item.uploader))
-    );
-  }, [queue, item]);
 
   return createPortal(
     <AnimatePresence>

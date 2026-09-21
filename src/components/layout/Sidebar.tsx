@@ -55,27 +55,27 @@ export function Sidebar() {
         )}
       >
         {/* Navigation scrollable container */}
-        <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto px-2.5 py-3">
+        <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-2 py-1.5 2xl:px-2.5 2xl:py-2">
           {/* Admin section */}
           {isAdmin && (
-            <div className="mb-2">
+            <div className="mb-1">
               {/* Section Header with fixed height - ZERO vertical shift */}
-              <div className="h-6 px-1.5 flex items-center mb-1 overflow-hidden">
+              <div className="h-5 px-1 flex items-center mb-0.5 overflow-hidden">
                 <div
                   className={cn(
                     'flex items-center gap-1.5 transition-all duration-300',
                     expanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none',
                   )}
                 >
-                  <Shield size={12} className="text-primary shrink-0" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                  <Shield size={11} className="text-primary shrink-0" />
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-primary">
                     Admin
                   </span>
                 </div>
               </div>
 
               {/* Admin Nav Items */}
-              <nav className="flex flex-col gap-1">
+              <nav className="flex flex-col gap-0.5">
                 {adminNavItems.map((item) => (
                   <NavLink
                     key={item.label}
@@ -85,7 +85,7 @@ export function Sidebar() {
                     onClick={() => chooseWorkspace('admin')}
                     className={({ isActive }) =>
                       cn(
-                        'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
+                        'group relative flex items-center h-9.5 2xl:h-10.5 w-full rounded-xl transition-all duration-200 px-1',
                         isActive
                           ? 'text-[#24378F] dark:text-[#F8F9FC] font-semibold'
                           : 'text-on-surface-variant hover:bg-[#EEF1FF]/60 dark:hover:bg-[#202A4A]/60 hover:text-on-surface',
@@ -104,9 +104,9 @@ export function Sidebar() {
                         )}
 
                         {/* Icon slot */}
-                        <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                        <div className="relative z-10 flex h-8.5 w-8.5 2xl:h-9 2xl:w-9 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                           <item.icon
-                            size={20}
+                            size={18}
                             strokeWidth={isActive ? 2.2 : 1.8}
                             className={cn(
                               'shrink-0 transition-colors duration-200',
@@ -118,7 +118,7 @@ export function Sidebar() {
                         {/* Text label */}
                         <span
                           className={cn(
-                            'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
+                            'relative z-10 ml-2 whitespace-nowrap text-[13px] 2xl:text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
                             isActive ? 'font-semibold text-[#24378F] dark:text-[#F8F9FC]' : 'font-medium',
                             expanded
                               ? 'opacity-100 translate-x-0 max-w-[160px]'
@@ -134,14 +134,14 @@ export function Sidebar() {
               </nav>
 
               {/* Divider between Admin and Student with fixed height - ZERO vertical shift */}
-              <div className="h-6 px-1.5 flex items-center my-1 overflow-hidden">
+              <div className="h-5 px-1 flex items-center my-0.5 overflow-hidden">
                 <div
                   className={cn(
                     'flex items-center gap-1.5 transition-all duration-300',
                     expanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 pointer-events-none',
                   )}
                 >
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/60">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-on-surface-variant/60">
                     Student
                   </span>
                 </div>
@@ -150,7 +150,7 @@ export function Sidebar() {
           )}
 
           {/* Student Nav */}
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-col gap-0.5">
             {visibleNavItems.map((item) => (
               <NavLink
                 key={item.label}
@@ -160,7 +160,7 @@ export function Sidebar() {
                 onClick={() => isAdmin && chooseWorkspace('student')}
                 className={({ isActive }) =>
                   cn(
-                    'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
+                    'group relative flex items-center h-9.5 2xl:h-10.5 w-full rounded-xl transition-all duration-200 px-1',
                     isActive
                       ? 'text-[#24378F] dark:text-[#F8F9FC] font-semibold'
                       : 'text-on-surface-variant hover:bg-[#EEF1FF]/60 dark:hover:bg-[#202A4A]/60 hover:text-on-surface',
@@ -179,20 +179,20 @@ export function Sidebar() {
                     )}
 
                     {/* Icon slot */}
-                    <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                    <div className="relative z-10 flex h-8.5 w-8.5 2xl:h-9 2xl:w-9 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                       <item.icon
-                        size={20}
+                        size={18}
                         strokeWidth={isActive ? 2.2 : 1.8}
                         className={cn(
-                          'shrink-0 transition-colors duration-200',
-                          isActive ? 'text-[#3049B8] dark:text-[#7185E6]' : 'text-on-surface-variant group-hover:text-on-surface',
+                              'shrink-0 transition-colors duration-200',
+                              isActive ? 'text-[#3049B8] dark:text-[#7185E6]' : 'text-on-surface-variant group-hover:text-on-surface',
                         )}
                       />
                       {/* Red indicator dot for messages */}
                       {item.to === '/messages' && hasUnread && (
-                        <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
+                        <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-surface" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500 ring-2 ring-surface" />
                         </span>
                       )}
                     </div>
@@ -200,7 +200,7 @@ export function Sidebar() {
                     {/* Text label */}
                     <span
                       className={cn(
-                        'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300 flex-1 flex items-center justify-between',
+                        'relative z-10 ml-2 whitespace-nowrap text-[13px] 2xl:text-[13.5px] tracking-tight overflow-hidden transition-all duration-300 flex-1 flex items-center justify-between',
                         isActive ? 'font-semibold text-[#24378F] dark:text-[#F8F9FC]' : 'font-medium',
                         expanded
                           ? 'opacity-100 translate-x-0 max-w-[160px]'
@@ -209,12 +209,12 @@ export function Sidebar() {
                     >
                       <span>{item.label}</span>
                       {item.to === '/messages' && unreadCount > 0 ? (
-                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-2xs">
+                        <span className="flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-rose-500 px-1 text-[9.5px] font-bold text-white shadow-2xs">
                           {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
                       ) : (
                         item.badge && (
-                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
+                          <span className="text-[9.5px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
                             {item.badge}
                           </span>
                         )
@@ -228,14 +228,14 @@ export function Sidebar() {
         </div>
 
         {/* ── Bottom Section: Support, Profile & Log out ── */}
-        <div className="shrink-0 px-2.5 py-2.5 border-t border-card-border/60 bg-surface-container-low/50 flex flex-col gap-1">
+        <div className="shrink-0 px-2 py-1.5 2xl:px-2.5 2xl:py-2 border-t border-card-border/60 bg-surface-container-low/50 flex flex-col gap-0.5">
           {/* Customer Support Link */}
           <NavLink
             to="/support"
             title={!expanded ? 'Customer Support' : undefined}
             className={({ isActive }) =>
               cn(
-                'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
+                'group relative flex items-center h-9.5 2xl:h-10.5 w-full rounded-xl transition-all duration-200 px-1',
                 isActive
                   ? 'text-[#24378F] dark:text-[#F8F9FC] font-semibold'
                   : 'text-on-surface-variant hover:bg-[#EEF1FF]/60 dark:hover:bg-[#202A4A]/60 hover:text-on-surface',
@@ -252,9 +252,9 @@ export function Sidebar() {
                   />
                 )}
 
-                <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                <div className="relative z-10 flex h-8.5 w-8.5 2xl:h-9 2xl:w-9 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                   <Headphones
-                    size={20}
+                    size={18}
                     strokeWidth={isActive ? 2.2 : 1.8}
                     className={cn(
                       'shrink-0 transition-colors duration-200',
@@ -265,7 +265,7 @@ export function Sidebar() {
 
                 <span
                   className={cn(
-                    'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
+                    'relative z-10 ml-2 whitespace-nowrap text-[13px] 2xl:text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
                     isActive ? 'font-semibold text-[#24378F] dark:text-[#F8F9FC]' : 'font-medium',
                     expanded
                       ? 'opacity-100 translate-x-0 max-w-[160px]'
@@ -285,7 +285,7 @@ export function Sidebar() {
               title={!expanded ? 'Profile' : undefined}
               className={({ isActive }) =>
                 cn(
-                  'group relative flex items-center h-11 w-full rounded-xl transition-all duration-200 px-1.5',
+                  'group relative flex items-center h-9.5 2xl:h-10.5 w-full rounded-xl transition-all duration-200 px-1',
                   isActive
                     ? 'text-[#24378F] dark:text-[#F8F9FC] font-semibold'
                     : 'text-on-surface-variant hover:bg-[#EEF1FF]/60 dark:hover:bg-[#202A4A]/60 hover:text-on-surface',
@@ -303,11 +303,11 @@ export function Sidebar() {
                   )}
 
                   {/* User avatar slot */}
-                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                  <div className="relative z-10 flex h-8.5 w-8.5 2xl:h-9 2xl:w-9 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                     <Avatar
                       name={user?.name || 'User'}
                       src={user?.avatar}
-                      size={30}
+                      size={26}
                       className={cn(
                         'ring-2 transition-all',
                         isActive
@@ -320,7 +320,7 @@ export function Sidebar() {
                   {/* Text label */}
                   <span
                     className={cn(
-                      'relative z-10 ml-2.5 whitespace-nowrap text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
+                      'relative z-10 ml-2 whitespace-nowrap text-[13px] 2xl:text-[13.5px] tracking-tight overflow-hidden transition-all duration-300',
                       isActive ? 'font-semibold text-primary' : 'font-medium',
                       expanded
                         ? 'opacity-100 translate-x-0 max-w-[160px]'
@@ -339,17 +339,17 @@ export function Sidebar() {
             type="button"
             onClick={() => setShowLogoutAlert(true)}
             title={!expanded ? 'Log out' : undefined}
-            className="group relative flex items-center h-11 w-full rounded-xl transition-colors duration-150 px-1.5 text-on-surface-variant hover:bg-error/10 hover:text-error cursor-pointer"
+            className="group relative flex items-center h-9.5 2xl:h-10.5 w-full rounded-xl transition-colors duration-150 px-1 text-on-surface-variant hover:bg-error/10 hover:text-error cursor-pointer"
           >
             {/* Fixed icon slot - 100% stationary */}
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
-              <LogOut size={20} strokeWidth={1.8} className="shrink-0 transition-colors" />
+            <div className="flex h-8.5 w-8.5 2xl:h-9 2xl:w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+              <LogOut size={18} strokeWidth={1.8} className="shrink-0 transition-colors" />
             </div>
 
             {/* Text label - slides & fades smoothly */}
             <span
               className={cn(
-                'ml-2.5 whitespace-nowrap text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
+                'ml-2 whitespace-nowrap text-[13px] 2xl:text-[13.5px] font-medium tracking-tight overflow-hidden transition-all duration-300',
                 expanded
                   ? 'opacity-100 translate-x-0 max-w-[160px]'
                   : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none',
