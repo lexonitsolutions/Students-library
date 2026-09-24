@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "dev": "vite --config frontend/vite.config.ts",
+    "build": "tsc -b frontend/tsconfig.json && vite build --config frontend/vite.config.ts",
+    "lint": "oxlint --config frontend/.oxlintrc.json frontend/src",
+    "preview": "vite preview --config frontend/vite.config.ts",
+    "test:learning": "node --test frontend/tests/aiLearning.test.cjs frontend/tests/aiLearningBackend.test.cjs frontend/tests/aiFloatingAssistant.test.cjs",
+    "test:learning:ui": "playwright test --config frontend/playwright.config.ts"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.10",
@@ -27,6 +29,7 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
