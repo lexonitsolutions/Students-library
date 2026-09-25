@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6';
-import { getMode, learningModes, parseLearningReply } from '../../../../src/data/aiLearning.ts';
+import { getMode, learningModes, parseLearningReply } from '../_shared/aiLearning.ts';
 
 const issuer = (Deno.env.get('CLERK_ISSUER_URL') || '').replace(/\/$/, '');
 const allowedOrigins = (Deno.env.get('AI_ALLOWED_ORIGINS') || '').split(',').map(s => s.trim()).filter(Boolean);

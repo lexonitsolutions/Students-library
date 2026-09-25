@@ -179,3 +179,20 @@ export interface QueryMessageRow {
   created_at: string;
 }
 
+export type AIProviderName = 'gemini' | 'openai' | 'anthropic' | 'grok';
+
+export interface UserAIProviderRow {
+  id: string;
+  user_id: string;
+  provider: AIProviderName;
+  encrypted_api_key: string;
+  key_hint: string;
+  selected_model: string;
+  is_default: boolean;
+  connection_status: 'connected' | 'failed' | 'unknown';
+  created_at: string;
+  updated_at: string;
+  last_validated_at: string | null;
+}
+
+

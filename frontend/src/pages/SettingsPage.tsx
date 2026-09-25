@@ -31,6 +31,7 @@ import { useDarkMode } from '../hooks/useDarkMode';
 import { useAIAssistantPreferences } from '../components/assistant/useAIAssistantPreferences';
 import { AccountSettingsModal } from '../components/settings/AccountSettingsModal';
 import { ModifyPasswordModal } from '../components/settings/ModifyPasswordModal';
+import { AIProviderSettings } from '../components/ai-providers/AIProviderSettings';
 
 const settingsSections = [
   {
@@ -123,32 +124,45 @@ export function SettingsPage() {
     navigate('/signup', { replace: true });
   };
 
+
+
   return (
-    <div className="mx-auto max-w-xl pb-12">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="mx-auto max-w-xl pb-12"
+    >
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Settings</h1>
-        <p className="text-xs text-on-surface-variant mt-0.5">
-          Manage your account preferences, appearance, and security.
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold mb-2">
+          <span>Account & Preferences</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface">Settings</h1>
+        <p className="text-xs sm:text-sm text-on-surface-variant mt-1">
+          Customize your learning preferences, AI engines, appearance, and account security.
         </p>
       </div>
 
       {/* Profile Summary Card */}
-      <div className="rounded-xl border border-card-border bg-surface p-4 shadow-2xs flex items-center justify-between gap-4">
+      <motion.div 
+        whileHover={{ y: -1 }}
+        className="rounded-2xl border border-card-border bg-surface p-4 sm:p-5 shadow-2xs flex items-center justify-between gap-4 transition-all"
+      >
         <div className="flex items-center gap-3.5 min-w-0">
           {isExploring ? (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
               <User size={22} />
             </div>
           ) : (
-            <Avatar name={user.name} src={user.avatar} size={46} className="ring-1 ring-card-border shrink-0" />
+            <Avatar name={user.name} src={user.avatar} size={48} className="ring-2 ring-primary/20 shrink-0 rounded-xl" />
           )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-on-surface">{user.name}</p>
+            <p className="truncate text-base font-bold text-on-surface">{user.name}</p>
             <div className="flex items-center gap-2 mt-1">
               {user.quickId && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-container border border-card-border text-[11px] font-mono font-medium text-on-surface-variant">
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant/60 font-sans">ID</span>
+                  <span className="text-[10px] uppercase font-bold text-primary font-sans">ID</span>
                   <span>{user.quickId}</span>
                 </span>
               )}
@@ -167,73 +181,75 @@ export function SettingsPage() {
               setShowAccountModal(true);
             }
           }}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-card-border bg-surface hover:bg-surface-container text-xs font-medium text-on-surface transition-colors cursor-pointer shrink-0 shadow-2xs"
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-card-border bg-surface hover:bg-surface-container text-xs font-semibold text-on-surface transition-colors cursor-pointer shrink-0 shadow-2xs"
           aria-label="Edit Profile"
         >
-          <Pencil size={13} className="text-on-surface-variant" />
+          <Pencil size={12} className="text-on-surface-variant" />
           <span>Edit</span>
         </button>
-      </div>
+      </motion.div>
 
       {/* Settings Sections */}
       {settingsSections.map((section) => (
-        <div key={section.heading} className="mt-5">
-          <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant/80">
+        <div key={section.heading} className="mt-6">
+          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/80">
             {section.heading}
           </p>
-          <div className="rounded-xl border border-card-border bg-surface divide-y divide-card-border/60 shadow-2xs overflow-hidden">
-            {section.items.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => {
-                  if (item.label === 'Notifications') {
-                    navigate('/notifications');
-                  } else if (item.label === 'Recent Activity') {
-                    navigate('/library?tab=activity');
-                  } else if (item.label === 'Help & Support') {
-                    navigate('/support');
-                  } else if (item.label === 'Terms of Service') {
-                    navigate('/terms');
-                  } else if (item.label === 'Privacy Policy') {
-                    navigate('/privacy');
-                  } else if (item.label === 'About answersbro') {
-                    navigate('/get-started');
-                  } else if (item.label === 'Account') {
-                    if (isExploring) {
-                      openSignupModal('/settings');
-                    } else {
-                      setShowAccountModal(true);
+          <div className="rounded-2xl border border-card-border bg-surface divide-y divide-card-border/60 shadow-2xs overflow-hidden">
+            {section.items.map((item) => {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    if (item.label === 'Notifications') {
+                      navigate('/notifications');
+                    } else if (item.label === 'Recent Activity') {
+                      navigate('/library?tab=activity');
+                    } else if (item.label === 'Help & Support') {
+                      navigate('/support');
+                    } else if (item.label === 'Terms of Service') {
+                      navigate('/terms');
+                    } else if (item.label === 'Privacy Policy') {
+                      navigate('/privacy');
+                    } else if (item.label === 'About answersbro') {
+                      navigate('/get-started');
+                    } else if (item.label === 'Account') {
+                      if (isExploring) {
+                        openSignupModal('/settings');
+                      } else {
+                        setShowAccountModal(true);
+                      }
+                    } else if (item.label === 'Modify Password') {
+                      if (isExploring) {
+                        openSignupModal('/settings');
+                      } else {
+                        setShowModifyPasswordModal(true);
+                      }
                     }
-                  } else if (item.label === 'Modify Password') {
-                    if (isExploring) {
-                      openSignupModal('/settings');
-                    } else {
-                      setShowModifyPasswordModal(true);
-                    }
-                  }
-                }}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-on-surface hover:bg-surface-container-low/60 cursor-pointer transition-colors group"
-              >
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container/70 text-on-surface-variant group-hover:text-on-surface transition-colors shrink-0">
-                  <item.icon size={15} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium text-sm text-on-surface">{item.label}</span>
-                </div>
-                <ChevronRight size={15} className="text-on-surface-variant/40 group-hover:text-on-surface-variant group-hover:translate-x-0.5 transition-all" />
-              </button>
-            ))}
+                  }}
+                  className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left text-sm text-on-surface hover:bg-surface-container-low transition-colors group cursor-pointer"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant group-hover:text-on-surface group-hover:bg-surface-container-high transition-colors shrink-0">
+                    <item.icon size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-sm text-on-surface group-hover:text-primary transition-colors">{item.label}</span>
+                  </div>
+                  <ChevronRight size={15} className="text-on-surface-variant/40 group-hover:text-on-surface-variant group-hover:translate-x-1 transition-all" />
+                </button>
+              );
+            })}
 
             {section.heading === 'Preferences' && (
               <>
-                <div className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-on-surface">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container/70 text-on-surface-variant shrink-0">
-                      <Palette size={15} />
+                <div className="flex w-full items-center justify-between px-4 py-3.5 text-left text-sm text-on-surface">
+                  <div className="flex items-center gap-3.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant shrink-0">
+                      <Palette size={16} />
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-on-surface">Appearance</p>
+                      <p className="font-semibold text-sm text-on-surface">Appearance</p>
                       <p className="text-[11px] text-on-surface-variant capitalize">
                         {theme} theme enabled
                       </p>
@@ -261,15 +277,15 @@ export function SettingsPage() {
                   </button>
                 </div>
 
-                <div className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-on-surface">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container/70 text-on-surface-variant shrink-0">
-                      <Sparkles size={15} />
+                <div className="flex w-full items-center justify-between px-4 py-3.5 text-left text-sm text-on-surface">
+                  <div className="flex items-center gap-3.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant shrink-0">
+                      <Sparkles size={16} />
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-on-surface">AI Learning Assistant</p>
+                      <p className="font-semibold text-sm text-on-surface">AI Learning Assistant</p>
                       <p className="text-[11px] text-on-surface-variant">
-                        Show floating assistant
+                        Floating assistant on Library & Dashboard
                       </p>
                     </div>
                   </div>
@@ -307,6 +323,9 @@ export function SettingsPage() {
           </div>
         </div>
       ))}
+
+      {/* AI Providers (BYOK) */}
+      <AIProviderSettings />
 
       {/* Account Actions */}
       <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
@@ -486,7 +505,7 @@ export function SettingsPage() {
           <span>{toastMessage}</span>
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

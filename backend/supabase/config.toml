@@ -1,3 +1,9 @@
 [functions.ai-learning]
 # Clerk JWTs are verified inside the function against the configured issuer/JWKS.
-verify_jwt = false
+verify_jwt = false
+
+[functions.manage-ai-providers]
+verify_jwt = false
+
+[functions.byok-ai-learning]
+verify_jwt = false
