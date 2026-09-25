@@ -479,6 +479,57 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.delete_material_by_id(uuid) TO anon, authenticated;
 
+-- ------------------------------------------------------------------------------
+-- 10. BRING-YOUR-OWN-KEY (BYOK) AI PROVIDERS TABLE
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_ai_providers (
+  id                  uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             text        NOT NULL,
+  provider            text        NOT NULL CHECK (provider IN ('gemini', 'openai', 'anthropic', 'grok')),
+  encrypted_api_key   text        NOT NULL,
+  key_hint            text        NOT NULL,
+  selected_model      text        NOT NULL DEFAULT '',
+  is_default          boolean     NOT NULL DEFAULT false,
+  connection_status   text        NOT NULL DEFAULT 'unknown' CHECK (connection_status IN ('connected', 'failed', 'unknown')),
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now(),
+  last_validated_at   timestamptz
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS user_ai_providers_user_provider_idx ON public.user_ai_providers (user_id, provider);
+CREATE INDEX IF NOT EXISTS user_ai_providers_user_id_idx ON public.user_ai_providers (user_id);
+
+CREATE OR REPLACE FUNCTION public.enforce_single_ai_provider_default()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.is_default = true THEN
+    UPDATE public.user_ai_providers
+    SET is_default = false, updated_at = now()
+    WHERE user_id = NEW.user_id AND id <> NEW.id AND is_default = true;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_enforce_single_ai_provider_default ON public.user_ai_providers;
+CREATE TRIGGER trg_enforce_single_ai_provider_default
+  AFTER INSERT OR UPDATE OF is_default ON public.user_ai_providers
+  FOR EACH ROW WHEN (NEW.is_default = true)
+  EXECUTE FUNCTION public.enforce_single_ai_provider_default();
+
+ALTER TABLE public.user_ai_providers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ai_providers select all" ON public.user_ai_providers;
+DROP POLICY IF EXISTS "ai_providers insert all" ON public.user_ai_providers;
+DROP POLICY IF EXISTS "ai_providers update all" ON public.user_ai_providers;
+DROP POLICY IF EXISTS "ai_providers delete all" ON public.user_ai_providers;
+
+CREATE POLICY "ai_providers select all" ON public.user_ai_providers FOR SELECT USING (true);
+CREATE POLICY "ai_providers insert all" ON public.user_ai_providers FOR INSERT WITH CHECK (true);
+CREATE POLICY "ai_providers update all" ON public.user_ai_providers FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "ai_providers delete all" ON public.user_ai_providers FOR DELETE USING (true);
+
+GRANT ALL ON public.user_ai_providers TO anon, authenticated;
+
 COMMIT;
 
 -- ------------------------------------------------------------------------------
